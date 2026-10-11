@@ -19,6 +19,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <Link href="/tier" className="text-sm text-muted hover:text-text">
               티어 리스트
             </Link>
+            <Link href="/trends" className="text-sm text-muted hover:text-text">
+              패치 트렌드
+            </Link>
           </nav>
         </header>
         <div className="border-b border-line bg-amber-500/10 px-4 py-2 text-center text-xs text-amber-300">

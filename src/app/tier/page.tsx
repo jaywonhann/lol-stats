@@ -1,33 +1,40 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Icon, Tabs, TierBadge, WinRate, pct } from "@/components/ui";
-import { getChampions, img, patchLabel } from "@/lib/ddragon";
+import { getChampions, getPatches, img } from "@/lib/ddragon";
 import { LANES, RANKS, parseLane, parseRank } from "@/lib/lanes";
 import { tierList } from "@/lib/mock";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "챔피언 티어 리스트" };
 
-type Props = { searchParams: Promise<{ lane?: string; rank?: string }> };
+type Props = { searchParams: Promise<{ lane?: string; rank?: string; patch?: string }> };
 
 export default async function TierPage({ searchParams }: Props) {
   const params = await searchParams;
   const lane = parseLane(params.lane);
   const rank = parseRank(params.rank);
-  const { version, champions } = await getChampions();
-  const patch = patchLabel(version);
-  const rows = tierList(champions, lane, rank, patch);
+  const [{ version, champions }, patches] = await Promise.all([getChampions(), getPatches()]);
+  const latest = patches[patches.length - 1];
+  const patch = params.patch && patches.includes(params.patch) ? params.patch : latest;
+  const rows = tierList(champions, lane, rank, patches, patch);
+  const q = (o: { lane?: string; rank?: string; patch?: string }) =>
+    `/tier?lane=${o.lane ?? lane}&rank=${o.rank ?? rank}${(o.patch ?? patch) !== latest ? `&patch=${o.patch ?? patch}` : ""}`;
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <h1 className="text-2xl font-bold">챔피언 티어 리스트</h1>
-        <span className="text-sm text-muted">패치 {patch} · 한국 서버</span>
+        <span className="text-sm text-muted">패치 {patch} · 한국 서버 · 순위 변동은 이전 패치 대비</span>
       </div>
 
       <div className="space-y-2">
-        <Tabs active={lane} items={LANES.map((l) => ({ id: l.id, label: l.label, href: `/tier?lane=${l.id}&rank=${rank}` }))} />
-        <Tabs active={rank} items={RANKS.map((r) => ({ id: r.id, label: r.label, href: `/tier?lane=${lane}&rank=${r.id}` }))} />
+        <Tabs active={lane} items={LANES.map((l) => ({ id: l.id, label: l.label, href: q({ lane: l.id }) }))} />
+        <Tabs active={rank} items={RANKS.map((r) => ({ id: r.id, label: r.label, href: q({ rank: r.id }) }))} />
+        <Tabs
+          active={patch}
+          items={patches.slice(-3).reverse().map((p) => ({ id: p, label: `패치 ${p}`, href: q({ patch: p }) }))}
+        />
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-line bg-panel">
@@ -45,10 +52,10 @@ export default async function TierPage({ searchParams }: Props) {
             </tr>
           </thead>
           <tbody>
-            {rows.map((s, i) => (
+            {rows.map((s) => (
               <tr key={s.champion.id} className="border-b border-line/50 last:border-0 hover:bg-panel-2">
                 <td className="px-3 py-2">
-                  <span className="font-semibold">{i + 1}</span>
+                  <span className="font-semibold">{s.rank}</span>
                   <RankChange value={s.rankChange} />
                 </td>
                 <td className="px-3 py-2">
@@ -76,10 +83,11 @@ export default async function TierPage({ searchParams }: Props) {
   );
 }
 
-function RankChange({ value }: { value: number }) {
+function RankChange({ value }: { value: number | null }) {
+  if (value === null) return <span className="ml-1 text-xs text-accent">NEW</span>;
   if (value === 0) return <span className="ml-1 text-xs text-muted">-</span>;
   return (
-    <span className={`ml-1 text-xs ${value > 0 ? "text-win" : "text-lose"}`}>
+    <span className={`ml-1 text-xs ${value > 0 ? "text-[var(--chart-up)]" : "text-[var(--chart-down)]"}`}>
       {value > 0 ? "▲" : "▼"}
       {Math.abs(value)}
     </span>

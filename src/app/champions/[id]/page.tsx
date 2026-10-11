@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon, Panel, Tabs, TierBadge, WinRate, pct } from "@/components/ui";
-import { getChampion, getChampions, getItems, getRuneTrees, getSummonerSpells, img, patchLabel, type RuneTree } from "@/lib/ddragon";
+import TrendChart from "@/components/TrendChart";
+import { getChampion, getChampions, getItems, getPatches, getRuneTrees, getSummonerSpells, img, type RuneTree } from "@/lib/ddragon";
 import { LANES, RANKS, laneLabel, parseRank, type Lane } from "@/lib/lanes";
-import { build, championStat, lanesFor, matchups, type Matchup, type RunePage } from "@/lib/mock";
+import { build, championTrend, lanesFor, matchups, type Matchup, type RunePage } from "@/lib/mock";
 
 export const dynamic = "force-dynamic";
 
@@ -25,18 +26,20 @@ export default async function ChampionPage({ params, searchParams }: Props) {
   if (!data) notFound();
   const { version, champion } = data;
 
-  const [{ champions }, items, trees, spells] = await Promise.all([
+  const [{ champions }, patches, items, trees, spells] = await Promise.all([
     getChampions(),
+    getPatches(),
     getItems(version),
     getRuneTrees(version),
     getSummonerSpells(version),
   ]);
 
-  const patch = patchLabel(version);
+  const patch = patches[patches.length - 1];
   const lanes = lanesFor(champion);
   const lane: Lane = lanes.includes(sp.lane as Lane) ? (sp.lane as Lane) : lanes[0];
   const rank = parseRank(sp.rank);
-  const stat = championStat(champions, champion, lane, rank, patch);
+  const trend = championTrend(champions, champion, lane, rank, patches);
+  const stat = trend.find((t) => t.patch === patch) ?? null;
   const b = build(champion, lane, rank, patch, items, trees, spells);
   const mu = matchups(champions, champion, lane, rank, patch);
   const href = (l: string, r: string) => `/champions/${champion.id}?lane=${l}&rank=${r}`;
@@ -81,6 +84,26 @@ export default async function ChampionPage({ params, searchParams }: Props) {
           패치 {patch} · {laneLabel(lane)} · {stat ? `${stat.games.toLocaleString("ko-KR")}게임` : ""}
         </p>
       </Panel>
+
+      {trend.length > 1 && (
+        <Panel title={`패치별 추이 (최근 ${trend.length}개 패치)`}>
+          <div className="grid gap-6 md:grid-cols-2">
+            <TrendChart
+              title="승률"
+              suffix="%"
+              baseline={50}
+              points={trend.map((t) => ({ label: t.patch, value: t.winRate }))}
+            />
+            <TrendChart
+              title={`${laneLabel(lane)} 순위`}
+              suffix="위"
+              decimals={0}
+              invert
+              points={trend.map((t) => ({ label: t.patch, value: t.rank, note: `${t.tier === "OP" ? "OP" : `${t.tier}티어`}` }))}
+            />
+          </div>
+        </Panel>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">

@@ -17,3 +17,12 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
 }
+
+/* 차트 색상 (어두운 배경용, 색약 검사 통과한 파랑/빨강 조합) */
+:root {
+  --chart-up: #3987e5;
+  --chart-down: #e66767;
+  --chart-line: #3987e5;
+  --chart-grid: #2a3242;
+  --chart-mid: #383835;
+}

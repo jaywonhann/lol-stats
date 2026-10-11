@@ -57,33 +57,45 @@ export function lanesFor(champ: Champion): Lane[] {
 
 export type Tier = "OP" | "1" | "2" | "3" | "4" | "5";
 
-export type ChampionStat = {
+export type PatchStat = { patch: string; winRate: number; pickRate: number; banRate: number; games: number; score: number };
+
+export type ChampionStat = PatchStat & {
   champion: Champion;
   lane: Lane;
-  score: number;
   tier: Tier;
-  winRate: number;
-  pickRate: number;
-  banRate: number;
-  games: number;
-  rankChange: number;
+  rank: number;
+  // 이전 패치 대비 순위 변동 (양수 = 상승). 이전 패치에 없었으면 null
+  rankChange: number | null;
+  scoreChange: number | null;
+  winRateChange: number | null;
 };
 
-function baseStat(champ: Champion, lane: Lane, rank: Rank, patch: string) {
-  const r = rng(`stat:${champ.id}:${lane}:${rank}:${patch}`);
-  const isMain = lanesFor(champ)[0] === lane;
-  const winRate = range(r, 46.5, 53.5);
-  const pickRate = isMain ? range(r, 1, 14) : range(r, 0.5, 4);
-  const banRate = r() < 0.7 ? range(r, 0.2, 6) : range(r, 6, 35);
-  const sampleBase = rank === "master" ? 4000 : rank === "diamond" ? 18000 : rank === "all" ? 120000 : 45000;
-  const games = Math.round(sampleBase * (pickRate / 10) * range(r, 0.8, 1.2));
-  const rankChange = Math.round(range(r, -6, 6));
-  return { winRate, pickRate, banRate, games, rankChange };
-}
+const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+const sampleBase = (rank: Rank) => (rank === "master" ? 4000 : rank === "diamond" ? 18000 : rank === "all" ? 120000 : 45000);
 
 // 자체 메타 점수: 승률을 가장 크게, 픽률·밴율을 보조로 반영
 function metaScore(s: { winRate: number; pickRate: number; banRate: number }) {
   return (s.winRate - 50) * 6 + Math.log1p(s.pickRate) * 8 + Math.log1p(s.banRate) * 3 + 50;
+}
+
+// 패치별 통계: 패치마다 조금씩 변하는 랜덤 워크라서 상승·하락 추세가 자연스럽게 이어집니다.
+// patches는 오래된 패치 -> 최신 패치 순서.
+export function history(champ: Champion, lane: Lane, rank: Rank, patches: string[]): PatchStat[] {
+  const r0 = rng(`base:${champ.id}:${lane}:${rank}`);
+  const isMain = lanesFor(champ)[0] === lane;
+  let winRate = range(r0, 47.5, 52.5);
+  let pickRate = isMain ? range(r0, 1.5, 12) : range(r0, 0.6, 3.5);
+  let banRate = r0() < 0.75 ? range(r0, 0.2, 5) : range(r0, 5, 30);
+  let trend = range(r0, -0.6, 0.6); // 챔피언마다 다른 버프/너프 흐름
+  return patches.map((patch) => {
+    const r = rng(`patch:${champ.id}:${lane}:${rank}:${patch}`);
+    if (r() < 0.25) trend = range(r, -0.9, 0.9); // 가끔 버프/너프로 흐름이 바뀜
+    winRate = clamp(winRate + trend + range(r, -0.7, 0.7) - (winRate - 50) * 0.15, 45, 55);
+    pickRate = clamp(pickRate * (1 + trend * 0.12 + range(r, -0.12, 0.12)), 0.5, 20);
+    banRate = clamp(banRate * (1 + trend * 0.1 + range(r, -0.15, 0.15)), 0.1, 45);
+    const games = Math.round(sampleBase(rank) * (pickRate / 10) * range(r, 0.85, 1.15));
+    return { patch, winRate, pickRate, banRate, games, score: metaScore({ winRate, pickRate, banRate }) };
+  });
 }
 
 function tierOf(rankIndex: number, total: number): Tier {
@@ -96,19 +108,61 @@ function tierOf(rankIndex: number, total: number): Tier {
   return "5";
 }
 
-export function tierList(champions: Champion[], lane: Lane, rank: Rank, patch: string): ChampionStat[] {
-  const rows = champions
-    .filter((c) => lanesFor(c).includes(lane))
-    .map((champion) => {
-      const s = baseStat(champion, lane, rank, patch);
-      return { champion, lane, ...s, score: metaScore(s) };
-    })
-    .sort((a, b) => b.score - a.score);
-  return rows.map((row, i) => ({ ...row, tier: tierOf(i, rows.length) }));
+// 한 라인·랭크 구간의 패치별 순위표 전체. patches는 오래된 -> 최신 순서.
+export function tierHistory(champions: Champion[], lane: Lane, rank: Rank, patches: string[]): ChampionStat[][] {
+  const pool = champions.filter((c) => lanesFor(c).includes(lane));
+  const all = pool.map((champion) => ({ champion, stats: history(champion, lane, rank, patches) }));
+  const boards: ChampionStat[][] = [];
+  patches.forEach((_, pi) => {
+    const prev = boards[pi - 1];
+    const prevById = new Map(prev?.map((s) => [s.champion.id, s]));
+    const rows = all
+      .map(({ champion, stats }) => ({ champion, ...stats[pi] }))
+      .sort((a, b) => b.score - a.score)
+      .map((row, i, arr) => {
+        const before = prevById.get(row.champion.id);
+        return {
+          ...row,
+          lane,
+          rank: i + 1,
+          tier: tierOf(i, arr.length),
+          rankChange: before ? before.rank - (i + 1) : null,
+          scoreChange: before ? row.score - before.score : null,
+          winRateChange: before ? row.winRate - before.winRate : null,
+        };
+      });
+    boards.push(rows);
+  });
+  return boards;
 }
 
-export function championStat(champions: Champion[], champ: Champion, lane: Lane, rank: Rank, patch: string) {
-  return tierList(champions, lane, rank, patch).find((s) => s.champion.id === champ.id) ?? null;
+export function tierList(champions: Champion[], lane: Lane, rank: Rank, patches: string[], patch: string): ChampionStat[] {
+  const boards = tierHistory(champions, lane, rank, patches);
+  const i = patches.indexOf(patch);
+  return boards[i === -1 ? boards.length - 1 : i];
+}
+
+export function championStat(champions: Champion[], champ: Champion, lane: Lane, rank: Rank, patches: string[]) {
+  return tierList(champions, lane, rank, patches, patches[patches.length - 1]).find((s) => s.champion.id === champ.id) ?? null;
+}
+
+// 패치별 순위·티어 추이 (챔피언 상세 그래프용)
+export function championTrend(champions: Champion[], champ: Champion, lane: Lane, rank: Rank, patches: string[]) {
+  return tierHistory(champions, lane, rank, patches)
+    .map((board) => board.find((s) => s.champion.id === champ.id))
+    .filter((s): s is ChampionStat => !!s);
+}
+
+// 최신 패치에서 메타 점수가 가장 많이 오른/내린 챔피언
+export function movers(champions: Champion[], lane: Lane, rank: Rank, patches: string[], count = 8) {
+  const boards = tierHistory(champions, lane, rank, patches);
+  const latest = boards[boards.length - 1].filter((s) => s.scoreChange !== null);
+  const sorted = [...latest].sort((a, b) => b.scoreChange! - a.scoreChange!);
+  const sparkFor = (id: string) => boards.map((b) => b.find((s) => s.champion.id === id)?.winRate ?? null);
+  return {
+    rising: sorted.slice(0, count).filter((s) => s.scoreChange! > 0).map((s) => ({ stat: s, spark: sparkFor(s.champion.id) })),
+    falling: sorted.slice(-count).reverse().filter((s) => s.scoreChange! < 0).map((s) => ({ stat: s, spark: sparkFor(s.champion.id) })),
+  };
 }
 
 export type Matchup = { champion: Champion; winRate: number; games: number };

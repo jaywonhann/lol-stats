@@ -1,7 +1,8 @@
 // Riot Data Dragon: 챔피언·아이템·룬·스펠 같은 정적 게임 데이터 (API 키 불필요)
 const BASE = process.env.DDRAGON_BASE ?? "https://ddragon.leagueoflegends.com";
 const LOCALE = "ko_KR";
-const REVALIDATE = 60 * 60 * 6;
+// 새 패치가 나오면 1시간 안에 자동으로 반영됩니다
+const REVALIDATE = 60 * 60;
 
 async function getJson<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`, { next: { revalidate: REVALIDATE } });
@@ -50,6 +51,19 @@ export type SummonerSpell = { id: string; key: string; name: string; modes: stri
 export async function getVersion(): Promise<string> {
   const versions = await getJson<string[]>("/api/versions.json");
   return versions[0];
+}
+
+// 최근 패치 목록 ("16.20" 형식), 오래된 -> 최신 순서
+export async function getPatches(count = 8): Promise<string[]> {
+  const versions = await getJson<string[]>("/api/versions.json");
+  const patches: string[] = [];
+  for (const v of versions) {
+    if (!/^\d+\.\d+\.\d+$/.test(v)) continue;
+    const p = patchLabel(v);
+    if (!patches.includes(p)) patches.push(p);
+    if (patches.length === count) break;
+  }
+  return patches.reverse();
 }
 
 export async function getChampions(): Promise<{ version: string; champions: Champion[] }> {
