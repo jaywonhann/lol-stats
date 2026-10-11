@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getPatches } from "@/lib/ddragon";
+import { statsSource } from "@/lib/stats";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -7,7 +9,12 @@ export const metadata: Metadata = {
   description: "리그 오브 레전드 챔피언 티어, 빌드, 룬, 카운터 통계",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
+  const source = await getPatches()
+    .then((p) => statsSource(p).source)
+    .catch(() => "mock" as const);
   return (
     <html lang="ko">
       <body className="min-h-screen antialiased">
@@ -24,14 +31,19 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             </Link>
           </nav>
         </header>
-        <div className="border-b border-line bg-amber-500/10 px-4 py-2 text-center text-xs text-amber-300">
-          지금 보이는 승률·픽률·빌드 통계는 예시용 목업 데이터예요. 챔피언·아이템·룬 정보는 실제 게임 데이터입니다.
-        </div>
+        {source === "mock" && (
+          <div className="border-b border-line bg-amber-500/10 px-4 py-2 text-center text-xs text-amber-300">
+            지금 보이는 승률·픽률·순위는 예시 데이터예요. 실제 랭크 게임 수집이
+            시작되면 실제 통계와 빌드로 바뀌어요.
+          </div>
+        )}
         <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
         <footer className="mt-12 border-t border-line px-4 py-6 text-center text-xs text-muted">
-          협곡지표 isn&apos;t endorsed by Riot Games and doesn&apos;t reflect the views or opinions of Riot Games or
-          anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated
-          properties are trademarks or registered trademarks of Riot Games, Inc.
+          협곡지표 isn&apos;t endorsed by Riot Games and doesn&apos;t reflect
+          the views or opinions of Riot Games or anyone officially involved in
+          producing or managing Riot Games properties. Riot Games, and all
+          associated properties are trademarks or registered trademarks of Riot
+          Games, Inc.
         </footer>
       </body>
     </html>

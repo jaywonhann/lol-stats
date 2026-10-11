@@ -17,7 +17,8 @@ export const RANKS = [
 
 export type Rank = (typeof RANKS)[number]["id"];
 
-export const laneLabel = (lane: Lane) => LANES.find((l) => l.id === lane)!.label;
+export const laneLabel = (lane: Lane) =>
+  LANES.find((l) => l.id === lane)!.label;
 
 export const parseLane = (v: string | undefined): Lane =>
   LANES.some((l) => l.id === v) ? (v as Lane) : "top";

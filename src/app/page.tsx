@@ -4,16 +4,31 @@ import { Icon, Panel, TierBadge, WinRate } from "@/components/ui";
 import { Sparkline } from "@/components/charts";
 import { getChampions, getPatches, img } from "@/lib/ddragon";
 import { LANES } from "@/lib/lanes";
-import { movers, tierList } from "@/lib/mock";
+import { boards, movers } from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [{ version, champions }, patches] = await Promise.all([getChampions(), getPatches()]);
+  const [{ version, champions }, patches] = await Promise.all([
+    getChampions(),
+    getPatches(),
+  ]);
   const patch = patches[patches.length - 1];
-  const moves = LANES.map((l) => movers(champions, l.id, "emerald", patches, 3));
-  const rising = moves.flatMap((m) => m.rising).sort((a, b) => b.stat.scoreChange! - a.stat.scoreChange!).slice(0, 5);
-  const falling = moves.flatMap((m) => m.falling).sort((a, b) => a.stat.scoreChange! - b.stat.scoreChange!).slice(0, 5);
+  const top5 = (lane: (typeof LANES)[number]["id"]) => {
+    const b = boards(champions, lane, "emerald", patches).boards;
+    return b[b.length - 1].slice(0, 5);
+  };
+  const moves = LANES.map((l) =>
+    movers(champions, l.id, "emerald", patches, 3),
+  );
+  const rising = moves
+    .flatMap((m) => m.rising)
+    .sort((a, b) => b.stat.scoreChange! - a.stat.scoreChange!)
+    .slice(0, 5);
+  const falling = moves
+    .flatMap((m) => m.falling)
+    .sort((a, b) => a.stat.scoreChange! - b.stat.scoreChange!)
+    .slice(0, 5);
 
   return (
     <div className="space-y-8">
@@ -21,65 +36,96 @@ export default async function Home() {
         <h1 className="text-3xl font-bold">
           <span className="text-accent">협곡</span>지표
         </h1>
-        <p className="mt-2 text-sm text-muted">패치 {patch} 기준 챔피언 티어, 빌드, 룬, 카운터</p>
+        <p className="mt-2 text-sm text-muted">
+          패치 {patch} 기준 챔피언 티어, 빌드, 룬, 카운터
+        </p>
       </section>
 
       <div className="grid gap-3 md:grid-cols-5">
         {LANES.map((lane) => (
           <Panel key={lane.id} title={`${lane.label} 추천 챔피언`}>
             <ul className="space-y-2">
-              {tierList(champions, lane.id, "emerald", patches, patch)
-                .slice(0, 5)
-                .map((s) => (
-                  <li key={s.champion.id}>
-                    <Link href={`/champions/${s.champion.id}?lane=${lane.id}`} className="flex items-center gap-2 hover:text-accent">
-                      <Icon src={img.champion(version, s.champion.image.full)} alt={s.champion.name} size={28} />
-                      <span className="flex-1 truncate text-sm">{s.champion.name}</span>
-                      <TierBadge tier={s.tier} />
-                    </Link>
-                    <div className="pl-9 text-xs text-muted">
-                      승률 <WinRate value={s.winRate} />
-                    </div>
-                  </li>
-                ))}
+              {top5(lane.id).map((s) => (
+                <li key={s.champion.id}>
+                  <Link
+                    href={`/champions/${s.champion.id}?lane=${lane.id}`}
+                    className="flex items-center gap-2 hover:text-accent"
+                  >
+                    <Icon
+                      src={img.champion(version, s.champion.image.full)}
+                      alt={s.champion.name}
+                      size={28}
+                    />
+                    <span className="flex-1 truncate text-sm">
+                      {s.champion.name}
+                    </span>
+                    <TierBadge tier={s.tier} />
+                  </Link>
+                  <div className="pl-9 text-xs text-muted">
+                    승률 <WinRate value={s.winRate} />
+                  </div>
+                </li>
+              ))}
             </ul>
-            <Link href={`/tier?lane=${lane.id}`} className="mt-3 block text-xs text-accent hover:underline">
+            <Link
+              href={`/tier?lane=${lane.id}`}
+              className="mt-3 block text-xs text-accent hover:underline"
+            >
               전체 보기
             </Link>
           </Panel>
         ))}
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        {[
-          { title: `패치 ${patch} 떠오르는 챔피언`, rows: rising },
-          { title: `패치 ${patch} 떨어지는 챔피언`, rows: falling },
-        ].map((box) => (
-          <Panel key={box.title} title={box.title}>
-            <ul className="space-y-2">
-              {box.rows.map(({ stat, spark }) => (
-                <li key={stat.champion.id + stat.lane}>
-                  <Link href={`/champions/${stat.champion.id}?lane=${stat.lane}`} className="flex items-center gap-3 hover:text-accent">
-                    <Icon src={img.champion(version, stat.champion.image.full)} alt={stat.champion.name} size={28} />
-                    <span className="flex-1 truncate text-sm">
-                      {stat.champion.name} <span className="text-xs text-muted">{LANES.find((l) => l.id === stat.lane)!.label}</span>
-                    </span>
-                    <Sparkline values={spark} />
-                    <ScoreDelta value={stat.scoreChange!} />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            <Link href="/trends" className="mt-3 block text-xs text-accent hover:underline">
-              패치 트렌드 전체 보기
-            </Link>
-          </Panel>
-        ))}
-      </div>
+      {(rising.length > 0 || falling.length > 0) && (
+        <div className="grid gap-3 md:grid-cols-2">
+          {[
+            { title: `패치 ${patch} 떠오르는 챔피언`, rows: rising },
+            { title: `패치 ${patch} 떨어지는 챔피언`, rows: falling },
+          ].map((box) => (
+            <Panel key={box.title} title={box.title}>
+              <ul className="space-y-2">
+                {box.rows.map(({ stat, spark }) => (
+                  <li key={stat.champion.id + stat.lane}>
+                    <Link
+                      href={`/champions/${stat.champion.id}?lane=${stat.lane}`}
+                      className="flex items-center gap-3 hover:text-accent"
+                    >
+                      <Icon
+                        src={img.champion(version, stat.champion.image.full)}
+                        alt={stat.champion.name}
+                        size={28}
+                      />
+                      <span className="flex-1 truncate text-sm">
+                        {stat.champion.name}{" "}
+                        <span className="text-xs text-muted">
+                          {LANES.find((l) => l.id === stat.lane)!.label}
+                        </span>
+                      </span>
+                      <Sparkline values={spark} />
+                      <ScoreDelta value={stat.scoreChange!} />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/trends"
+                className="mt-3 block text-xs text-accent hover:underline"
+              >
+                패치 트렌드 전체 보기
+              </Link>
+            </Panel>
+          ))}
+        </div>
+      )}
 
       <Panel title="챔피언 검색">
         <ChampionSearch
-          champions={champions.map((c) => ({ id: c.id, name: c.name, icon: img.champion(version, c.image.full) }))}
+          champions={champions.map((c) => ({
+            id: c.id,
+            name: c.name,
+            icon: img.champion(version, c.image.full),
+          }))}
         />
       </Panel>
     </div>
@@ -89,7 +135,9 @@ export default async function Home() {
 function ScoreDelta({ value }: { value: number }) {
   const up = value >= 0;
   return (
-    <span className={`w-14 text-right text-xs font-semibold ${up ? "text-[var(--chart-up)]" : "text-[var(--chart-down)]"}`}>
+    <span
+      className={`w-14 text-right text-xs font-semibold ${up ? "text-[var(--chart-up)]" : "text-[var(--chart-down)]"}`}
+    >
       {up ? "▲" : "▼"}
       {Math.abs(value).toFixed(1)}
     </span>
