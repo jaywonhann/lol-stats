@@ -1,36 +1,27 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 협곡지표
 
-## Getting Started
+리그 오브 레전드 챔피언 통계 사이트 (티어 리스트, 빌드, 룬, 카운터).
 
-First, run the development server:
+- 챔피언·아이템·룬·소환사 주문 정보: Riot [Data Dragon](https://developer.riotgames.com/docs/lol#data-dragon) (API 키 불필요)
+- 승률·픽률·빌드 통계: 지금은 `src/lib/mock.ts`의 목업 데이터. Riot API 키가 생기면 이 파일을 실제 집계 데이터로 교체합니다.
+
+## 페이지
+
+- `/` 홈: 라인별 추천 챔피언, 챔피언 검색
+- `/tier?lane=mid&rank=diamond` 티어 리스트
+- `/champions/Ahri?lane=mid` 챔피언 상세 (룬, 코어템, 시작템, 신발, 스펠, 스킬 순서, 카운터)
+
+## 개발
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev   # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`DDRAGON_BASE` 환경변수로 Data Dragon 주소를 바꿀 수 있어요 (기본값 `https://ddragon.leagueoflegends.com`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 배포
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Vercel에서 이 저장소를 Import 하면 별도 설정 없이 배포됩니다.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+협곡지표 isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties.
