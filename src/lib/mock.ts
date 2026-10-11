@@ -128,7 +128,13 @@ export function matchups(champions: Champion[], champ: Champion, lane: Lane, ran
 
 export type BuildOption<T> = { value: T; winRate: number; pickRate: number };
 
-const STARTERS = ["1055", "1056", "1054", "1082", "3865", "1101", "1102", "1103"];
+const STARTERS_BY_LANE: Record<Lane, string[]> = {
+  top: ["1055", "1054", "1056"],
+  jungle: ["1101", "1102", "1103"],
+  mid: ["1056", "1055", "1082"],
+  bottom: ["1055", "1083"],
+  support: ["3865"],
+};
 
 function isLegendary(item: Item) {
   return (
@@ -224,13 +230,14 @@ export function build(
   const skillOrder = pickN(r, orders, 2).map((o) => o.split(""));
 
   const itemById = new Map(items.map((i) => [i.id, i]));
-  const starterPool = STARTERS.map((id) => itemById.get(id)).filter((i): i is Item => !!i);
+  const starterPool = STARTERS_BY_LANE[lane].map((id) => itemById.get(id)).filter((i): i is Item => !!i);
   const potion = itemById.get("2003");
-  const starters = pickN(r, starterPool, 2).map((i) => (potion ? [i, potion] : [i]));
+  const starters = pickN(r, starterPool, 2).map((i) => (potion && lane !== "jungle" ? [i, potion] : [i]));
 
-  const prefs = champ.tags.flatMap((t) => TAG_ITEM_PREF[t] ?? []);
+  const prefs = TAG_ITEM_PREF[champ.tags[0]] ?? [];
   const legendaries = items.filter(isLegendary);
-  const preferred = legendaries.filter((i) => i.tags.some((t) => prefs.includes(t)));
+  const avoid = prefs.includes("SpellDamage") ? ["CriticalStrike", "AttackSpeed", "Damage"] : ["SpellDamage"];
+  const preferred = legendaries.filter((i) => i.tags.some((t) => prefs.includes(t)) && !i.tags.some((t) => avoid.includes(t)));
   const pool = preferred.length >= 6 ? preferred : legendaries;
   const core = [0, 1, 2].map(() => pickN(r, pool, 3));
 
