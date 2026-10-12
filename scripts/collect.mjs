@@ -89,6 +89,9 @@ async function main() {
   // 시간대별 게임 수 (게임 시작 시각, UTC 기준 "YYYY-MM-DDTHH")
   const activityFile = path.join(dir, "activity.json");
   const activity = read(activityFile, { hours: {} });
+  // 날짜별(한국 시간) 챔피언 게임 수·승리와 코어템 두 개 조합 (픽 추이·빌드 추이 그래프용, 랭크 구간 합산)
+  const dailyFile = path.join(dir, "daily.json");
+  const daily = read(dailyFile, { days: {} });
 
   // 1) 구간별 랭커 목록
   const seeds = { emerald: [], diamond: [], master: [] };
@@ -134,7 +137,16 @@ async function main() {
     if (!match || patchOf(match.info.gameVersion) !== patch || match.info.gameDuration < 900) continue;
     const timeline = await riot(`${REGION}/lol/match/v5/matches/${id}/timeline`);
     if (!timeline) continue;
-    addMatch(dbs[tier], match, timeline, { isBoots, isCore, isTrinket });
+    const picks = addMatch(dbs[tier], match, timeline, { isBoots, isCore, isTrinket });
+    const day = new Date(match.info.gameStartTimestamp + 9 * 3600_000).toISOString().slice(0, 10);
+    const d = (daily.days[day] ??= { matches: 0, champs: {} });
+    d.matches++;
+    for (const { key, win, core } of picks) {
+      const e = (d.champs[key] ??= [0, 0, {}]);
+      e[0]++;
+      if (win) e[1]++;
+      if (core.length >= 2) bump(e[2], core.slice(0, 2).join(","), win);
+    }
     const hour = new Date(match.info.gameStartTimestamp).toISOString().slice(0, 13);
     activity.hours[hour] = (activity.hours[hour] ?? 0) + 1;
     added++;
@@ -160,6 +172,14 @@ async function main() {
   activity.hours = Object.fromEntries(Object.entries(activity.hours).filter(([h]) => h >= cutoff).sort());
   activity.updatedAt = now;
   fs.writeFileSync(activityFile, JSON.stringify(activity));
+  const dayCutoff = new Date(Date.now() + 9 * 3600_000 - 14 * 24 * 3600_000).toISOString().slice(0, 10);
+  for (const [day, d] of Object.entries(daily.days)) {
+    if (day < dayCutoff) delete daily.days[day];
+    else for (const e of Object.values(d.champs)) e[2] = Object.fromEntries(Object.entries(e[2]).sort((a, b) => b[1][0] - a[1][0]).slice(0, 10));
+  }
+  daily.days = Object.fromEntries(Object.entries(daily.days).sort());
+  daily.updatedAt = now;
+  fs.writeFileSync(dailyFile, JSON.stringify(daily));
   console.log(`완료: 서버 ${SERVER} 이번에 ${added}게임 추가 (${TIERS.map((t) => `${t} 누적 ${dbs[t].matches}`).join(", ")})`);
 }
 
@@ -191,6 +211,7 @@ export function addMatch(db, match, timeline, { isBoots, isCore, isTrinket = () 
   }
 
   const ps = match.info.participants;
+  const picks = [];
   for (const p of ps) {
     const lane = LANE[p.teamPosition];
     if (!lane) continue;
@@ -210,6 +231,7 @@ export function addMatch(db, match, timeline, { isBoots, isCore, isTrinket = () 
     if (start.length) bump(c.starters, start.join(","), win);
     const core = [...new Set(list.filter((x) => isCore(x.id)).map((x) => x.id))].slice(0, 3);
     if (core.length === 3) bump(c.core, core.join(","), win);
+    picks.push({ key: `${p.championId}:${lane}`, win, core });
     const boots = list.find((x) => isBoots(x.id));
     if (boots) bump(c.boots, boots.id, win);
 
@@ -229,6 +251,7 @@ export function addMatch(db, match, timeline, { isBoots, isCore, isTrinket = () 
     const opp = ps.find((o) => o.teamId !== p.teamId && o.teamPosition === p.teamPosition);
     if (opp) bump(c.vs, String(opp.championId), win);
   }
+  return picks;
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {

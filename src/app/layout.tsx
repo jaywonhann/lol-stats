@@ -34,6 +34,9 @@ export default async function RootLayout({
             <Link href="/trends" className="text-sm text-muted hover:text-text">
               패치 트렌드
             </Link>
+            <Link href="/meta" className="text-sm text-muted hover:text-text">
+              메타 차트
+            </Link>
             <ServerSelect value={server} />
           </nav>
         </header>

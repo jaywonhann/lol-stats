@@ -111,3 +111,21 @@ export function WinRateBars({ rows, title }: { rows: WinRateBar[]; title: string
     </figure>
   );
 }
+
+// 주식 시세처럼 보이는 작은 꺾은선 (마지막 값에 점, 아래쪽은 옅게 채움)
+export function StockLine({ values, up, width = 240, height = 56 }: { values: number[]; up: boolean; width?: number; height?: number }) {
+  if (values.length < 2) return null;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const x = (i: number) => 2 + (i * (width - 8)) / (values.length - 1);
+  const y = (v: number) => 4 + (1 - (v - min) / (max - min || 1)) * (height - 8);
+  const color = up ? "var(--chart-up)" : "var(--chart-down)";
+  const line = values.map((v, i) => `${i ? "L" : "M"}${x(i)},${y(v)}`).join("");
+  const area = `${line}L${x(values.length - 1)},${height}L${x(0)},${height}Z`;
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="h-14 w-full" preserveAspectRatio="none" aria-hidden>
+      <path d={area} fill={color} opacity={0.12} />
+      <path d={line} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
+}

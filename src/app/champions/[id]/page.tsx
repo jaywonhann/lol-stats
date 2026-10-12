@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { Icon, Panel, Tabs, TierBadge, WinRate, pct } from "@/components/ui";
 import TrendChart from "@/components/TrendChart";
 import { WinRateBars } from "@/components/charts";
+import MultiLineChart from "@/components/MultiLineChart";
+import { buildSeries, dayLabel, loadDaily, WINDOW } from "@/lib/daily";
 import {
   getChampion,
   getChampions,
@@ -81,6 +83,10 @@ export default async function ChampionPage({ params, searchParams }: Props) {
   const mu = agg ? realMatchups(agg, champion, champions) : null;
   const wr = agg ? realWinRates(agg, items, trees) : null;
   const updatedAt = source === "real" ? real.get(patch)!.updatedAt : null;
+  const daily = loadDaily(server);
+  const builds = daily ? buildSeries(daily, `${champion.key}:${lane}`) : [];
+  const itemById = new Map(items.map((i) => [i.id, i]));
+  const SERIES_COLORS = ["#3987e5", "#d95926", "#199e70"]; // 색약 검사 통과 (어두운 배경)
   const href = (l: string, r: string) =>
     `/champions/${champion.id}?lane=${l}&rank=${r}`;
 
@@ -234,6 +240,44 @@ export default async function ChampionPage({ params, searchParams }: Props) {
               }))}
             />
           </div>
+        </Panel>
+      )}
+
+      {daily && builds.length > 0 && (
+        <Panel title="템트리 승률 추이">
+          <p className="mb-3 text-xs text-muted">
+            많이 쓰인 코어템 조합(먼저 완성한 2개)의 날짜별 승률 · {WINDOW}일 이동 평균 ·{" "}
+            {serverLabel(server)} 서버 에메랄드+ · 표본이 적은 날은 비워 둠
+          </p>
+          <div className="mb-2 flex flex-wrap gap-4">
+            {builds.map((s, i) => (
+              <span key={s.pair} className="flex items-center gap-1.5 text-xs">
+                <span className="inline-block h-2.5 w-4 rounded-sm" style={{ background: SERIES_COLORS[i] }} />
+                {s.pair.split(",").map((id, j) => {
+                  const it = itemById.get(id);
+                  return it ? (
+                    <span key={id} className="flex items-center gap-1">
+                      {j > 0 && <span className="text-muted">›</span>}
+                      <Icon src={img.item(version, id)} alt={it.name} size={24} />
+                    </span>
+                  ) : null;
+                })}
+                <span className="text-muted">{s.total}게임</span>
+              </span>
+            ))}
+          </div>
+          <MultiLineChart
+            labels={daily.days.map(dayLabel)}
+            baseline={50}
+            series={builds.map((s, i) => ({
+              name: s.pair
+                .split(",")
+                .map((id) => itemById.get(id)?.name ?? id)
+                .join(" › "),
+              color: SERIES_COLORS[i],
+              values: s.values,
+            }))}
+          />
         </Panel>
       )}
 
