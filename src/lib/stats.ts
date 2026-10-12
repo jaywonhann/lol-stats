@@ -37,6 +37,7 @@ function realBoards(
           if (!c) return null;
           const pickRate = (c.games / d.matches) * 100;
           if (pickRate < 0.5) return null; // lol.ps처럼 픽률 0.5% 미만 제외
+          if (c.games < 10) return null; // 몇 게임 안 된 챔피언이 승률 100%로 1등 하지 않게
           const winRate = (c.wins / c.games) * 100;
           const banRate = ((d.bans[champion.key] ?? 0) / d.matches) * 100;
           return {
