@@ -52,7 +52,8 @@ async function riot(url) {
     return res.json();
   }
 }
-const RATE_LIMIT = Number(process.env.RATE_LIMIT ?? 95);
+// 사이트의 실시간 인원 확인도 같은 키를 쓰므로 여유를 남겨 둡니다
+const RATE_LIMIT = Number(process.env.RATE_LIMIT ?? 80);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const patchOf = (v) => v.split(".").slice(0, 2).join(".");
 

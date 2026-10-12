@@ -1,5 +1,6 @@
 import { serverLabel, type Server } from "@/lib/lanes";
 import { loadActivity } from "@/lib/real";
+import LiveCounter from "./LiveCounter";
 
 const kstHour = (iso: string) =>
   new Date(iso).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", hour: "numeric", hour12: false });
@@ -32,11 +33,12 @@ export default function LivePanel({ server }: { server: Server }) {
           {serverLabel(server)} 서버{a && ` · ${ago(a.updatedAt)} 업데이트`}
         </span>
       </div>
+      <LiveCounter server={server} />
       {a ? (
         <>
-          <p className="mt-3 text-4xl font-bold tabular-nums">
+          <p className="mt-4 border-t border-line pt-3 text-2xl font-bold tabular-nums">
             {a.total.toLocaleString("ko-KR")}
-            <span className="ml-1 text-lg font-semibold text-muted">판</span>
+            <span className="ml-1 text-base font-semibold text-muted">판</span>
           </p>
           <p className="text-sm text-muted">
             최근 24시간 동안 분석한 {serverLabel(server)} 서버 랭크 게임
