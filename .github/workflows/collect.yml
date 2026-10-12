@@ -21,6 +21,8 @@ jobs:
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main # 대기하다 시작한 작업도 앞 작업이 올린 최신 데이터에서 이어가도록
       - uses: actions/setup-node@v4
         with:
           node-version: 22
