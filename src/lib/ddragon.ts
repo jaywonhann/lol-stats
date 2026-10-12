@@ -160,6 +160,8 @@ export const img = {
   spell: (v: string, file: string) => `${BASE}/cdn/${v}/img/spell/${file}`,
   passive: (v: string, file: string) => `${BASE}/cdn/${v}/img/passive/${file}`,
   rune: (icon: string) => `${BASE}/cdn/img/${icon}`,
+  profileIcon: (v: string, id: number) =>
+    `${BASE}/cdn/${v}/img/profileicon/${id}.png`,
 };
 
 // 패치 표기: "15.20.1" -> "15.20"

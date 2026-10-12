@@ -1,5 +1,6 @@
 import Link from "next/link";
 import ChampionSearch from "@/components/ChampionSearch";
+import SummonerSearch from "@/components/SummonerSearch";
 import { Icon, Panel, TierBadge, WinRate } from "@/components/ui";
 import { Sparkline } from "@/components/charts";
 import { getChampions, getPatches, img } from "@/lib/ddragon";
@@ -52,6 +53,9 @@ export default async function Home() {
         <p className="mt-2 text-sm text-muted">
           {t.homeSubtitle(serverLabel(server, lang), patch)}
         </p>
+        <div className="mx-auto mt-5 max-w-xl text-left">
+          <SummonerSearch lang={lang} server={server} large />
+        </div>
       </section>
 
       <div className="grid gap-3 md:grid-cols-5">

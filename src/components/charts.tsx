@@ -21,7 +21,8 @@ export function Sparkline({ values, width = 96, height = 28 }: { values: (number
 type Bar = { label: string; value: number; detail: string };
 
 // 0을 기준으로 오른쪽(파랑)=상승, 왼쪽(빨강)=하락. 값 라벨에 ▲▼ 기호를 같이 붙여 색만으로 구분하지 않습니다.
-export function DivergingBars({ bars, title }: { bars: Bar[]; title: string }) {
+// format을 주면 값 라벨을 바꿀 수 있습니다 (기본: ▲1.2 / ▼1.2)
+export function DivergingBars({ bars, title, format, wide = false }: { bars: Bar[]; title: string; format?: (v: number) => string; wide?: boolean }) {
   const maxAbs = Math.max(...bars.map((b) => Math.abs(b.value)), 0.1);
   return (
     <figure>
@@ -32,12 +33,11 @@ export function DivergingBars({ bars, title }: { bars: Bar[]; title: string }) {
           const pctW = `${Math.max(1, (Math.abs(b.value) / maxAbs) * 100)}%`;
           const label = (
             <span className="text-xs text-text">
-              {up ? "▲" : "▼"}
-              {Math.abs(b.value).toFixed(1)}
+              {format ? format(b.value) : `${up ? "▲" : "▼"}${Math.abs(b.value).toFixed(1)}`}
             </span>
           );
           return (
-            <div key={b.label} role="listitem" title={`${b.label}: ${b.detail}`} className="grid grid-cols-[5.5rem_1fr_1fr] items-center gap-0 rounded hover:bg-panel-2 sm:grid-cols-[7rem_1fr_1fr]">
+            <div key={b.label} role="listitem" title={`${b.label}: ${b.detail}`} className={`grid items-center gap-0 rounded hover:bg-panel-2 ${wide ? "grid-cols-[7rem_1fr_1fr]" : "grid-cols-[5.5rem_1fr_1fr] sm:grid-cols-[7rem_1fr_1fr]"}`}>
               <span className="truncate pr-3 text-right text-sm">{b.label}</span>
               <div className="flex h-6 items-center justify-end gap-2 border-r border-muted pr-px">
                 {!up && (

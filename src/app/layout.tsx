@@ -43,6 +43,9 @@ export default async function RootLayout({
             <Link href="/meta" className="text-sm text-muted hover:text-text">
               {t.nav.meta}
             </Link>
+            <Link href="/summoner" className="text-sm text-muted hover:text-text">
+              {t.nav.summoner}
+            </Link>
             <div className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-2">
               <ServerSelect value={server} lang={lang} />
               <LangSelect value={lang} />

@@ -1,6 +1,9 @@
 // 화면 문구 사전 (영어 기본, 한국어). 클라이언트 컴포넌트에서도 쓰므로 next/headers를 가져오지 않습니다.
 import type { Lane, Rank, Server } from "./lanes";
 
+type Metric = "cs" | "gold" | "dmg" | "vision" | "kp" | "deaths";
+type ByMetric<T> = Record<Metric, T>;
+
 export type Lang = "en" | "ko";
 
 export const LANGS: { id: Lang; label: string }[] = [
@@ -18,7 +21,12 @@ const en = {
   siteTitle: "livelol.stats - LoL champion stats",
   siteDescription:
     "League of Legends champion tier list, builds, runes and counters",
-  nav: { tier: "Tier List", trends: "Patch Trends", meta: "Meta Chart" },
+  nav: {
+    tier: "Tier List",
+    trends: "Patch Trends",
+    meta: "Meta Chart",
+    summoner: "Summoner",
+  },
   mockBanner:
     "We're still collecting real games for this server, so the win rates, pick rates and ranks shown are sample data. They'll switch to real stats and builds once enough games are in.",
   server: "Server",
@@ -154,6 +162,155 @@ const en = {
   noNotableChange: "No notable changes yet.",
   metaCardTitle: (name: string, rate: string, window: number, games: number) =>
     `${name} pick rate ${rate}% (${games} games in the last ${window} days)`,
+  // 소환사 검색
+  summoner: {
+    title: "Summoner Search",
+    metaTitle: (id: string) => `${id} - Summoner analysis`,
+    intro:
+      "Enter a Riot ID to see recent Ranked Solo win rates, best champions, strengths and what to work on.",
+    inputLabel: "Riot ID",
+    placeholder: "e.g. Hide on bush#KR1",
+    search: "Search",
+    searching: (server: string) =>
+      `Searching ${server}. You can change the server at the top right.`,
+    tagHint: (tag: string) =>
+      `Include the tag after # (e.g. Hide on bush#KR1). If you leave it out, we use #${tag}.`,
+    defaultedTag: (tag: string) =>
+      `No tag was given, so we searched with #${tag}.`,
+    notFound: (id: string, server: string) =>
+      `We couldn't find ${id} on ${server}. Check the spelling and the tag after #, or switch server at the top right.`,
+    rateLimited: "Too many lookups right now. Please try again in a minute.",
+    unavailable: "Summoner search isn't available right now.",
+    error:
+      "We couldn't reach Riot's servers just now. Please try again shortly.",
+    noGames: "No recent Ranked Solo games found for this player.",
+    level: (n: string) => `Level ${n}`,
+    soloDuo: "Ranked Solo/Duo",
+    unranked: "Unranked",
+    lp: (n: string) => `${n} LP`,
+    record: (w: string, l: string) => `${w}W ${l}L`,
+    tiers: {
+      IRON: "Iron",
+      BRONZE: "Bronze",
+      SILVER: "Silver",
+      GOLD: "Gold",
+      PLATINUM: "Platinum",
+      EMERALD: "Emerald",
+      DIAMOND: "Diamond",
+      MASTER: "Master",
+      GRANDMASTER: "Grandmaster",
+      CHALLENGER: "Challenger",
+    } as Record<string, string>,
+    analyzed: (n: number, total: number) =>
+      n === total
+        ? `Analyzed ${n} recent Ranked Solo games`
+        : `Analyzed ${n} of the last ${total} Ranked Solo games (the rest couldn't be loaded)`,
+    summary: "Summary",
+    sumRole: (lane: string, n: number, total: number) =>
+      `You mostly play ${lane} (${n} of ${total} games).`,
+    sumBest: (list: string) => `Best champions to queue right now: ${list}.`,
+    sumBestNone:
+      "Play at least 3 games on a champion to see which ones to queue most.",
+    sumAvoid: (list: string) =>
+      `Consider benching ${list} for now (under 45% win rate).`,
+    sumStrength: (label: string, v: string) =>
+      `Biggest strength: ${label} (▲${v}% vs. your lane opponent).`,
+    sumWeakness: (label: string, v: string) =>
+      `Biggest weakness: ${label} (▼${v}% vs. your lane opponent).`,
+    sumForm: (w: number, l: number, wr: string, streak: string) =>
+      `Recent form: ${w}W ${l}L (${wr}% win rate)${streak}.`,
+    sumStreak: (win: boolean, n: number) =>
+      n >= 2 ? `, on a ${n}-game ${win ? "win" : "losing"} streak` : "",
+    champRecord: (name: string, w: number, l: number, wr: string) =>
+      `${name} (${w}W ${l}L, ${wr}%)`,
+    form: "Recent form",
+    formNote:
+      "Riot's API doesn't share LP history, so this graph stands in for a tier graph: it climbs one step per win and drops one per loss.",
+    formAria: (w: number, l: number) =>
+      `Win/loss trend over recent games: ${w} wins, ${l} losses`,
+    oldest: "Oldest",
+    latest: "Latest",
+    recentWinRate: "Recent win rate",
+    currentStreak: "Current streak",
+    streak: (win: boolean, n: number) => `${n}${win ? "W" : "L"}`,
+    net: "Net wins",
+    winShort: "W",
+    lossShort: "L",
+    gameTitle: (champ: string, win: boolean, kda: string) =>
+      `${win ? "Win" : "Loss"} · ${champ} · ${kda}`,
+    gameCount: (n: number) => (n === 1 ? "1 game" : `${n} games`),
+    mostPlayed: "Most played champions",
+    games: "Games",
+    kda: "KDA",
+    csMin: "CS/min",
+    lane: "Lane",
+    siteAvg: "Site avg",
+    siteAvgVal: (v: string) => `avg ${v}%`,
+    siteAvgNote: (server: string, patch: string) =>
+      `Site avg = ${server} Emerald+ win rate for that champion and lane on patch ${patch}.`,
+    noSiteAvg: "Site averages for this server will appear once enough games are collected.",
+    roles: "Roles played",
+    laneVs: "Strengths & weaknesses",
+    laneVsCaption: (n: number) =>
+      `Vs. the enemy in your position, average of ${n} games (▲ better · ▼ worse)`,
+    noLaneVs: "Not enough games with a clear lane opponent yet.",
+    metrics: {
+      cs: "CS/min",
+      gold: "Gold/min",
+      dmg: "Damage/min",
+      vision: "Vision/min",
+      kp: "Kill part.",
+      deaths: "Fewer deaths",
+    } satisfies ByMetric<string>,
+    metricNames: {
+      cs: "farming",
+      gold: "gold income",
+      dmg: "damage to champions",
+      vision: "vision",
+      kp: "kill participation",
+      deaths: "staying alive",
+    } satisfies ByMetric<string>,
+    strengths: "Strengths",
+    weaknesses: "Weaknesses",
+    noStrength: "No clear edge over your lane opponents yet.",
+    noWeakness: "No clear weak spot. Nice work!",
+    explainUp: {
+      cs: (v: string) => `You out-farm your lane opponent by ${v}% on average.`,
+      gold: (v: string) => `You earn ${v}% more gold per minute than your lane opponent.`,
+      dmg: (v: string) => `You deal ${v}% more damage to champions than your lane opponent.`,
+      vision: (v: string) => `Your vision score is ${v}% higher than your lane opponent's.`,
+      kp: (v: string) => `You take part in ${v}% more of your team's kills than your opponent does for theirs.`,
+      deaths: (v: string) => `You die ${v}% less often than your lane opponent.`,
+    } satisfies ByMetric<(v: string) => string>,
+    explainDown: {
+      cs: (v: string) => `You farm ${v}% less than your lane opponent on average.`,
+      gold: (v: string) => `You earn ${v}% less gold per minute than your lane opponent.`,
+      dmg: (v: string) => `You deal ${v}% less damage to champions than your lane opponent.`,
+      vision: (v: string) => `Your vision score is ${v}% lower than your lane opponent's.`,
+      kp: (v: string) => `You take part in ${v}% less of your team's kills than your opponent does for theirs.`,
+      deaths: (v: string) => `You die ${v}% more often than your lane opponent.`,
+    } satisfies ByMetric<(v: string) => string>,
+    howTo: "How to use this",
+    tipBuild: (champ: string, lane: string) =>
+      `Open ${champ} ${lane} and compare your items and runes with “Top builds right now”.`,
+    tipBuildLink: (champ: string) => `${champ} builds`,
+    tipMeta: (lane: string) =>
+      `Check the Meta Chart for champions rising in ${lane}. They're worth learning before everyone else does.`,
+    tipMetaLink: "Meta Chart",
+    tipTier: (lane: string) =>
+      `Use the Tier List to pick a strong second ${lane} champion, so you have a backup when your main is banned or taken.`,
+    tipTierLink: (lane: string) => `${lane} tier list`,
+    tipPractice: {
+      cs: "Practice focus: last-hitting and wave control. Aim for +1 CS per minute over your next few games.",
+      gold: "Practice focus: gold income. Take tower plates and catch side waves between fights.",
+      dmg: "Practice focus: damage. Look for more trades in lane and stay in range during teamfights.",
+      vision: "Practice focus: vision. Buy a Control Ward every back and use your trinket on cooldown.",
+      kp: "Practice focus: joining fights. Move with your team for dragons and skirmishes instead of farming alone.",
+      deaths: "Practice focus: dying less. Ward before pushing, track the enemy jungler and back when low.",
+    } satisfies ByMetric<string>,
+    tipKeepGoing:
+      "Practice focus: keep queuing your best champions and review a recent loss to find one thing to fix.",
+  },
 };
 
 export type Dict = typeof en;
@@ -161,7 +318,12 @@ export type Dict = typeof en;
 const ko: Dict = {
   siteTitle: "livelol.stats - 롤 챔피언 통계",
   siteDescription: "리그 오브 레전드 챔피언 티어, 빌드, 룬, 카운터 통계",
-  nav: { tier: "티어 리스트", trends: "패치 트렌드", meta: "메타 차트" },
+  nav: {
+    tier: "티어 리스트",
+    trends: "패치 트렌드",
+    meta: "메타 차트",
+    summoner: "소환사 검색",
+  },
   mockBanner:
     "이 서버는 아직 실제 게임을 모으는 중이라 지금 보이는 승률·픽률·순위는 예시 데이터예요. 게임이 모이면 실제 통계와 빌드로 바뀌어요.",
   server: "서버",
@@ -287,6 +449,141 @@ const ko: Dict = {
   noNotableChange: "아직 눈에 띄는 변화가 없어요.",
   metaCardTitle: (name, rate, window, games) =>
     `${name} 픽률 ${rate}% (최근 ${window}일 ${games}게임)`,
+  summoner: {
+    title: "소환사 검색",
+    metaTitle: (id) => `${id} - 소환사 분석`,
+    intro:
+      "Riot ID를 입력하면 최근 솔로랭크 승률, 잘 맞는 챔피언, 강점과 보완할 점을 정리해 드려요.",
+    inputLabel: "Riot ID",
+    placeholder: "예: Hide on bush#KR1",
+    search: "검색",
+    searching: (server) =>
+      `${server} 서버에서 찾아요. 서버는 오른쪽 위에서 바꿀 수 있어요.`,
+    tagHint: (tag) =>
+      `# 뒤의 태그까지 입력해 주세요 (예: Hide on bush#KR1). 태그를 빼면 #${tag}로 찾아요.`,
+    defaultedTag: (tag) => `태그가 없어서 #${tag}로 찾아봤어요.`,
+    notFound: (id, server) =>
+      `${server} 서버에서 ${id}을(를) 찾지 못했어요. 철자와 # 뒤 태그를 확인하거나 오른쪽 위에서 서버를 바꿔 보세요.`,
+    rateLimited: "지금 검색이 너무 많아요. 1분 뒤에 다시 시도해 주세요.",
+    unavailable: "지금은 소환사 검색을 이용할 수 없어요.",
+    error: "Riot 서버와 연결이 잘 안 되고 있어요. 잠시 뒤 다시 시도해 주세요.",
+    noGames: "최근 솔로랭크 게임 기록이 없어요.",
+    level: (n) => `레벨 ${n}`,
+    soloDuo: "솔로랭크",
+    unranked: "언랭크",
+    lp: (n) => `${n} LP`,
+    record: (w, l) => `${w}승 ${l}패`,
+    tiers: {
+      IRON: "아이언",
+      BRONZE: "브론즈",
+      SILVER: "실버",
+      GOLD: "골드",
+      PLATINUM: "플래티넘",
+      EMERALD: "에메랄드",
+      DIAMOND: "다이아몬드",
+      MASTER: "마스터",
+      GRANDMASTER: "그랜드마스터",
+      CHALLENGER: "챌린저",
+    },
+    analyzed: (n, total) =>
+      n === total
+        ? `최근 솔로랭크 ${n}게임을 분석했어요`
+        : `최근 솔로랭크 ${total}게임 중 ${n}게임을 분석했어요 (나머지는 불러오지 못했어요)`,
+    summary: "한눈에 보기",
+    sumRole: (lane, n, total) => `주로 ${lane} 포지션을 해요 (${total}게임 중 ${n}게임).`,
+    sumBest: (list) => `지금 돌리기 좋은 챔피언: ${list}.`,
+    sumBestNone: "한 챔피언을 3게임 이상 하면 잘 맞는 챔피언을 알려 드려요.",
+    sumAvoid: (list) => `${list}은(는) 승률이 45% 아래라 잠시 쉬어 가는 걸 추천해요.`,
+    sumStrength: (label, v) => `가장 큰 강점: ${label} (맞라이너보다 ▲${v}%).`,
+    sumWeakness: (label, v) => `가장 아쉬운 점: ${label} (맞라이너보다 ▼${v}%).`,
+    sumForm: (w, l, wr, streak) => `최근 흐름: ${w}승 ${l}패 (승률 ${wr}%)${streak}.`,
+    sumStreak: (win, n) => (n >= 2 ? `, 지금 ${n}${win ? "연승" : "연패"} 중이에요` : ""),
+    champRecord: (name, w, l, wr) => `${name} (${w}승 ${l}패, ${wr}%)`,
+    form: "최근 흐름",
+    formNote:
+      "Riot API는 LP 기록을 주지 않아서 티어 그래프 대신 승패 흐름을 보여드려요. 이기면 한 칸 오르고, 지면 한 칸 내려가요.",
+    formAria: (w, l) => `최근 게임 승패 흐름: ${w}승 ${l}패`,
+    oldest: "이전",
+    latest: "최근",
+    recentWinRate: "최근 승률",
+    currentStreak: "연승/연패",
+    streak: (win, n) => `${n}${win ? "연승" : "연패"}`,
+    net: "승-패",
+    winShort: "승",
+    lossShort: "패",
+    gameTitle: (champ, win, kda) => `${win ? "승리" : "패배"} · ${champ} · ${kda}`,
+    gameCount: (n) => `${n}게임`,
+    mostPlayed: "많이 한 챔피언",
+    games: "게임",
+    kda: "KDA",
+    csMin: "분당 CS",
+    lane: "라인",
+    siteAvg: "사이트 평균",
+    siteAvgVal: (v) => `평균 ${v}%`,
+    siteAvgNote: (server, patch) =>
+      `사이트 평균 = 패치 ${patch} ${server} 서버 에메랄드+ 해당 챔피언·라인 승률이에요.`,
+    noSiteAvg: "이 서버의 사이트 평균은 게임이 충분히 모이면 표시돼요.",
+    roles: "포지션 분포",
+    laneVs: "강점과 약점",
+    laneVsCaption: (n) => `같은 포지션 상대와 비교, ${n}게임 평균 (▲ 더 좋음 · ▼ 더 낮음)`,
+    noLaneVs: "맞라이너를 비교할 수 있는 게임이 아직 부족해요.",
+    metrics: {
+      cs: "분당 CS",
+      gold: "분당 골드",
+      dmg: "분당 피해량",
+      vision: "분당 시야",
+      kp: "킬 관여율",
+      deaths: "적은 데스",
+    },
+    metricNames: {
+      cs: "CS 수급",
+      gold: "골드 수급",
+      dmg: "챔피언 피해량",
+      vision: "시야 장악",
+      kp: "킬 관여",
+      deaths: "생존력",
+    },
+    strengths: "강점",
+    weaknesses: "약점",
+    noStrength: "아직 맞라이너보다 확실히 앞서는 부분은 없어요.",
+    noWeakness: "눈에 띄는 약점이 없어요. 잘하고 있어요!",
+    explainUp: {
+      cs: (v) => `맞라이너보다 CS를 평균 ${v}% 더 먹어요.`,
+      gold: (v) => `맞라이너보다 분당 골드를 ${v}% 더 벌어요.`,
+      dmg: (v) => `맞라이너보다 챔피언에게 피해를 ${v}% 더 넣어요.`,
+      vision: (v) => `맞라이너보다 시야 점수가 ${v}% 높아요.`,
+      kp: (v) => `맞라이너보다 팀 킬에 ${v}% 더 많이 관여해요.`,
+      deaths: (v) => `맞라이너보다 ${v}% 덜 죽어요.`,
+    },
+    explainDown: {
+      cs: (v) => `맞라이너보다 CS를 평균 ${v}% 덜 먹어요.`,
+      gold: (v) => `맞라이너보다 분당 골드가 ${v}% 적어요.`,
+      dmg: (v) => `맞라이너보다 챔피언 피해량이 ${v}% 적어요.`,
+      vision: (v) => `맞라이너보다 시야 점수가 ${v}% 낮아요.`,
+      kp: (v) => `맞라이너보다 팀 킬 관여가 ${v}% 적어요.`,
+      deaths: (v) => `맞라이너보다 ${v}% 더 자주 죽어요.`,
+    },
+    howTo: "이렇게 활용해 보세요",
+    tipBuild: (champ, lane) =>
+      `${champ} ${lane} 페이지에서 내 아이템·룬을 “지금 승률 높은 빌드”와 비교해 보세요.`,
+    tipBuildLink: (champ) => `${champ} 빌드 보기`,
+    tipMeta: (lane) =>
+      `메타 차트에서 ${lane} 포지션에서 떠오르는 챔피언을 확인해 보세요. 남들보다 먼저 연습해 두면 좋아요.`,
+    tipMetaLink: "메타 차트",
+    tipTier: (lane) =>
+      `티어 리스트에서 강한 ${lane} 챔피언을 하나 더 골라 두면, 주력 챔피언이 밴되거나 뺏겨도 든든해요.`,
+    tipTierLink: (lane) => `${lane} 티어 리스트`,
+    tipPractice: {
+      cs: "연습 포인트: 막타와 라인 관리. 다음 몇 게임은 분당 CS를 1개 더 먹는 걸 목표로 해 보세요.",
+      gold: "연습 포인트: 골드 수급. 포탑 방패를 챙기고 싸움 사이사이 사이드 라인을 먹어 주세요.",
+      dmg: "연습 포인트: 딜량. 라인전에서 견제를 더 자주 하고 한타 때 사거리 안에 머물러 보세요.",
+      vision: "연습 포인트: 시야. 귀환할 때마다 제어 와드를 사고 장신구는 쿨마다 써 주세요.",
+      kp: "연습 포인트: 합류. 싸움이 열리면 혼자 파밍하지 말고 드래곤·교전에 같이 움직여 보세요.",
+      deaths: "연습 포인트: 덜 죽기. 밀기 전에 와드를 박고, 상대 정글 위치를 생각하고, 체력이 낮으면 귀환해요.",
+    },
+    tipKeepGoing:
+      "연습 포인트: 잘 맞는 챔피언을 계속 돌리면서, 최근 진 게임 하나를 돌려 보고 고칠 점 하나만 찾아보세요.",
+  },
 };
 
 export const dict = (lang: Lang): Dict => (lang === "ko" ? ko : en);
