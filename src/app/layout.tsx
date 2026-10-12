@@ -2,25 +2,31 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getPatches } from "@/lib/ddragon";
 import { statsSource } from "@/lib/stats";
-import { getServer } from "@/lib/server";
+import { getLang, getServer } from "@/lib/server";
+import { dict } from "@/lib/i18n";
 import ServerSelect from "@/components/ServerSelect";
+import LangSelect from "@/components/LangSelect";
 import { LiveBadge } from "@/components/LivePanel";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: { default: "livelol.stats - 롤 챔피언 통계", template: "%s - livelol.stats" },
-  description: "리그 오브 레전드 챔피언 티어, 빌드, 룬, 카운터 통계",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = dict(await getLang());
+  return {
+    title: { default: t.siteTitle, template: "%s - livelol.stats" },
+    description: t.siteDescription,
+  };
+}
 
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const server = await getServer();
+  const [server, lang] = await Promise.all([getServer(), getLang()]);
+  const t = dict(lang);
   const source = await getPatches()
     .then((p) => statsSource(p, { server, rank: "all" }).source)
     .catch(() => "mock" as const);
   return (
-    <html lang="ko">
+    <html lang={lang}>
       <body className="min-h-screen antialiased">
         <header className="border-b border-line bg-panel">
           <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 whitespace-nowrap px-4 py-3 sm:gap-x-6">
@@ -29,21 +35,23 @@ export default async function RootLayout({
             </Link>
             <LiveBadge />
             <Link href="/tier" className="text-sm text-muted hover:text-text">
-              티어 리스트
+              {t.nav.tier}
             </Link>
             <Link href="/trends" className="text-sm text-muted hover:text-text">
-              패치 트렌드
+              {t.nav.trends}
             </Link>
             <Link href="/meta" className="text-sm text-muted hover:text-text">
-              메타 차트
+              {t.nav.meta}
             </Link>
-            <ServerSelect value={server} />
+            <div className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-2">
+              <ServerSelect value={server} lang={lang} />
+              <LangSelect value={lang} />
+            </div>
           </nav>
         </header>
         {source === "mock" && (
           <div className="border-b border-line bg-amber-500/10 px-4 py-2 text-center text-xs text-amber-300">
-            이 서버는 아직 실제 게임을 모으는 중이라 지금 보이는 승률·픽률·순위는
-            예시 데이터예요. 게임이 모이면 실제 통계와 빌드로 바뀌어요.
+            {t.mockBanner}
           </div>
         )}
         <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>

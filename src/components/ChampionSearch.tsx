@@ -2,15 +2,23 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { dict, type Lang } from "@/lib/i18n";
 
-type Entry = { id: string; name: string; icon: string };
+// alt: 다른 언어의 챔피언 이름 (한국어/영어 어느 쪽으로도 검색되게)
+type Entry = { id: string; name: string; alt?: string; icon: string };
 
-export default function ChampionSearch({ champions }: { champions: Entry[] }) {
+export default function ChampionSearch({ champions, lang }: { champions: Entry[]; lang: Lang }) {
+  const t = dict(lang);
   const [q, setQ] = useState("");
   const results = useMemo(() => {
     const term = q.trim().toLowerCase();
     if (!term) return champions;
-    return champions.filter((c) => c.name.toLowerCase().includes(term) || c.id.toLowerCase().includes(term));
+    return champions.filter(
+      (c) =>
+        c.name.toLowerCase().includes(term) ||
+        c.id.toLowerCase().includes(term) ||
+        (c.alt?.toLowerCase().includes(term) ?? false),
+    );
   }, [q, champions]);
 
   return (
@@ -18,7 +26,7 @@ export default function ChampionSearch({ champions }: { champions: Entry[] }) {
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="챔피언 이름으로 검색 (예: 아리, Ahri)"
+        placeholder={t.searchPlaceholder}
         className="w-full rounded-lg border border-line bg-panel-2 px-4 py-3 text-base outline-none focus:border-accent"
       />
       <div className="mt-4 grid grid-cols-5 gap-2 sm:grid-cols-8 md:grid-cols-10">
@@ -29,7 +37,7 @@ export default function ChampionSearch({ champions }: { champions: Entry[] }) {
             <span className="w-full truncate text-xs text-muted group-hover:text-text">{c.name}</span>
           </Link>
         ))}
-        {results.length === 0 && <p className="col-span-full text-sm text-muted">검색 결과가 없어요.</p>}
+        {results.length === 0 && <p className="col-span-full text-sm text-muted">{t.noResults}</p>}
       </div>
     </div>
   );

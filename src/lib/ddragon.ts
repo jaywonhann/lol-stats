@@ -1,6 +1,7 @@
 // Riot Data Dragon: 챔피언·아이템·룬·스펠 같은 정적 게임 데이터 (API 키 불필요)
 const BASE = process.env.DDRAGON_BASE ?? "https://ddragon.leagueoflegends.com";
-const LOCALE = "ko_KR";
+// 기본 로케일은 영어, 페이지에서 ddLocale(lang)을 넘겨 바꿉니다
+const DEFAULT_LOCALE = "en_US";
 // 새 패치가 나오면 1시간 안에 자동으로 반영됩니다
 const REVALIDATE = 60 * 60;
 
@@ -91,26 +92,27 @@ export async function getPatches(count = 8): Promise<string[]> {
   return patches.reverse();
 }
 
-export async function getChampions(): Promise<{
+export async function getChampions(locale = DEFAULT_LOCALE): Promise<{
   version: string;
   champions: Champion[];
 }> {
   const version = await getVersion();
   const data = await getJson<{ data: Record<string, Champion> }>(
-    `/cdn/${version}/data/${LOCALE}/champion.json`,
+    `/cdn/${version}/data/${locale}/champion.json`,
   );
   const champions = Object.values(data.data).sort((a, b) =>
-    a.name.localeCompare(b.name, "ko"),
+    a.name.localeCompare(b.name, locale.slice(0, 2)),
   );
   return { version, champions };
 }
 
 export async function getChampion(
   id: string,
+  locale = DEFAULT_LOCALE,
 ): Promise<{ version: string; champion: ChampionDetail } | null> {
   const version = await getVersion();
   const res = await fetch(
-    `${BASE}/cdn/${version}/data/${LOCALE}/champion/${encodeURIComponent(id)}.json`,
+    `${BASE}/cdn/${version}/data/${locale}/champion/${encodeURIComponent(id)}.json`,
     {
       next: { revalidate: REVALIDATE },
     },
@@ -122,24 +124,31 @@ export async function getChampion(
   return { version, champion: data.data[id] };
 }
 
-export async function getItems(version: string): Promise<Item[]> {
+export async function getItems(
+  version: string,
+  locale = DEFAULT_LOCALE,
+): Promise<Item[]> {
   const data = await getJson<{ data: Record<string, Omit<Item, "id">> }>(
-    `/cdn/${version}/data/${LOCALE}/item.json`,
+    `/cdn/${version}/data/${locale}/item.json`,
   );
   return Object.entries(data.data).map(([id, item]) => ({ ...item, id }));
 }
 
-export async function getRuneTrees(version: string): Promise<RuneTree[]> {
+export async function getRuneTrees(
+  version: string,
+  locale = DEFAULT_LOCALE,
+): Promise<RuneTree[]> {
   return getJson<RuneTree[]>(
-    `/cdn/${version}/data/${LOCALE}/runesReforged.json`,
+    `/cdn/${version}/data/${locale}/runesReforged.json`,
   );
 }
 
 export async function getSummonerSpells(
   version: string,
+  locale = DEFAULT_LOCALE,
 ): Promise<SummonerSpell[]> {
   const data = await getJson<{ data: Record<string, SummonerSpell> }>(
-    `/cdn/${version}/data/${LOCALE}/summoner.json`,
+    `/cdn/${version}/data/${locale}/summoner.json`,
   );
   return Object.values(data.data);
 }

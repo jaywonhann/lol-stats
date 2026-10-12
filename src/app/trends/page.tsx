@@ -8,15 +8,19 @@ import {
   RANKS,
   parseLane,
   parseRank,
+  laneLabel,
   rankLabel,
   serverLabel,
 } from "@/lib/lanes";
+import { ddLocale, dict, type Lang } from "@/lib/i18n";
 import type { ChampionStat } from "@/lib/mock";
 import { movers } from "@/lib/stats";
-import { getServer } from "@/lib/server";
+import { getLang, getServer } from "@/lib/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "패치 트렌드" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: dict(await getLang()).trendsTitle };
+}
 
 type Props = { searchParams: Promise<{ lane?: string; rank?: string }> };
 
@@ -24,8 +28,10 @@ export default async function TrendsPage({ searchParams }: Props) {
   const params = await searchParams;
   const lane = parseLane(params.lane);
   const rank = parseRank(params.rank);
+  const lang = await getLang();
+  const t = dict(lang);
   const [{ version, champions }, allPatches, server] = await Promise.all([
-    getChampions(),
+    getChampions(ddLocale(lang)),
     getPatches(),
     getServer(),
   ]);
@@ -41,17 +47,20 @@ export default async function TrendsPage({ searchParams }: Props) {
   const bars = [...rising, ...[...falling].reverse()].map(({ stat }) => ({
     label: stat.champion.name,
     value: stat.scoreChange!,
-    detail: `메타 점수 ${stat.scoreChange! >= 0 ? "+" : ""}${stat.scoreChange!.toFixed(1)}, 승률 ${stat.winRate.toFixed(2)}%`,
+    detail: t.scoreChangeDetail(
+      `${stat.scoreChange! >= 0 ? "+" : ""}${stat.scoreChange!.toFixed(1)}`,
+      stat.winRate.toFixed(2),
+    ),
   }));
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-2">
-        <h1 className="text-2xl font-bold">패치 트렌드</h1>
+        <h1 className="text-2xl font-bold">{t.trendsTitle}</h1>
         <span className="text-sm text-muted">
-          {prev ? `패치 ${prev} → ${patch} 메타 점수 변화` : `패치 ${patch}`} ·{" "}
-          {serverLabel(server)} 서버 · {rankLabel(rank)} ·{" "}
-          {source === "real" ? "실제 게임" : "예시 데이터"}
+          {prev ? t.scoreChangeRange(prev, patch) : t.patch(patch)} ·{" "}
+          {t.serverName(serverLabel(server, lang))} · {rankLabel(rank, lang)} ·{" "}
+          {source === "real" ? t.realGames : t.sampleData}
         </span>
       </div>
       <div className="space-y-2">
@@ -59,7 +68,7 @@ export default async function TrendsPage({ searchParams }: Props) {
           active={lane}
           items={LANES.map((l) => ({
             id: l.id,
-            label: l.label,
+            label: laneLabel(l.id, lang),
             href: `/trends?lane=${l.id}&rank=${rank}`,
           }))}
         />
@@ -67,7 +76,7 @@ export default async function TrendsPage({ searchParams }: Props) {
           active={rank}
           items={RANKS.map((r) => ({
             id: r.id,
-            label: r.label,
+            label: rankLabel(r.id, lang),
             href: `/trends?lane=${lane}&rank=${r.id}`,
           }))}
         />
@@ -76,8 +85,7 @@ export default async function TrendsPage({ searchParams }: Props) {
       {!prev && (
         <Panel>
           <p className="text-sm text-muted">
-            실제 데이터는 이번 패치부터 모으기 시작했어요. 다음 패치 데이터가
-            쌓이면 오르고 내린 챔피언이 여기에 표시돼요.
+            {t.trendsFirstPatch}
           </p>
         </Panel>
       )}
@@ -85,7 +93,7 @@ export default async function TrendsPage({ searchParams }: Props) {
       {prev && (
         <Panel>
           <DivergingBars
-            title={`메타 점수 변화가 큰 챔피언 (▲ 상승 · ▼ 하락)`}
+            title={t.scoreChangeChart}
             bars={bars}
           />
         </Panel>
@@ -93,13 +101,15 @@ export default async function TrendsPage({ searchParams }: Props) {
 
       <div className="grid gap-4 md:grid-cols-2">
         <MoverList
-          title="떠오르는 챔피언"
+          title={t.rising}
+          lang={lang}
           rows={rising}
           version={version}
           patches={patches}
         />
         <MoverList
-          title="떨어지는 챔피언"
+          title={t.falling}
+          lang={lang}
           rows={falling}
           version={version}
           patches={patches}
@@ -114,17 +124,23 @@ function MoverList({
   rows,
   version,
   patches,
+  lang,
 }: {
   title: string;
+  lang: Lang;
   rows: { stat: ChampionStat; spark: (number | null)[] }[];
   version: string;
   patches: string[];
 }) {
+  const t = dict(lang);
   return (
     <Panel title={title}>
       <p className="mb-3 text-xs text-muted">
-        그래프: 최근 {patches.length}개 패치({patches[0]}~
-        {patches[patches.length - 1]}) 승률 흐름
+        {t.sparkCaption(
+          patches.length,
+          patches[0],
+          patches[patches.length - 1],
+        )}
       </p>
       <ul className="space-y-2">
         {rows.map(({ stat, spark }) => {
@@ -143,10 +159,10 @@ function MoverList({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 text-sm">
                     <span className="truncate">{stat.champion.name}</span>
-                    <TierBadge tier={stat.tier} />
+                    <TierBadge tier={stat.tier} lang={lang} />
                   </div>
                   <div className="text-xs text-muted">
-                    승률 <WinRate value={stat.winRate} />
+                    {t.winRate} <WinRate value={stat.winRate} />
                     {stat.winRateChange !== null && (
                       <span className="ml-1">
                         ({stat.winRateChange >= 0 ? "+" : ""}
@@ -155,7 +171,7 @@ function MoverList({
                     )}
                     {stat.rankChange !== null && stat.rankChange !== 0 && (
                       <span className="ml-2">
-                        순위 {stat.rankChange > 0 ? "▲" : "▼"}
+                        {t.rank} {stat.rankChange > 0 ? "▲" : "▼"}
                         {Math.abs(stat.rankChange)}
                       </span>
                     )}
@@ -173,7 +189,7 @@ function MoverList({
           );
         })}
         {rows.length === 0 && (
-          <li className="text-sm text-muted">해당하는 챔피언이 없어요.</li>
+          <li className="text-sm text-muted">{t.noMatches}</li>
         )}
       </ul>
     </Panel>

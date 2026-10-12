@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { dict, numLocale, type Lang } from "@/lib/i18n";
 import type { Server } from "@/lib/lanes";
 
 type Point = { at: string; estimate: number; total: number };
@@ -18,7 +19,9 @@ function load(server: Server): Point[] {
 }
 
 // 지금 게임 중인 마스터+ 랭커 수(추정)를 1분마다 받아와 늘고 주는 흐름을 그립니다
-export default function LiveCounter({ server }: { server: Server }) {
+export default function LiveCounter({ server, lang }: { server: Server; lang: Lang }) {
+  const t = dict(lang);
+  const nl = numLocale(lang);
   const [points, setPoints] = useState<Point[]>([]);
   const [state, setState] = useState<"loading" | "ok" | "off">("loading");
 
@@ -57,8 +60,8 @@ export default function LiveCounter({ server }: { server: Server }) {
   }, [server]);
 
   if (state === "off" && !points.length)
-    return <p className="mt-3 text-sm text-muted">실시간 인원은 아직 준비 중이에요.</p>;
-  if (!points.length) return <p className="mt-3 text-sm text-muted">지금 게임 중인 인원을 확인하는 중…</p>;
+    return <p className="mt-3 text-sm text-muted">{t.liveUnavailable}</p>;
+  if (!points.length) return <p className="mt-3 text-sm text-muted">{t.liveChecking}</p>;
 
   // 표본이 작아 값이 튀므로 최근 3번 평균을 큰 숫자로
   const recent = points.slice(-3);
@@ -78,31 +81,29 @@ export default function LiveCounter({ server }: { server: Server }) {
   return (
     <div className="mt-3">
       <p className="flex items-baseline gap-2">
-        <span className="text-4xl font-bold tabular-nums">{now.toLocaleString("ko-KR")}</span>
-        <span className="text-lg font-semibold text-muted">명</span>
+        <span className="text-4xl font-bold tabular-nums">{now.toLocaleString(nl)}</span>
+        <span className="text-lg font-semibold text-muted">{t.playersUnit}</span>
         {diff !== null && diff !== 0 && (
           <span className="text-sm font-semibold tabular-nums">
             {diff > 0 ? "▲" : "▼"}
-            {Math.abs(diff).toLocaleString("ko-KR")}
+            {Math.abs(diff).toLocaleString(nl)}
           </span>
         )}
       </p>
       <p className="text-sm text-muted">
-        지금 게임 중인 마스터 이상 랭커 (추정, 전체 {last.total.toLocaleString("ko-KR")}명 중)
+        {t.liveCaption(last.total.toLocaleString(nl))}
       </p>
-      <svg viewBox={`0 0 ${W} ${H}`} className="mt-2 h-14 w-full" preserveAspectRatio="none" role="img" aria-label="실시간 인원 추이">
+      <svg viewBox={`0 0 ${W} ${H}`} className="mt-2 h-14 w-full" preserveAspectRatio="none" role="img" aria-label={t.liveAria}>
         <path d={line} fill="none" stroke="var(--chart-up)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
         {points.map((p, i) => (
           <circle key={p.at} cx={x(i)} cy={y(p.estimate)} r={i === points.length - 1 ? 3 : 0} fill="var(--chart-up)">
-            <title>{`${new Date(p.at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })} 약 ${p.estimate}명`}</title>
+            <title>{t.livePointTitle(new Date(p.at).toLocaleTimeString(nl, { hour: "2-digit", minute: "2-digit" }), p.estimate)}</title>
           </circle>
         ))}
       </svg>
       <p className="mt-1 text-[10px] text-muted">
-        2분마다 갱신 · 이 페이지를 열어 둔 동안의 흐름 · 마스터+ 랭커 {SAMPLE_TEXT}
+        {t.liveFoot}
       </p>
     </div>
   );
 }
-
-const SAMPLE_TEXT = "20명씩 표본 조사";

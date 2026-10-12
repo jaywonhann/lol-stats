@@ -3,18 +3,28 @@ import ChampionSearch from "@/components/ChampionSearch";
 import { Icon, Panel, TierBadge, WinRate } from "@/components/ui";
 import { Sparkline } from "@/components/charts";
 import { getChampions, getPatches, img } from "@/lib/ddragon";
-import { LANES, serverLabel } from "@/lib/lanes";
+import { ddLocale, dict, type Lang } from "@/lib/i18n";
+import { LANES, laneLabel, serverLabel } from "@/lib/lanes";
 import { boards, movers } from "@/lib/stats";
-import { getServer } from "@/lib/server";
+import { getLang, getServer } from "@/lib/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [{ version, champions }, patches, server] = await Promise.all([
-    getChampions(),
-    getPatches(),
-    getServer(),
-  ]);
+  const lang = await getLang();
+  const t = dict(lang);
+  const other: Lang = lang === "ko" ? "en" : "ko";
+  const [{ version, champions }, altChampions, patches, server] =
+    await Promise.all([
+      getChampions(ddLocale(lang)),
+      // 검색은 다른 언어 이름으로도 되게 (실패하면 무시)
+      getChampions(ddLocale(other))
+        .then((r) => r.champions)
+        .catch(() => []),
+      getPatches(),
+      getServer(),
+    ]);
+  const altName = new Map(altChampions.map((c) => [c.id, c.name]));
   const filter = { server, rank: "all" as const };
   const patch = patches[patches.length - 1];
   const top5 = (lane: (typeof LANES)[number]["id"]) => {
@@ -40,14 +50,13 @@ export default async function Home() {
           live<span className="text-accent">lol</span>.stats
         </h1>
         <p className="mt-2 text-sm text-muted">
-          {serverLabel(server)} 서버 · 패치 {patch} 기준 챔피언 티어, 빌드, 룬,
-          카운터
+          {t.homeSubtitle(serverLabel(server, lang), patch)}
         </p>
       </section>
 
       <div className="grid gap-3 md:grid-cols-5">
         {LANES.map((lane) => (
-          <Panel key={lane.id} title={`${lane.label} 추천 챔피언`}>
+          <Panel key={lane.id} title={t.bestPicks(laneLabel(lane.id, lang))}>
             <ul className="space-y-2">
               {top5(lane.id).map((s) => (
                 <li key={s.champion.id}>
@@ -63,10 +72,10 @@ export default async function Home() {
                     <span className="flex-1 truncate text-sm">
                       {s.champion.name}
                     </span>
-                    <TierBadge tier={s.tier} />
+                    <TierBadge tier={s.tier} lang={lang} />
                   </Link>
                   <div className="pl-9 text-xs text-muted">
-                    승률 <WinRate value={s.winRate} />
+                    {t.winRate} <WinRate value={s.winRate} />
                   </div>
                 </li>
               ))}
@@ -75,7 +84,7 @@ export default async function Home() {
               href={`/tier?lane=${lane.id}`}
               className="mt-3 block text-xs text-accent hover:underline"
             >
-              전체 보기
+              {t.viewAll}
             </Link>
           </Panel>
         ))}
@@ -84,8 +93,8 @@ export default async function Home() {
       {(rising.length > 0 || falling.length > 0) && (
         <div className="grid gap-3 md:grid-cols-2">
           {[
-            { title: `패치 ${patch} 떠오르는 챔피언`, rows: rising },
-            { title: `패치 ${patch} 떨어지는 챔피언`, rows: falling },
+            { title: t.risingOnPatch(patch), rows: rising },
+            { title: t.fallingOnPatch(patch), rows: falling },
           ].map((box) => (
             <Panel key={box.title} title={box.title}>
               <ul className="space-y-2">
@@ -103,7 +112,7 @@ export default async function Home() {
                       <span className="flex-1 truncate text-sm">
                         {stat.champion.name}{" "}
                         <span className="text-xs text-muted">
-                          {LANES.find((l) => l.id === stat.lane)!.label}
+                          {laneLabel(stat.lane, lang)}
                         </span>
                       </span>
                       <Sparkline values={spark} />
@@ -116,18 +125,20 @@ export default async function Home() {
                 href="/trends"
                 className="mt-3 block text-xs text-accent hover:underline"
               >
-                패치 트렌드 전체 보기
+                {t.viewAllTrends}
               </Link>
             </Panel>
           ))}
         </div>
       )}
 
-      <Panel title="챔피언 검색">
+      <Panel title={t.championSearch}>
         <ChampionSearch
+          lang={lang}
           champions={champions.map((c) => ({
             id: c.id,
             name: c.name,
+            alt: altName.get(c.id),
             icon: img.champion(version, c.image.full),
           }))}
         />

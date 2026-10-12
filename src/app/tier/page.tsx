@@ -7,16 +7,20 @@ import {
   RANKS,
   parseLane,
   parseRank,
+  laneLabel,
   rankLabel,
   serverLabel,
 } from "@/lib/lanes";
-import { getServer } from "@/lib/server";
+import { ddLocale, dict, numLocale } from "@/lib/i18n";
+import { getLang, getServer } from "@/lib/server";
 import LivePanel from "@/components/LivePanel";
 import AutoRefresh from "@/components/AutoRefresh";
 import { boards } from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "챔피언 티어 리스트" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: dict(await getLang()).tierTitle };
+}
 
 type Props = {
   searchParams: Promise<{ lane?: string; rank?: string; patch?: string }>;
@@ -26,8 +30,10 @@ export default async function TierPage({ searchParams }: Props) {
   const params = await searchParams;
   const lane = parseLane(params.lane);
   const rank = parseRank(params.rank);
+  const lang = await getLang();
+  const t = dict(lang);
   const [{ version, champions }, allPatches, server] = await Promise.all([
-    getChampions(),
+    getChampions(ddLocale(lang)),
     getPatches(),
     getServer(),
   ]);
@@ -50,12 +56,13 @@ export default async function TierPage({ searchParams }: Props) {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 flex-1 space-y-4">
           <div className="flex flex-wrap items-end justify-between gap-2">
-            <h1 className="text-2xl font-bold">챔피언 티어 리스트</h1>
+            <h1 className="text-2xl font-bold">{t.tierTitle}</h1>
             <span className="text-sm text-muted">
-              패치 {patch} · {serverLabel(server)} 서버 · {rankLabel(rank)} ·{" "}
+              {t.patch(patch)} · {t.serverName(serverLabel(server, lang))} ·{" "}
+              {rankLabel(rank, lang)} ·{" "}
               {source === "real"
-                ? `솔로랭크 ${real.get(patch)!.matches.toLocaleString("ko-KR")}게임`
-                : "예시 데이터"}
+                ? t.soloGames(real.get(patch)!.matches.toLocaleString(numLocale(lang)))
+                : t.sampleData}
             </span>
           </div>
 
@@ -64,7 +71,7 @@ export default async function TierPage({ searchParams }: Props) {
               active={lane}
               items={LANES.map((l) => ({
                 id: l.id,
-                label: l.label,
+                label: laneLabel(l.id, lang),
                 href: q({ lane: l.id }),
               }))}
             />
@@ -72,7 +79,7 @@ export default async function TierPage({ searchParams }: Props) {
               active={rank}
               items={RANKS.map((r) => ({
                 id: r.id,
-                label: r.label,
+                label: rankLabel(r.id, lang),
                 href: q({ rank: r.id }),
               }))}
             />
@@ -84,28 +91,28 @@ export default async function TierPage({ searchParams }: Props) {
                   .reverse()
                   .map((p) => ({
                     id: p,
-                    label: `패치 ${p}`,
+                    label: t.patch(p),
                     href: q({ patch: p }),
                   }))}
               />
             )}
           </div>
         </div>
-        <LivePanel server={server} />
+        <LivePanel server={server} lang={lang} />
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-line bg-panel">
         <table className="w-full min-w-[640px] text-sm">
           <thead className="border-b border-line text-xs text-muted">
             <tr>
-              <th className="px-3 py-2 text-left">순위</th>
-              <th className="px-3 py-2 text-left">챔피언</th>
-              <th className="px-3 py-2">티어</th>
-              <th className="px-3 py-2 text-right">메타 점수</th>
-              <th className="px-3 py-2 text-right">승률</th>
-              <th className="px-3 py-2 text-right">픽률</th>
-              <th className="px-3 py-2 text-right">밴율</th>
-              <th className="px-3 py-2 text-right">표본수</th>
+              <th className="px-3 py-2 text-left">{t.rank}</th>
+              <th className="px-3 py-2 text-left">{t.champion}</th>
+              <th className="px-3 py-2">{t.tierCol}</th>
+              <th className="px-3 py-2 text-right">{t.metaScore}</th>
+              <th className="px-3 py-2 text-right">{t.winRate}</th>
+              <th className="px-3 py-2 text-right">{t.pickRate}</th>
+              <th className="px-3 py-2 text-right">{t.banRate}</th>
+              <th className="px-3 py-2 text-right">{t.gamesCol}</th>
             </tr>
           </thead>
           <tbody>
@@ -131,7 +138,7 @@ export default async function TierPage({ searchParams }: Props) {
                   </Link>
                 </td>
                 <td className="px-3 py-2 text-center">
-                  <TierBadge tier={s.tier} />
+                  <TierBadge tier={s.tier} lang={lang} />
                 </td>
                 <td className="px-3 py-2 text-right font-semibold">
                   {s.score.toFixed(1)}
@@ -142,7 +149,7 @@ export default async function TierPage({ searchParams }: Props) {
                 <td className="px-3 py-2 text-right">{pct(s.pickRate)}</td>
                 <td className="px-3 py-2 text-right">{pct(s.banRate)}</td>
                 <td className="px-3 py-2 text-right text-muted">
-                  {s.games.toLocaleString("ko-KR")}
+                  {s.games.toLocaleString(numLocale(lang))}
                 </td>
               </tr>
             ))}

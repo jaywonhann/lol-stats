@@ -1,4 +1,5 @@
 // 서버에서 그리는 작은 차트들 (스파크라인, 상승/하락 막대)
+import { dict, numLocale, type Lang } from "@/lib/i18n";
 
 export function Sparkline({ values, width = 96, height = 28 }: { values: (number | null)[]; width?: number; height?: number }) {
   const pts = values.map((v, i) => ({ v, i })).filter((p): p is { v: number; i: number } => p.v !== null);
@@ -66,7 +67,9 @@ type WinRateBar = { key: string; label: React.ReactNode; name: string; winRate: 
 
 // 승률을 50% 기준선에서 갈라 그립니다: 오른쪽(파랑)=50% 이상, 왼쪽(빨강)=50% 미만.
 // 숫자 라벨을 항상 같이 보여줘 색만으로 구분하지 않습니다.
-export function WinRateBars({ rows, title }: { rows: WinRateBar[]; title: string }) {
+export function WinRateBars({ rows, title, lang }: { rows: WinRateBar[]; title: string; lang: Lang }) {
+  const t = dict(lang);
+  const nl = numLocale(lang);
   const maxAbs = Math.max(5, ...rows.map((r) => Math.abs(r.winRate - 50)));
   return (
     <figure>
@@ -80,7 +83,7 @@ export function WinRateBars({ rows, title }: { rows: WinRateBar[]; title: string
         </span>
         <span />
       </div>
-      {rows.length === 0 && <p className="text-sm text-muted">아직 표본이 부족해요.</p>}
+      {rows.length === 0 && <p className="text-sm text-muted">{t.notEnoughSample}</p>}
       <div className="space-y-1" role="list">
         {rows.map((r) => {
           const d = r.winRate - 50;
@@ -90,7 +93,7 @@ export function WinRateBars({ rows, title }: { rows: WinRateBar[]; title: string
             <div
               key={r.key}
               role="listitem"
-              title={`${r.name}: 승률 ${r.winRate.toFixed(1)}% (${r.games.toLocaleString("ko-KR")}게임)`}
+              title={`${r.name}: ${t.winRate} ${r.winRate.toFixed(1)}% (${t.games(r.games.toLocaleString(nl))})`}
               className="grid grid-cols-[minmax(0,7rem)_1fr_1fr_4.5rem] items-center rounded hover:bg-panel-2 sm:grid-cols-[minmax(0,9rem)_1fr_1fr_5rem]"
             >
               <span className="flex min-w-0 items-center gap-1 pr-2">{r.label}</span>
@@ -102,7 +105,7 @@ export function WinRateBars({ rows, title }: { rows: WinRateBar[]; title: string
               </div>
               <span className="text-right text-xs leading-tight">
                 <span className="text-text">{r.winRate.toFixed(1)}%</span>
-                <span className="block text-[10px] text-muted">{r.games.toLocaleString("ko-KR")}게임</span>
+                <span className="block text-[10px] text-muted">{t.games(r.games.toLocaleString(nl))}</span>
               </span>
             </div>
           );

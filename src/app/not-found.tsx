@@ -1,11 +1,14 @@
 import Link from "next/link";
+import { dict } from "@/lib/i18n";
+import { getLang } from "@/lib/server";
 
-export default function NotFound() {
+export default async function NotFound() {
+  const t = dict(await getLang());
   return (
     <div className="py-20 text-center">
-      <h1 className="text-2xl font-bold">페이지를 찾을 수 없어요</h1>
+      <h1 className="text-2xl font-bold">{t.notFound}</h1>
       <Link href="/" className="mt-4 inline-block text-accent hover:underline">
-        홈으로
+        {t.backHome}
       </Link>
     </div>
   );

@@ -1,13 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { SERVERS, type Server } from "@/lib/lanes";
+import { dict, type Lang } from "@/lib/i18n";
+import { SERVERS, serverLabel, type Server } from "@/lib/lanes";
 
-export default function ServerSelect({ value }: { value: Server }) {
+export default function ServerSelect({ value, lang }: { value: Server; lang: Lang }) {
   const router = useRouter();
   return (
-    <label className="ml-auto flex items-center gap-2 text-sm text-muted">
-      서버
+    <label className="flex items-center gap-2 text-sm text-muted">
+      {dict(lang).server}
       <select
         value={value}
         onChange={(e) => {
@@ -18,7 +19,7 @@ export default function ServerSelect({ value }: { value: Server }) {
       >
         {SERVERS.map((s) => (
           <option key={s.id} value={s.id}>
-            {s.label}
+            {serverLabel(s.id, lang)}
           </option>
         ))}
       </select>

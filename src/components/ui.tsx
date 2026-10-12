@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { dict, type Lang } from "@/lib/i18n";
 import type { Tier } from "@/lib/mock";
 
 export function Icon({ src, alt, size = 32, className = "" }: { src: string; alt: string; size?: number; className?: string }) {
@@ -16,10 +17,10 @@ const TIER_STYLE: Record<Tier, string> = {
   "5": "bg-slate-700 text-slate-300",
 };
 
-export function TierBadge({ tier }: { tier: Tier }) {
+export function TierBadge({ tier, lang }: { tier: Tier; lang: Lang }) {
   return (
     <span className={`inline-flex h-6 min-w-8 items-center justify-center rounded px-1.5 text-xs font-bold ${TIER_STYLE[tier]}`}>
-      {tier === "OP" ? "OP" : `${tier}티어`}
+      {dict(lang).tier(tier)}
     </span>
   );
 }

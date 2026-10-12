@@ -25,7 +25,8 @@ import {
   serverLabel,
   type Lane,
 } from "@/lib/lanes";
-import { getServer } from "@/lib/server";
+import { getLang, getServer } from "@/lib/server";
+import { ddLocale, dict, numLocale, timeAgo, type Lang } from "@/lib/i18n";
 import type { Matchup, RunePage } from "@/lib/mock";
 import { realBuild, realChamp, realMatchups, realWinRates } from "@/lib/real";
 import { boards, lanesOf } from "@/lib/stats";
@@ -39,23 +40,28 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const data = await getChampion(id);
-  return { title: data ? `${data.champion.name} 빌드, 룬, 카운터` : "챔피언" };
+  const lang = await getLang();
+  const t = dict(lang);
+  const data = await getChampion(id, ddLocale(lang));
+  return { title: data ? t.champMetaTitle(data.champion.name) : t.champion };
 }
 
 export default async function ChampionPage({ params, searchParams }: Props) {
-  const [{ id }, sp] = await Promise.all([params, searchParams]);
-  const data = await getChampion(id);
+  const [{ id }, sp, lang] = await Promise.all([params, searchParams, getLang()]);
+  const t = dict(lang);
+  const nl = numLocale(lang);
+  const loc = ddLocale(lang);
+  const data = await getChampion(id, loc);
   if (!data) notFound();
   const { version, champion } = data;
 
   const [{ champions }, patches, items, trees, spells, server] =
     await Promise.all([
-      getChampions(),
+      getChampions(loc),
       getPatches(),
-      getItems(version),
-      getRuneTrees(version),
-      getSummonerSpells(version),
+      getItems(version, loc),
+      getRuneTrees(version, loc),
+      getSummonerSpells(version, loc),
       getServer(),
     ]);
   const rank = parseRank(sp.rank);
@@ -105,7 +111,7 @@ export default async function ChampionPage({ params, searchParams }: Props) {
             <p className="text-xs text-muted">{champion.title}</p>
             <h1 className="flex items-center gap-2 text-2xl font-bold">
               {champion.name}
-              {stat && <TierBadge tier={stat.tier} />}
+              {stat && <TierBadge tier={stat.tier} lang={lang} />}
             </h1>
             <div className="mt-2 flex gap-1">
               {[champion.passive, ...champion.spells].map((s, i) => (
@@ -128,10 +134,10 @@ export default async function ChampionPage({ params, searchParams }: Props) {
           </div>
           {stat && (
             <dl className="grid grid-cols-4 gap-4 text-center">
-              <Stat label="메타 점수" value={stat.score.toFixed(1)} />
-              <Stat label="승률" value={<WinRate value={stat.winRate} />} />
-              <Stat label="픽률" value={pct(stat.pickRate)} />
-              <Stat label="밴율" value={pct(stat.banRate)} />
+              <Stat label={t.metaScore} value={stat.score.toFixed(1)} />
+              <Stat label={t.winRate} value={<WinRate value={stat.winRate} />} />
+              <Stat label={t.pickRate} value={pct(stat.pickRate)} />
+              <Stat label={t.banRate} value={pct(stat.banRate)} />
             </dl>
           )}
         </div>
@@ -140,7 +146,7 @@ export default async function ChampionPage({ params, searchParams }: Props) {
             active={lane}
             items={LANES.filter((l) => lanes.includes(l.id)).map((l) => ({
               id: l.id,
-              label: l.label,
+              label: laneLabel(l.id, lang),
               href: href(l.id, rank),
             }))}
           />
@@ -148,37 +154,37 @@ export default async function ChampionPage({ params, searchParams }: Props) {
             active={rank}
             items={RANKS.map((r) => ({
               id: r.id,
-              label: r.label,
+              label: rankLabel(r.id, lang),
               href: href(lane, r.id),
             }))}
           />
         </div>
         <p className="mt-3 text-xs text-muted">
-          패치 {patch} · {laneLabel(lane)}
-          {stat && ` · ${stat.games.toLocaleString("ko-KR")}게임`}
-          {` · ${serverLabel(server)} 서버 · ${rankLabel(rank)}`}
-          {source === "real" ? " 솔로랭크 실제 게임" : " · 승률·픽률은 예시 데이터"}
+          {t.patch(patch)} · {laneLabel(lane, lang)}
+          {stat && ` · ${t.games(stat.games.toLocaleString(nl))}`}
+          {` · ${t.serverName(serverLabel(server, lang))} · ${rankLabel(rank, lang)}`}
+          {source === "real" ? t.sourceReal : t.sourceMock}
         </p>
       </Panel>
 
       {trend.length > 1 && (
-        <Panel title={`패치별 추이 (최근 ${trend.length}개 패치)`}>
+        <Panel title={t.patchTrend(trend.length)}>
           <div className="grid gap-6 md:grid-cols-2">
             <TrendChart
-              title="승률"
+              title={t.winRate}
               suffix="%"
               baseline={50}
-              points={trend.map((t) => ({ label: t.patch, value: t.winRate }))}
+              points={trend.map((p) => ({ label: p.patch, value: p.winRate }))}
             />
             <TrendChart
-              title={`${laneLabel(lane)} 순위`}
-              suffix="위"
+              title={t.laneRank(laneLabel(lane, lang))}
+              suffix={t.rankSuffix}
               decimals={0}
               invert
-              points={trend.map((t) => ({
-                label: t.patch,
-                value: t.rank,
-                note: `${t.tier === "OP" ? "OP" : `${t.tier}티어`}`,
+              points={trend.map((p) => ({
+                label: p.patch,
+                value: p.rank,
+                note: t.tier(p.tier),
               }))}
             />
           </div>
@@ -186,15 +192,17 @@ export default async function ChampionPage({ params, searchParams }: Props) {
       )}
 
       {wr && (
-        <Panel title="지금 승률 높은 빌드">
+        <Panel title={t.topBuilds}>
           <p className="mb-4 text-xs text-muted">
-            최근 수집한 {agg!.games.toLocaleString("ko-KR")}게임 기준
-            {updatedAt && ` · ${ago(updatedAt)} 업데이트`} · 많이 쓰인 선택지 중
-            승률 순 · 게임 수가 적은 선택지는 제외
+            {t.topBuildsNote(
+              agg!.games.toLocaleString(nl),
+              updatedAt ? t.updated(timeAgo(updatedAt, lang)) : null,
+            )}
           </p>
           <div className="grid gap-6 lg:grid-cols-3">
             <WinRateBars
-              title="핵심 룬 + 보조 룬"
+              title={t.keystoneSecondary}
+              lang={lang}
               rows={wr.runes.map((r) => ({
                 key: `${r.value.keystone.id}-${r.value.secondary.id}`,
                 name: `${r.value.keystone.name} + ${r.value.secondary.name}`,
@@ -210,7 +218,8 @@ export default async function ChampionPage({ params, searchParams }: Props) {
               }))}
             />
             <WinRateBars
-              title="코어 아이템 (먼저 완성한 2개)"
+              title={t.coreFirstTwo}
+              lang={lang}
               rows={wr.core.map((r) => ({
                 key: r.value.map((i) => i.id).join("-"),
                 name: r.value.map((i) => i.name).join(" › "),
@@ -225,7 +234,8 @@ export default async function ChampionPage({ params, searchParams }: Props) {
               }))}
             />
             <WinRateBars
-              title="신발"
+              title={t.boots}
+              lang={lang}
               rows={wr.boots.map((r) => ({
                 key: r.value.id,
                 name: r.value.name,
@@ -244,10 +254,9 @@ export default async function ChampionPage({ params, searchParams }: Props) {
       )}
 
       {daily && builds.length > 0 && (
-        <Panel title="템트리 승률 추이">
+        <Panel title={t.buildTrend}>
           <p className="mb-3 text-xs text-muted">
-            많이 쓰인 코어템 조합(먼저 완성한 2개)의 날짜별 승률 · {WINDOW}일 이동 평균 ·{" "}
-            {serverLabel(server)} 서버 에메랄드+ · 표본이 적은 날은 비워 둠
+            {t.buildTrendNote(WINDOW, serverLabel(server, lang))}
           </p>
           <div className="mb-2 flex flex-wrap gap-4">
             {builds.map((s, i) => (
@@ -262,7 +271,7 @@ export default async function ChampionPage({ params, searchParams }: Props) {
                     </span>
                   ) : null;
                 })}
-                <span className="text-muted">{s.total}게임</span>
+                <span className="text-muted">{t.games(s.total.toLocaleString(nl))}</span>
               </span>
             ))}
           </div>
@@ -284,22 +293,22 @@ export default async function ChampionPage({ params, searchParams }: Props) {
       {b && mu ? (
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="space-y-4 lg:col-span-2">
-            <Panel title="추천 룬">
+            <Panel title={t.recRunes}>
               <div className="space-y-4">
-                {b.runes.length === 0 && <Empty />}
+                {b.runes.length === 0 && <Empty lang={lang} />}
                 {b.runes.map((o, i) => (
-                  <OptionRow key={i} winRate={o.winRate} pickRate={o.pickRate}>
+                  <OptionRow lang={lang} key={i} winRate={o.winRate} pickRate={o.pickRate}>
                     <RunePageView page={o.value} trees={trees} />
                   </OptionRow>
                 ))}
               </div>
             </Panel>
 
-            <Panel title="코어 아이템">
+            <Panel title={t.coreItems}>
               <div className="space-y-2">
-                {b.core.length === 0 && <Empty />}
+                {b.core.length === 0 && <Empty lang={lang} />}
                 {b.core.map((o, i) => (
-                  <OptionRow key={i} winRate={o.winRate} pickRate={o.pickRate}>
+                  <OptionRow lang={lang} key={i} winRate={o.winRate} pickRate={o.pickRate}>
                     <div className="flex items-center gap-1">
                       {o.value.map((item, j) => (
                         <span key={item.id} className="flex items-center gap-1">
@@ -318,11 +327,12 @@ export default async function ChampionPage({ params, searchParams }: Props) {
             </Panel>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <Panel title="시작 아이템">
+              <Panel title={t.startingItems}>
                 <div className="space-y-2">
-                  {b.starters.length === 0 && <Empty />}
+                  {b.starters.length === 0 && <Empty lang={lang} />}
                   {b.starters.map((o, i) => (
                     <OptionRow
+                      lang={lang}
                       key={i}
                       winRate={o.winRate}
                       pickRate={o.pickRate}
@@ -340,11 +350,12 @@ export default async function ChampionPage({ params, searchParams }: Props) {
                   ))}
                 </div>
               </Panel>
-              <Panel title="신발">
+              <Panel title={t.boots}>
                 <div className="space-y-2">
-                  {b.boots.length === 0 && <Empty />}
+                  {b.boots.length === 0 && <Empty lang={lang} />}
                   {b.boots.map((o, i) => (
                     <OptionRow
+                      lang={lang}
                       key={i}
                       winRate={o.winRate}
                       pickRate={o.pickRate}
@@ -361,11 +372,11 @@ export default async function ChampionPage({ params, searchParams }: Props) {
           </div>
 
           <div className="space-y-4">
-            <Panel title="소환사 주문">
+            <Panel title={t.summonerSpells}>
               <div className="space-y-2">
-                {b.spells.length === 0 && <Empty />}
+                {b.spells.length === 0 && <Empty lang={lang} />}
                 {b.spells.map((o, i) => (
-                  <OptionRow key={i} winRate={o.winRate} pickRate={o.pickRate}>
+                  <OptionRow lang={lang} key={i} winRate={o.winRate} pickRate={o.pickRate}>
                     <div className="flex gap-1">
                       {o.value.map((s) => (
                         <Icon
@@ -380,11 +391,11 @@ export default async function ChampionPage({ params, searchParams }: Props) {
               </div>
             </Panel>
 
-            <Panel title="스킬 마스터 순서">
+            <Panel title={t.skillOrder}>
               <div className="space-y-2">
-                {b.skillOrder.length === 0 && <Empty />}
+                {b.skillOrder.length === 0 && <Empty lang={lang} />}
                 {b.skillOrder.map((o, i) => (
-                  <OptionRow key={i} winRate={o.winRate} pickRate={o.pickRate}>
+                  <OptionRow lang={lang} key={i} winRate={o.winRate} pickRate={o.pickRate}>
                     <div className="flex items-center gap-1">
                       {o.value.map((k, j) => {
                         const spell = champion.spells["QWE".indexOf(k)];
@@ -409,20 +420,20 @@ export default async function ChampionPage({ params, searchParams }: Props) {
               </div>
             </Panel>
 
-            <Panel title="상대하기 쉬운 챔피언">
-              <MatchupList rows={mu.easy} version={version} lane={lane} />
+            <Panel title={t.easyMatchups}>
+              <MatchupList lang={lang} rows={mu.easy} version={version} lane={lane} />
             </Panel>
-            <Panel title="상대하기 어려운 챔피언">
-              <MatchupList rows={mu.hard} version={version} lane={lane} />
+            <Panel title={t.hardMatchups}>
+              <MatchupList lang={lang} rows={mu.hard} version={version} lane={lane} />
             </Panel>
           </div>
         </div>
       ) : (
-        <Panel title="빌드 · 룬 · 카운터">
+        <Panel title={t.buildRunesCounters}>
           <p className="text-sm text-muted">
             {source === "real"
-              ? `이번 패치에서 ${champion.name} ${laneLabel(lane)} 게임이 아직 충분히 모이지 않았어요. 게임이 더 모이면 실제 빌드가 표시돼요.`
-              : "실제 랭크 게임 데이터를 수집하기 시작하면 이곳에 상위 랭커들이 실제로 쓰는 룬, 아이템, 스펠, 스킬 순서, 카운터가 표시돼요."}
+              ? t.noBuildLane(champion.name, laneLabel(lane, lang))
+              : t.noBuildYet}
           </p>
         </Panel>
       )}
@@ -439,32 +450,30 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function ago(iso: string) {
-  const h = Math.floor((Date.now() - new Date(iso).getTime()) / 3_600_000);
-  return h < 1 ? "1시간 이내" : h < 24 ? `${h}시간 전` : `${Math.floor(h / 24)}일 전`;
-}
-
-function Empty() {
-  return <p className="text-sm text-muted">아직 표본이 부족해요.</p>;
+function Empty({ lang }: { lang: Lang }) {
+  return <p className="text-sm text-muted">{dict(lang).notEnoughSample}</p>;
 }
 
 function OptionRow({
   children,
   winRate,
   pickRate,
+  lang,
 }: {
+  lang: Lang;
   children: React.ReactNode;
   winRate: number;
   pickRate: number;
 }) {
+  const t = dict(lang);
   return (
     <div className="flex items-center justify-between gap-3 rounded-md bg-panel-2 px-3 py-2">
       {children}
       <div className="shrink-0 text-right text-xs">
         <div>
-          승률 <WinRate value={winRate} />
+          {t.winRate} <WinRate value={winRate} />
         </div>
-        <div className="text-muted">픽률 {pct(pickRate)}</div>
+        <div className="text-muted">{t.pickRate} {pct(pickRate)}</div>
       </div>
     </div>
   );
@@ -513,7 +522,9 @@ function MatchupList({
   rows,
   version,
   lane,
+  lang,
 }: {
+  lang: Lang;
   rows: Matchup[];
   version: string;
   lane: Lane;
@@ -535,7 +546,7 @@ function MatchupList({
             <span className="text-right text-xs">
               <WinRate value={m.winRate} />
               <span className="block text-muted">
-                {m.games.toLocaleString("ko-KR")}게임
+                {dict(lang).games(m.games.toLocaleString(numLocale(lang)))}
               </span>
             </span>
           </Link>
