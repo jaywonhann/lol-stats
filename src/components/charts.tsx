@@ -61,3 +61,53 @@ export function DivergingBars({ bars, title }: { bars: Bar[]; title: string }) {
     </figure>
   );
 }
+
+type WinRateBar = { key: string; label: React.ReactNode; name: string; winRate: number; games: number };
+
+// 승률을 50% 기준선에서 갈라 그립니다: 오른쪽(파랑)=50% 이상, 왼쪽(빨강)=50% 미만.
+// 숫자 라벨을 항상 같이 보여줘 색만으로 구분하지 않습니다.
+export function WinRateBars({ rows, title }: { rows: WinRateBar[]; title: string }) {
+  const maxAbs = Math.max(5, ...rows.map((r) => Math.abs(r.winRate - 50)));
+  return (
+    <figure>
+      <figcaption className="mb-2 text-xs text-muted">{title}</figcaption>
+      <div className={`mb-1 grid grid-cols-[minmax(0,7rem)_1fr_4.5rem] ${rows.length ? "" : "hidden"} text-[10px] text-muted sm:grid-cols-[minmax(0,9rem)_1fr_5rem]`}>
+        <span />
+        <span className="relative flex justify-between">
+          <span>{(50 - maxAbs).toFixed(0)}%</span>
+          <span className="absolute left-1/2 -translate-x-1/2">50%</span>
+          <span>{(50 + maxAbs).toFixed(0)}%</span>
+        </span>
+        <span />
+      </div>
+      {rows.length === 0 && <p className="text-sm text-muted">아직 표본이 부족해요.</p>}
+      <div className="space-y-1" role="list">
+        {rows.map((r) => {
+          const d = r.winRate - 50;
+          const up = d >= 0;
+          const w = `${Math.max(1, (Math.abs(d) / maxAbs) * 100)}%`;
+          return (
+            <div
+              key={r.key}
+              role="listitem"
+              title={`${r.name}: 승률 ${r.winRate.toFixed(1)}% (${r.games.toLocaleString("ko-KR")}게임)`}
+              className="grid grid-cols-[minmax(0,7rem)_1fr_1fr_4.5rem] items-center rounded hover:bg-panel-2 sm:grid-cols-[minmax(0,9rem)_1fr_1fr_5rem]"
+            >
+              <span className="flex min-w-0 items-center gap-1 pr-2">{r.label}</span>
+              <div className="flex h-8 items-center justify-end border-r border-muted pr-px">
+                {!up && <span className="h-3.5 rounded-l-[4px]" style={{ width: w, background: "var(--chart-down)" }} />}
+              </div>
+              <div className="flex h-8 items-center pl-px">
+                {up && <span className="h-3.5 rounded-r-[4px]" style={{ width: w, background: "var(--chart-up)" }} />}
+              </div>
+              <span className="text-right text-xs leading-tight">
+                <span className="text-text">{r.winRate.toFixed(1)}%</span>
+                <span className="block text-[10px] text-muted">{r.games.toLocaleString("ko-KR")}게임</span>
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </figure>
+  );
+}

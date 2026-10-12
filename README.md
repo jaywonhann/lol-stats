@@ -20,7 +20,7 @@ Data Dragon의 버전 목록을 1시간마다 다시 읽어서, 새 패치가 �
 
 1. https://developer.riotgames.com 에서 API 키 발급
 2. GitHub 저장소 Settings → Secrets and variables → Actions → New repository secret: 이름 `RIOT_API_KEY`
-3. Actions → "랭크 게임 수집" → Run workflow (이후 매일 한국 시간 자정에 자동 실행)
+3. Actions → "랭크 게임 수집" → Run workflow (이후 6시간마다 자동 실행: 한국 시간 0시·6시·12시·18시)
 
 한 번 실행에 약 55분 동안 게임을 모으고, 결과를 커밋하면 Vercel이 자동으로 다시 배포합니다. 개발용 키는 24시간마다 만료되므로 장기 운영에는 Personal API Key 신청이 필요합니다.
 

@@ -167,3 +167,50 @@ export function realMatchups(
     hard: rows.slice(rows.length - half).reverse(),
   };
 }
+
+export type WinRateRow<T> = { value: T; winRate: number; games: number };
+
+// 표본이 충분한 선택지만 골라 승률 높은 순으로. 많이 쓰인 limit개 중에서 고릅니다.
+function byWinRate<T>(
+  counts: Counts,
+  champGames: number,
+  limit: number,
+  map: (key: string) => T | null,
+): WinRateRow<T>[] {
+  const minGames = Math.max(20, Math.round(champGames * 0.05));
+  return Object.entries(counts)
+    .filter(([, [g]]) => g >= minGames)
+    .sort((a, b) => b[1][0] - a[1][0])
+    .slice(0, limit)
+    .map(([key, [g, w]]) => ({ value: map(key), winRate: (w / g) * 100, games: g }))
+    .filter((r): r is WinRateRow<T> => r.value !== null)
+    .sort((a, b) => b.winRate - a.winRate);
+}
+
+// 승률 비교 그래프용: 핵심 룬+보조 빌드, 코어템 두 개 조합, 신발
+export function realWinRates(c: ChampAgg, items: Item[], trees: RuneTree[]) {
+  const itemById = new Map(items.map((i) => [i.id, i]));
+  const treeById = new Map(trees.map((t) => [t.id, t]));
+  const runeById = new Map(
+    trees.flatMap((t) => t.slots.flatMap((s) => s.runes)).map((r) => [r.id, r]),
+  );
+  // 룬은 핵심 룬과 보조 계열로만 묶어 표본을 모읍니다
+  const runes = regroup(c.runes, (key) => {
+    const [, priRunes, sec] = key.split("|");
+    return `${priRunes.split(",")[0]}|${sec}`;
+  });
+  const core = regroup(c.core, (key) => key.split(",").slice(0, 2).join(","));
+  return {
+    runes: byWinRate(runes, c.games, 8, (key) => {
+      const [ks, sec] = key.split("|").map(Number);
+      const keystone = runeById.get(ks);
+      const secondary = treeById.get(sec);
+      return keystone && secondary ? { keystone, secondary } : null;
+    }),
+    core: byWinRate(core, c.games, 8, (key) => {
+      const list = key.split(",").map((id) => itemById.get(id));
+      return list.every(Boolean) ? (list as Item[]) : null;
+    }),
+    boots: byWinRate(c.boots, c.games, 6, (id) => itemById.get(id) ?? null),
+  };
+}

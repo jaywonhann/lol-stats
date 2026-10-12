@@ -2,7 +2,7 @@ name: 랭크 게임 수집
 
 on:
   schedule:
-    - cron: "0 15 * * *" # 매일 한국 시간 자정
+    - cron: "0 3,9,15,21 * * *" # 한국 시간 0시·6시·12시·18시 (6시간마다)
   workflow_dispatch:
 
 permissions:

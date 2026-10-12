@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon, Panel, Tabs, TierBadge, WinRate, pct } from "@/components/ui";
 import TrendChart from "@/components/TrendChart";
+import { WinRateBars } from "@/components/charts";
 import {
   getChampion,
   getChampions,
@@ -15,7 +16,7 @@ import {
 } from "@/lib/ddragon";
 import { LANES, RANKS, laneLabel, parseRank, type Lane } from "@/lib/lanes";
 import type { Matchup, RunePage } from "@/lib/mock";
-import { realBuild, realChamp, realMatchups } from "@/lib/real";
+import { realBuild, realChamp, realMatchups, realWinRates } from "@/lib/real";
 import { boards, lanesOf } from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
@@ -66,6 +67,8 @@ export default async function ChampionPage({ params, searchParams }: Props) {
     source === "real" ? realChamp(real.get(patch)!, champion, lane) : null;
   const b = agg ? realBuild(agg, items, trees, spells) : null;
   const mu = agg ? realMatchups(agg, champion, champions) : null;
+  const wr = agg ? realWinRates(agg, items, trees) : null;
+  const updatedAt = source === "real" ? real.get(patch)!.updatedAt : null;
   const href = (l: string, r: string) =>
     `/champions/${champion.id}?lane=${l}&rank=${r}`;
 
@@ -161,6 +164,64 @@ export default async function ChampionPage({ params, searchParams }: Props) {
                 label: t.patch,
                 value: t.rank,
                 note: `${t.tier === "OP" ? "OP" : `${t.tier}티어`}`,
+              }))}
+            />
+          </div>
+        </Panel>
+      )}
+
+      {wr && (
+        <Panel title="지금 승률 높은 빌드">
+          <p className="mb-4 text-xs text-muted">
+            최근 수집한 {agg!.games.toLocaleString("ko-KR")}게임 기준
+            {updatedAt && ` · ${ago(updatedAt)} 업데이트`} · 많이 쓰인 선택지 중
+            승률 순 · 게임 수가 적은 선택지는 제외
+          </p>
+          <div className="grid gap-6 lg:grid-cols-3">
+            <WinRateBars
+              title="핵심 룬 + 보조 룬"
+              rows={wr.runes.map((r) => ({
+                key: `${r.value.keystone.id}-${r.value.secondary.id}`,
+                name: `${r.value.keystone.name} + ${r.value.secondary.name}`,
+                winRate: r.winRate,
+                games: r.games,
+                label: (
+                  <>
+                    <Icon src={img.rune(r.value.keystone.icon)} alt={r.value.keystone.name} size={28} className="rounded-full bg-bg" />
+                    <Icon src={img.rune(r.value.secondary.icon)} alt={r.value.secondary.name} size={18} />
+                    <span className="truncate text-xs">{r.value.keystone.name}</span>
+                  </>
+                ),
+              }))}
+            />
+            <WinRateBars
+              title="코어 아이템 (먼저 완성한 2개)"
+              rows={wr.core.map((r) => ({
+                key: r.value.map((i) => i.id).join("-"),
+                name: r.value.map((i) => i.name).join(" › "),
+                winRate: r.winRate,
+                games: r.games,
+                label: r.value.map((item, j) => (
+                  <span key={item.id} className="flex items-center gap-1">
+                    {j > 0 && <span className="text-muted">›</span>}
+                    <Icon src={img.item(version, item.id)} alt={item.name} size={28} />
+                  </span>
+                )),
+              }))}
+            />
+            <WinRateBars
+              title="신발"
+              rows={wr.boots.map((r) => ({
+                key: r.value.id,
+                name: r.value.name,
+                winRate: r.winRate,
+                games: r.games,
+                label: (
+                  <>
+                    <Icon src={img.item(version, r.value.id)} alt={r.value.name} size={28} />
+                    <span className="truncate text-xs">{r.value.name}</span>
+                  </>
+                ),
               }))}
             />
           </div>
@@ -323,6 +384,11 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
       <dd className="text-lg font-semibold">{value}</dd>
     </div>
   );
+}
+
+function ago(iso: string) {
+  const h = Math.floor((Date.now() - new Date(iso).getTime()) / 3_600_000);
+  return h < 1 ? "1시간 이내" : h < 24 ? `${h}시간 전` : `${Math.floor(h / 24)}일 전`;
 }
 
 function Empty() {
