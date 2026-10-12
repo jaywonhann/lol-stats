@@ -17,6 +17,8 @@ export type ChampAgg = {
   boots: Counts;
   skills: Counts;
   vs: Counts;
+  core4?: Counts; // 먼저 완성한 코어템 4개 순서
+  slots?: Counts; // "n:아이템ID" n번째로 완성한 코어템
 };
 
 export type PatchData = {
@@ -66,6 +68,7 @@ function merge(list: PatchData[]): PatchData {
       t.wins += c.wins;
       for (const key of ["runes", "spells", "starters", "core", "boots", "skills", "vs"] as const)
         addCounts(t[key], c[key]);
+      for (const key of ["core4", "slots"] as const) if (c[key]) addCounts((t[key] ??= {}), c[key]);
     }
   }
   return out;
@@ -192,15 +195,52 @@ export function realBuild(
         secondaryRunes: secRunes.split(",").map(Number),
       };
     }),
-    spells: top(c.spells, 2, (key) => {
+    spells: top(c.spells, 3, (key) => {
       const list = key.split(",").map((k) => spellByKey.get(k));
       return list.every(Boolean) ? (list as SummonerSpell[]) : null;
     }),
     skillOrder: top(c.skills, 2, (key) => key.split("")),
-    starters: top(starters, 2, itemsOf),
+    starters: top(starters, 3, itemsOf),
     core: top(core, 3, itemsOf),
-    boots: top(c.boots, 2, (id) => itemById.get(id) ?? null),
+    boots: top(c.boots, 3, (id) => itemById.get(id) ?? null),
   };
+}
+
+export type SlotOption = { item: Item; winRate: number; pickRate: number; games: number };
+
+// 1~4코어: n번째로 완성한 코어템별 채택률·승률, 그리고 많이 쓰는 전체 코어 빌드 순서
+export function realCorePath(c: ChampAgg, items: Item[]) {
+  const itemById = new Map(items.map((i) => [i.id, i]));
+  // 예전 데이터에는 slots가 없어서 3코어 순서에서 1~3코어를 계산합니다
+  let slots = c.slots && Object.keys(c.slots).length ? c.slots : null;
+  if (!slots) {
+    slots = {};
+    for (const [key, [g, w]] of Object.entries(c.core))
+      key.split(",").forEach((id, i) => {
+        const v = (slots![`${i + 1}:${id}`] ??= [0, 0]);
+        v[0] += g;
+        v[1] += w;
+      });
+  }
+  const path: SlotOption[][] = [1, 2, 3, 4].map((n) => {
+    const entries = Object.entries(slots!).filter(([k]) => k.startsWith(`${n}:`));
+    const total = entries.reduce((s, [, [g]]) => s + g, 0);
+    return entries
+      .filter(([, [g]]) => g >= 3)
+      .sort((a, b) => b[1][0] - a[1][0])
+      .slice(0, 3)
+      .flatMap(([k, [g, w]]) => {
+        const item = itemById.get(k.split(":")[1]);
+        return item ? [{ item, games: g, winRate: (w / g) * 100, pickRate: (g / total) * 100 }] : [];
+      });
+  });
+  while (path.length && !path[path.length - 1].length) path.pop();
+  const seqs = c.core4 && Object.values(c.core4).some(([g]) => g >= 3) ? c.core4 : c.core;
+  const builds = top(seqs, 5, (key) => {
+    const list = key.split(",").map((id) => itemById.get(id));
+    return list.every(Boolean) ? (list as Item[]) : null;
+  });
+  return { path, builds };
 }
 
 export function realMatchups(
@@ -209,19 +249,24 @@ export function realMatchups(
   champions: Champion[],
 ) {
   const byKey = new Map(champions.map((ch) => [ch.key, ch]));
-  const rows: Matchup[] = Object.entries(c.vs)
-    .filter(([key, [g]]) => g >= 10 && key !== champ.key) // 미러전 제외
+  // 상대별 게임 수가 적어서, 순위는 내 평균 승률 쪽으로 당긴 값(10게임 가중)으로 정합니다
+  const base = c.wins / c.games;
+  const PRIOR = 10;
+  const rows = Object.entries(c.vs)
+    .filter(([key, [g]]) => g >= 3 && key !== champ.key) // 미러전 제외
     .map(([key, [g, w]]) => ({
       champion: byKey.get(key)!,
       winRate: (w / g) * 100,
       games: g,
+      score: (w + base * PRIOR) / (g + PRIOR),
     }))
     .filter((m) => m.champion);
-  rows.sort((a, b) => b.winRate - a.winRate);
+  rows.sort((a, b) => b.score - a.score);
   const half = Math.min(5, Math.floor(rows.length / 2));
+  const strip = (m: (typeof rows)[number]): Matchup => ({ champion: m.champion, winRate: m.winRate, games: m.games });
   return {
-    easy: rows.slice(0, half),
-    hard: rows.slice(rows.length - half).reverse(),
+    easy: rows.slice(0, half).map(strip),
+    hard: rows.slice(rows.length - half).reverse().map(strip),
   };
 }
 

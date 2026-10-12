@@ -159,7 +159,8 @@ async function main() {
   for (const t of TIERS) {
     const db = dbs[t];
     for (const c of Object.values(db.champs)) {
-      for (const k of ["runes", "spells", "starters", "core", "boots", "skills"]) {
+      for (const k of ["runes", "spells", "starters", "core", "core4", "slots", "boots", "skills"]) {
+        if (!c[k]) continue;
         c[k] = Object.fromEntries(Object.entries(c[k]).sort((a, b) => b[1][0] - a[1][0]).slice(0, 40));
       }
     }
@@ -217,6 +218,8 @@ export function addMatch(db, match, timeline, { isBoots, isCore, isTrinket = () 
     const lane = LANE[p.teamPosition];
     if (!lane) continue;
     const c = (db.champs[`${p.championId}:${lane}`] ??= { games: 0, wins: 0, runes: {}, spells: {}, starters: {}, core: {}, boots: {}, skills: {}, vs: {} });
+    c.core4 ??= {};
+    c.slots ??= {};
     const win = p.win;
     c.games++;
     if (win) c.wins++;
@@ -230,8 +233,12 @@ export function addMatch(db, match, timeline, { isBoots, isCore, isTrinket = () 
     const list = buys[p.participantId] ?? [];
     const start = list.filter((x) => x.t < 60_000 && !isTrinket(x.id)).map((x) => x.id).sort();
     if (start.length) bump(c.starters, start.join(","), win);
-    const core = [...new Set(list.filter((x) => isCore(x.id)).map((x) => x.id))].slice(0, 3);
+    const seq = [...new Set(list.filter((x) => isCore(x.id)).map((x) => x.id))].slice(0, 4);
+    const core = seq.slice(0, 3);
     if (core.length === 3) bump(c.core, core.join(","), win);
+    if (seq.length === 4) bump(c.core4, seq.join(","), win);
+    // n번째로 완성한 코어템 (1~4코어)
+    seq.forEach((id, i) => bump(c.slots, `${i + 1}:${id}`, win));
     picks.push({ key: `${p.championId}:${lane}`, win, core });
     const boots = list.find((x) => isBoots(x.id));
     if (boots) bump(c.boots, boots.id, win);

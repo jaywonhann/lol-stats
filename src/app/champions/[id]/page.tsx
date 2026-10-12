@@ -28,7 +28,15 @@ import {
 import { getLang, getServer } from "@/lib/server";
 import { ddLocale, dict, numLocale, timeAgo, type Lang } from "@/lib/i18n";
 import type { Matchup, RunePage } from "@/lib/mock";
-import { realBuild, realChamp, realMatchups, realWinRates } from "@/lib/real";
+import {
+  loadRealData,
+  realBuild,
+  realChamp,
+  realCorePath,
+  realMatchups,
+  realWinRates,
+  type SlotOption,
+} from "@/lib/real";
 import { boards, lanesOf } from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
@@ -86,7 +94,12 @@ export default async function ChampionPage({ params, searchParams }: Props) {
   const agg =
     source === "real" ? realChamp(real.get(patch)!, champion, lane) : null;
   const b = agg ? realBuild(agg, items, trees, spells) : null;
-  const mu = agg ? realMatchups(agg, champion, champions) : null;
+  // 카운터는 표본이 많이 필요해서 항상 에메랄드+ 전체 데이터로 계산합니다
+  const allAgg = agg
+    ? (realChamp(loadRealData({ server, rank: "all" }).get(patch) ?? real.get(patch)!, champion, lane) ?? agg)
+    : null;
+  const mu = allAgg ? realMatchups(allAgg, champion, champions) : null;
+  const cp = agg ? realCorePath(agg, items) : null;
   const wr = agg ? realWinRates(agg, items, trees) : null;
   const updatedAt = source === "real" ? real.get(patch)!.updatedAt : null;
   const daily = loadDaily(server);
@@ -298,32 +311,48 @@ export default async function ChampionPage({ params, searchParams }: Props) {
                 {b.runes.length === 0 && <Empty lang={lang} />}
                 {b.runes.map((o, i) => (
                   <OptionRow lang={lang} key={i} winRate={o.winRate} pickRate={o.pickRate}>
-                    <RunePageView page={o.value} trees={trees} />
+                    <RunePageView page={o.value} trees={trees} big={i === 0} />
                   </OptionRow>
                 ))}
               </div>
             </Panel>
 
-            <Panel title={t.coreItems}>
-              <div className="space-y-2">
-                {b.core.length === 0 && <Empty lang={lang} />}
-                {b.core.map((o, i) => (
-                  <OptionRow lang={lang} key={i} winRate={o.winRate} pickRate={o.pickRate}>
-                    <div className="flex items-center gap-1">
-                      {o.value.map((item, j) => (
-                        <span key={item.id} className="flex items-center gap-1">
-                          {j > 0 && <span className="text-muted">›</span>}
-                          <Icon
-                            src={img.item(version, item.id)}
-                            alt={item.name}
-                            size={36}
-                          />
-                        </span>
-                      ))}
+            <Panel title={t.corePath}>
+              {!cp || cp.path.length === 0 ? (
+                <Empty lang={lang} />
+              ) : (
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {cp.path.map((opts, i) => (
+                    <div key={i} className="rounded-md bg-panel-2 p-2">
+                      <p className="mb-2 text-center text-xs font-semibold text-muted">{t.coreSlot(i + 1)}</p>
+                      <ul className="space-y-2">
+                        {opts.map((o) => (
+                          <SlotRow key={o.item.id} o={o} version={version} lang={lang} />
+                        ))}
+                      </ul>
                     </div>
-                  </OptionRow>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
+              {cp && cp.builds.length > 0 && (
+                <>
+                  <p className="mb-2 mt-4 text-xs font-semibold text-muted">{t.fullBuilds}</p>
+                  <div className="space-y-2">
+                    {cp.builds.map((o, i) => (
+                      <OptionRow lang={lang} key={i} winRate={o.winRate} pickRate={o.pickRate}>
+                        <div className="flex flex-wrap items-center gap-1">
+                          {o.value.map((item, j) => (
+                            <span key={item.id} className="flex items-center gap-1">
+                              {j > 0 && <span className="text-muted">›</span>}
+                              <Icon src={img.item(version, item.id)} alt={item.name} size={36} />
+                            </span>
+                          ))}
+                        </div>
+                      </OptionRow>
+                    ))}
+                  </div>
+                </>
+              )}
             </Panel>
 
             <div className="grid gap-4 md:grid-cols-2">
@@ -426,6 +455,9 @@ export default async function ChampionPage({ params, searchParams }: Props) {
             <Panel title={t.hardMatchups}>
               <MatchupList lang={lang} rows={mu.hard} version={version} lane={lane} />
             </Panel>
+            {[...mu.easy, ...mu.hard].some((m) => m.games < 10) && (
+              <p className="px-1 text-xs text-muted">{t.matchupNote}</p>
+            )}
           </div>
         </div>
       ) : (
@@ -479,42 +511,71 @@ function OptionRow({
   );
 }
 
-function RunePageView({ page, trees }: { page: RunePage; trees: RuneTree[] }) {
-  const all = new Map(
-    trees.flatMap((t) => t.slots.flatMap((s) => s.runes)).map((r) => [r.id, r]),
+// 게임 룬 페이지처럼: 주 룬 계열(핵심 룬 + 3줄)과 보조 룬 계열(3줄)을 나란히, 고른 룬만 밝게
+function RunePageView({
+  page,
+  trees,
+  big = false,
+}: {
+  page: RunePage;
+  trees: RuneTree[];
+  big?: boolean;
+}) {
+  const chosen = new Set([page.keystone, ...page.primaryRunes, ...page.secondaryRunes]);
+  const primary = trees.find((t) => t.id === page.primary.id) ?? page.primary;
+  const secondary = trees.find((t) => t.id === page.secondary.id) ?? page.secondary;
+  const size = big ? 32 : 26;
+  const row = (runes: RuneTree["slots"][number]["runes"], s: number) => (
+    <div className="flex items-center justify-center gap-2">
+      {runes.map((r) => (
+        <Icon
+          key={r.id}
+          src={img.rune(r.icon)}
+          alt={r.name}
+          size={s}
+          className={`rounded-full bg-bg ${chosen.has(r.id) ? "ring-2 ring-accent" : "opacity-25 grayscale"}`}
+        />
+      ))}
+    </div>
   );
-  const rune = (id: number, size: number) => {
-    const r = all.get(id)!;
-    return (
-      <Icon
-        key={id}
-        src={img.rune(r.icon)}
-        alt={r.name}
-        size={size}
-        className="rounded-full bg-bg"
-      />
-    );
-  };
+  const head = (tree: RuneTree) => (
+    <div className="mb-2 flex items-center justify-center gap-1.5 text-xs font-semibold">
+      <Icon src={img.rune(tree.icon)} alt={tree.name} size={18} />
+      {tree.name}
+    </div>
+  );
   return (
-    <div className="flex flex-wrap items-center gap-4">
-      <div className="flex items-center gap-1">
-        <Icon
-          src={img.rune(page.primary.icon)}
-          alt={page.primary.name}
-          size={20}
-        />
-        {rune(page.keystone, 40)}
-        {page.primaryRunes.map((id) => rune(id, 28))}
+    <div className="flex flex-1 flex-wrap justify-center gap-x-6 gap-y-3 sm:flex-nowrap">
+      <div className="min-w-0 space-y-2">
+        {head(primary)}
+        {row(primary.slots[0].runes, size + 10)}
+        {primary.slots.slice(1).map((s, i) => (
+          <div key={i}>{row(s.runes, size)}</div>
+        ))}
       </div>
-      <div className="flex items-center gap-1">
-        <Icon
-          src={img.rune(page.secondary.icon)}
-          alt={page.secondary.name}
-          size={20}
-        />
-        {page.secondaryRunes.map((id) => rune(id, 28))}
+      <div className="w-px self-stretch bg-line max-sm:hidden" />
+      <div className="min-w-0 space-y-2">
+        {head(secondary)}
+        {secondary.slots.slice(1).map((s, i) => (
+          <div key={i}>{row(s.runes, size)}</div>
+        ))}
       </div>
     </div>
+  );
+}
+
+function SlotRow({ o, version, lang }: { o: SlotOption; version: string; lang: Lang }) {
+  const t = dict(lang);
+  return (
+    <li className="flex items-center gap-2" title={`${o.item.name} · ${t.winRate} ${o.winRate.toFixed(1)}% · ${o.games}`}>
+      <Icon src={img.item(version, o.item.id)} alt={o.item.name} size={32} />
+      <div className="min-w-0 text-[11px] leading-tight">
+        <WinRate value={o.winRate} />
+        <span className="block text-muted">
+          {t.pickShort} {o.pickRate.toFixed(0)}%
+        </span>
+      </div>
+    </li>
   );
 }
 
@@ -529,6 +590,7 @@ function MatchupList({
   version: string;
   lane: Lane;
 }) {
+  if (!rows.length) return <Empty lang={lang} />;
   return (
     <ul className="space-y-2">
       {rows.map((m) => (
