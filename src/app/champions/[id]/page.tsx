@@ -14,7 +14,16 @@ import {
   img,
   type RuneTree,
 } from "@/lib/ddragon";
-import { LANES, RANKS, laneLabel, parseRank, type Lane } from "@/lib/lanes";
+import {
+  LANES,
+  RANKS,
+  laneLabel,
+  parseRank,
+  rankLabel,
+  serverLabel,
+  type Lane,
+} from "@/lib/lanes";
+import { getServer } from "@/lib/server";
 import type { Matchup, RunePage } from "@/lib/mock";
 import { realBuild, realChamp, realMatchups, realWinRates } from "@/lib/real";
 import { boards, lanesOf } from "@/lib/stats";
@@ -38,25 +47,28 @@ export default async function ChampionPage({ params, searchParams }: Props) {
   if (!data) notFound();
   const { version, champion } = data;
 
-  const [{ champions }, patches, items, trees, spells] = await Promise.all([
-    getChampions(),
-    getPatches(),
-    getItems(version),
-    getRuneTrees(version),
-    getSummonerSpells(version),
-  ]);
+  const [{ champions }, patches, items, trees, spells, server] =
+    await Promise.all([
+      getChampions(),
+      getPatches(),
+      getItems(version),
+      getRuneTrees(version),
+      getSummonerSpells(version),
+      getServer(),
+    ]);
+  const rank = parseRank(sp.rank);
+  const filter = { server, rank };
 
-  const lanes = lanesOf(champion, patches);
+  const lanes = lanesOf(champion, patches, filter);
   const lane: Lane = lanes.includes(sp.lane as Lane)
     ? (sp.lane as Lane)
     : lanes[0];
-  const rank = parseRank(sp.rank);
   const {
     source,
     patches: statPatches,
     boards: bs,
     real,
-  } = boards(champions, lane, rank, patches);
+  } = boards(champions, lane, filter, patches);
   const patch = statPatches[statPatches.length - 1];
   const trend = bs
     .map((b) => b.find((s) => s.champion.id === champion.id))
@@ -126,23 +138,20 @@ export default async function ChampionPage({ params, searchParams }: Props) {
               href: href(l.id, rank),
             }))}
           />
-          {source === "mock" && (
-            <Tabs
-              active={rank}
-              items={RANKS.map((r) => ({
-                id: r.id,
-                label: r.label,
-                href: href(lane, r.id),
-              }))}
-            />
-          )}
+          <Tabs
+            active={rank}
+            items={RANKS.map((r) => ({
+              id: r.id,
+              label: r.label,
+              href: href(lane, r.id),
+            }))}
+          />
         </div>
         <p className="mt-3 text-xs text-muted">
           패치 {patch} · {laneLabel(lane)}
           {stat && ` · ${stat.games.toLocaleString("ko-KR")}게임`}
-          {source === "real"
-            ? " · 한국 다이아+ 솔로랭크 실제 게임"
-            : " · 승률·픽률은 예시 데이터"}
+          {` · ${serverLabel(server)} 서버 · ${rankLabel(rank)}`}
+          {source === "real" ? " 솔로랭크 실제 게임" : " · 승률·픽률은 예시 데이터"}
         </p>
       </Panel>
 

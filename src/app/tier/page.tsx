@@ -2,7 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Icon, Tabs, TierBadge, WinRate, pct } from "@/components/ui";
 import { getChampions, getPatches, img } from "@/lib/ddragon";
-import { LANES, RANKS, parseLane, parseRank } from "@/lib/lanes";
+import {
+  LANES,
+  RANKS,
+  parseLane,
+  parseRank,
+  rankLabel,
+  serverLabel,
+} from "@/lib/lanes";
+import { getServer } from "@/lib/server";
 import { boards } from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
@@ -16,16 +24,17 @@ export default async function TierPage({ searchParams }: Props) {
   const params = await searchParams;
   const lane = parseLane(params.lane);
   const rank = parseRank(params.rank);
-  const [{ version, champions }, allPatches] = await Promise.all([
+  const [{ version, champions }, allPatches, server] = await Promise.all([
     getChampions(),
     getPatches(),
+    getServer(),
   ]);
   const {
     source,
     patches,
     boards: bs,
     real,
-  } = boards(champions, lane, rank, allPatches);
+  } = boards(champions, lane, { server, rank }, allPatches);
   const latest = patches[patches.length - 1];
   const patch =
     params.patch && patches.includes(params.patch) ? params.patch : latest;
@@ -38,9 +47,9 @@ export default async function TierPage({ searchParams }: Props) {
       <div className="flex flex-wrap items-end justify-between gap-2">
         <h1 className="text-2xl font-bold">챔피언 티어 리스트</h1>
         <span className="text-sm text-muted">
-          패치 {patch} · 한국 서버 ·{" "}
+          패치 {patch} · {serverLabel(server)} 서버 · {rankLabel(rank)} ·{" "}
           {source === "real"
-            ? `다이아+ 솔로랭크 ${real.get(patch)!.matches.toLocaleString("ko-KR")}게임`
+            ? `솔로랭크 ${real.get(patch)!.matches.toLocaleString("ko-KR")}게임`
             : "예시 데이터"}
         </span>
       </div>
@@ -54,16 +63,14 @@ export default async function TierPage({ searchParams }: Props) {
             href: q({ lane: l.id }),
           }))}
         />
-        {source === "mock" && (
-          <Tabs
-            active={rank}
-            items={RANKS.map((r) => ({
-              id: r.id,
-              label: r.label,
-              href: q({ rank: r.id }),
-            }))}
-          />
-        )}
+        <Tabs
+          active={rank}
+          items={RANKS.map((r) => ({
+            id: r.id,
+            label: r.label,
+            href: q({ rank: r.id }),
+          }))}
+        />
         {patches.length > 1 && (
           <Tabs
             active={patch}

@@ -3,9 +3,17 @@ import Link from "next/link";
 import { DivergingBars, Sparkline } from "@/components/charts";
 import { Icon, Panel, Tabs, TierBadge, WinRate } from "@/components/ui";
 import { getChampions, getPatches, img } from "@/lib/ddragon";
-import { LANES, RANKS, parseLane, parseRank } from "@/lib/lanes";
+import {
+  LANES,
+  RANKS,
+  parseLane,
+  parseRank,
+  rankLabel,
+  serverLabel,
+} from "@/lib/lanes";
 import type { ChampionStat } from "@/lib/mock";
 import { movers } from "@/lib/stats";
+import { getServer } from "@/lib/server";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "패치 트렌드" };
@@ -16,14 +24,15 @@ export default async function TrendsPage({ searchParams }: Props) {
   const params = await searchParams;
   const lane = parseLane(params.lane);
   const rank = parseRank(params.rank);
-  const [{ version, champions }, allPatches] = await Promise.all([
+  const [{ version, champions }, allPatches, server] = await Promise.all([
     getChampions(),
     getPatches(),
+    getServer(),
   ]);
   const { source, patches, rising, falling } = movers(
     champions,
     lane,
-    rank,
+    { server, rank },
     allPatches,
     8,
   );
@@ -41,7 +50,8 @@ export default async function TrendsPage({ searchParams }: Props) {
         <h1 className="text-2xl font-bold">패치 트렌드</h1>
         <span className="text-sm text-muted">
           {prev ? `패치 ${prev} → ${patch} 메타 점수 변화` : `패치 ${patch}`} ·{" "}
-          {source === "real" ? "한국 다이아+ 실제 게임" : "예시 데이터"}
+          {serverLabel(server)} 서버 · {rankLabel(rank)} ·{" "}
+          {source === "real" ? "실제 게임" : "예시 데이터"}
         </span>
       </div>
       <div className="space-y-2">
@@ -53,16 +63,14 @@ export default async function TrendsPage({ searchParams }: Props) {
             href: `/trends?lane=${l.id}&rank=${rank}`,
           }))}
         />
-        {source === "mock" && (
-          <Tabs
-            active={rank}
-            items={RANKS.map((r) => ({
-              id: r.id,
-              label: r.label,
-              href: `/trends?lane=${lane}&rank=${r.id}`,
-            }))}
-          />
-        )}
+        <Tabs
+          active={rank}
+          items={RANKS.map((r) => ({
+            id: r.id,
+            label: r.label,
+            href: `/trends?lane=${lane}&rank=${r.id}`,
+          }))}
+        />
       </div>
 
       {!prev && (

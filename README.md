@@ -1,9 +1,9 @@
-# 협곡지표
+# livelol.stats
 
 리그 오브 레전드 챔피언 통계 사이트 (티어 리스트, 빌드, 룬, 카운터).
 
 - 챔피언·아이템·룬·소환사 주문 정보: Riot [Data Dragon](https://developer.riotgames.com/docs/lol#data-dragon) (API 키 불필요)
-- 승률·픽률·빌드 통계: 한국 서버 다이아+ 솔로랭크 게임을 직접 모아 집계 (`scripts/collect.mjs` → `data/patches/{패치}.json`). 데이터가 없으면 티어 리스트·트렌드는 예시 데이터로 표시하고, 빌드는 보여주지 않습니다.
+- 승률·픽률·빌드 통계: 한국·북미·유럽 서부 서버의 에메랄드·다이아몬드·마스터+ 솔로랭크 게임을 직접 모아 집계 (`scripts/collect.mjs` → `data/patches/{서버}/{랭크}/{패치}.json`). 서버는 상단 메뉴, 랭크는 각 페이지 탭에서 고릅니다. 데이터가 없으면 티어 리스트·트렌드는 예시 데이터로 표시하고, 빌드는 보여주지 않습니다.
 
 ## 페이지
 
@@ -37,4 +37,4 @@ npm run dev   # http://localhost:3000
 
 Vercel에서 이 저장소를 Import 하면 별도 설정 없이 배포됩니다.
 
-협곡지표 isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties.
+livelol.stats isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties.

@@ -1,6 +1,6 @@
 // 실제 수집 데이터가 있으면 그걸 쓰고, 없으면 목업으로 대체하는 창구
 import type { Champion } from "./ddragon";
-import type { Lane, Rank } from "./lanes";
+import type { Filter, Lane } from "./lanes";
 import {
   lanesFor,
   metaScore,
@@ -13,8 +13,8 @@ import { loadRealData, realLanes, type PatchData } from "./real";
 
 export type Source = "real" | "mock";
 
-export function statsSource(patches: string[]) {
-  const real = loadRealData();
+export function statsSource(patches: string[], filter: Filter) {
+  const real = loadRealData(filter);
   const realPatches = patches.filter((p) => real.has(p));
   const latest = patches[patches.length - 1];
   if (real.has(latest))
@@ -58,19 +58,23 @@ function realBoards(
 export function boards(
   champions: Champion[],
   lane: Lane,
-  rank: Rank,
+  filter: Filter,
   allPatches: string[],
 ) {
-  const s = statsSource(allPatches);
+  const s = statsSource(allPatches, filter);
   const b =
     s.source === "real"
       ? realBoards(champions, lane, s.patches, s.real)
-      : tierHistory(champions, lane, rank, s.patches);
+      : tierHistory(champions, lane, filter.rank, s.patches);
   return { source: s.source, patches: s.patches, boards: b, real: s.real };
 }
 
-export function lanesOf(champ: Champion, allPatches: string[]): Lane[] {
-  const s = statsSource(allPatches);
+export function lanesOf(
+  champ: Champion,
+  allPatches: string[],
+  filter: Filter,
+): Lane[] {
+  const s = statsSource(allPatches, filter);
   if (s.source === "real") {
     const lanes = realLanes(
       s.real.get(s.patches[s.patches.length - 1])!,
@@ -84,7 +88,7 @@ export function lanesOf(champ: Champion, allPatches: string[]): Lane[] {
 export function movers(
   champions: Champion[],
   lane: Lane,
-  rank: Rank,
+  filter: Filter,
   allPatches: string[],
   count = 8,
 ) {
@@ -92,12 +96,12 @@ export function movers(
     source,
     boards: bs,
     patches,
-  } = boards(champions, lane, rank, allPatches);
+  } = boards(champions, lane, filter, allPatches);
   if (source === "mock")
     return {
       source,
       patches,
-      ...mockMovers(champions, lane, rank, allPatches, count),
+      ...mockMovers(champions, lane, filter.rank, allPatches, count),
     };
   const latest = bs[bs.length - 1].filter((s) => s.scoreChange !== null);
   const sorted = [...latest].sort((a, b) => b.scoreChange! - a.scoreChange!);

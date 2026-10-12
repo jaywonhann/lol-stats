@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { Champion, Item, RuneTree, SummonerSpell } from "./ddragon";
-import type { Lane } from "./lanes";
+import type { Filter, Lane } from "./lanes";
 import type { Build, BuildOption, Matchup, RunePage } from "./mock";
 
 type Counts = Record<string, [number, number]>; // key -> [게임 수, 승리 수]
@@ -31,18 +31,75 @@ export type PatchData = {
 export const MIN_PATCH_MATCHES = 200;
 export const MIN_CHAMP_GAMES = 20;
 
-const DIR = path.join(process.cwd(), "data", "patches");
+const ROOT = path.join(process.cwd(), "data", "patches");
 
-export function loadRealData(): Map<string, PatchData> {
-  const out = new Map<string, PatchData>();
-  if (!fs.existsSync(DIR)) return out;
-  for (const f of fs.readdirSync(DIR)) {
-    if (!f.endsWith(".json")) continue;
-    const d = JSON.parse(
-      fs.readFileSync(path.join(DIR, f), "utf8"),
-    ) as PatchData;
-    if (d.matches >= MIN_PATCH_MATCHES) out.set(d.patch, d);
+function readJson<T>(file: string): T {
+  return JSON.parse(fs.readFileSync(file, "utf8")) as T;
+}
+
+function addCounts(into: Counts, from: Counts) {
+  for (const [k, [g, w]] of Object.entries(from)) {
+    const v = (into[k] ??= [0, 0]);
+    v[0] += g;
+    v[1] += w;
   }
+}
+
+// 여러 랭크 구간 데이터를 하나로 합치기
+function merge(list: PatchData[]): PatchData {
+  if (list.length === 1) return list[0];
+  const out: PatchData = {
+    patch: list[0].patch,
+    updatedAt: list.map((d) => d.updatedAt).sort().at(-1)!,
+    matches: 0,
+    bans: {},
+    champs: {},
+  };
+  for (const d of list) {
+    out.matches += d.matches;
+    for (const [k, n] of Object.entries(d.bans)) out.bans[k] = (out.bans[k] ?? 0) + n;
+    for (const [k, c] of Object.entries(d.champs)) {
+      const t = (out.champs[k] ??= {
+        games: 0, wins: 0, runes: {}, spells: {}, starters: {}, core: {}, boots: {}, skills: {}, vs: {},
+      });
+      t.games += c.games;
+      t.wins += c.wins;
+      for (const key of ["runes", "spells", "starters", "core", "boots", "skills", "vs"] as const)
+        addCounts(t[key], c[key]);
+    }
+  }
+  return out;
+}
+
+const cache = new Map<string, { stamp: string; data: Map<string, PatchData> }>();
+
+// data/patches/{서버}/{랭크 구간}/{패치}.json. "전체"는 모든 구간(예전 수집분 포함)을 합칩니다.
+export function loadRealData(filter: Filter): Map<string, PatchData> {
+  const dir = path.join(ROOT, filter.server);
+  if (!fs.existsSync(dir)) return new Map();
+  const tiers = fs
+    .readdirSync(dir, { withFileTypes: true })
+    .filter((e) => e.isDirectory() && (filter.rank === "all" || e.name === filter.rank))
+    .map((e) => e.name);
+  const files = tiers.flatMap((t) =>
+    fs.readdirSync(path.join(dir, t)).filter((f) => f.endsWith(".json")).map((f) => path.join(dir, t, f)),
+  );
+  const stamp = files.map((f) => `${f}:${fs.statSync(f).mtimeMs}`).join("|");
+  const key = `${filter.server}/${filter.rank}`;
+  const hit = cache.get(key);
+  if (hit?.stamp === stamp) return hit.data;
+
+  const byPatch = new Map<string, PatchData[]>();
+  for (const f of files) {
+    const d = readJson<PatchData>(f);
+    byPatch.set(d.patch, [...(byPatch.get(d.patch) ?? []), d]);
+  }
+  const out = new Map<string, PatchData>();
+  for (const [patch, list] of byPatch) {
+    const d = merge(list);
+    if (d.matches >= MIN_PATCH_MATCHES) out.set(patch, d);
+  }
+  cache.set(key, { stamp, data: out });
   return out;
 }
 

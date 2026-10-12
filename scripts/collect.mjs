@@ -1,6 +1,6 @@
-// 한국 서버 상위 랭크(마스터+, 다이아 I~II) 솔로랭크 게임을 모아서 챔피언별 빌드·승률을 집계합니다.
-// GitHub Actions에서 RIOT_API_KEY 시크릿으로 실행되고, 결과는 data/patches/{패치}.json 에 쌓입니다.
-//   RIOT_API_KEY=RGAPI-... node scripts/collect.mjs
+// 서버 하나(SERVER)의 에메랄드·다이아몬드·마스터+ 솔로랭크 게임을 모아서 챔피언별 빌드·승률을 집계합니다.
+// GitHub Actions에서 RIOT_API_KEY 시크릿으로 실행되고, 결과는 data/patches/{서버}/{랭크}/{패치}.json 에 쌓입니다.
+//   RIOT_API_KEY=RGAPI-... SERVER=kr node scripts/collect.mjs
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -10,8 +10,13 @@ const KEY = process.env.RIOT_API_KEY?.match(/RGAPI-[0-9a-f-]{36}/i)?.[0] ?? proc
 const MAX_MINUTES = Number(process.env.MAX_MINUTES ?? 50);
 const PLAYERS = Number(process.env.PLAYERS ?? 400);
 const DATA_DIR = path.join(process.cwd(), "data");
-const PLATFORM = "https://kr.api.riotgames.com";
-const REGION = "https://asia.api.riotgames.com";
+// 서버별 API 주소 (게임 기록은 대륙 단위 주소를 씁니다)
+const SERVERS = { kr: "asia", na1: "americas", euw1: "europe" };
+const SERVER = process.env.SERVER ?? "kr";
+if (!SERVERS[SERVER]) throw new Error(`알 수 없는 서버: ${SERVER}`);
+const PLATFORM = `https://${SERVER}.api.riotgames.com`;
+const REGION = `https://${SERVERS[SERVER]}.api.riotgames.com`;
+const TIERS = ["emerald", "diamond", "master"];
 const DDRAGON = "https://ddragon.leagueoflegends.com";
 
 const started = Date.now();
@@ -23,7 +28,7 @@ async function riot(url) {
   for (;;) {
     const now = Date.now();
     while (calls.length && now - calls[0] > 120_000) calls.shift();
-    if (calls.length >= 95) {
+    if (calls.length >= RATE_LIMIT) {
       await sleep(120_000 - (now - calls[0]) + 50);
       continue;
     }
@@ -47,6 +52,7 @@ async function riot(url) {
     return res.json();
   }
 }
+const RATE_LIMIT = Number(process.env.RATE_LIMIT ?? 95);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const patchOf = (v) => v.split(".").slice(0, 2).join(".");
 
@@ -71,60 +77,90 @@ async function main() {
   };
   console.log(`패치 ${patch} (${version}) 수집 시작, 최대 ${MAX_MINUTES}분`);
 
-  const file = path.join(DATA_DIR, "patches", `${patch}.json`);
-  const db = fs.existsSync(file)
-    ? JSON.parse(fs.readFileSync(file, "utf8"))
-    : { patch, updatedAt: null, matches: 0, bans: {}, champs: {}, seen: [] };
-  const seen = new Set(db.seen);
+  // 랭크 구간마다 따로 쌓고, 이미 본 게임 목록은 서버 단위로 공유합니다
+  const dir = path.join(DATA_DIR, "patches", SERVER);
+  const read = (f, empty) => (fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, "utf8")) : empty);
+  const fileOf = (tier) => path.join(dir, tier, `${patch}.json`);
+  const dbs = Object.fromEntries(
+    TIERS.map((t) => [t, read(fileOf(t), { patch, updatedAt: null, matches: 0, bans: {}, champs: {} })]),
+  );
+  const seenFile = path.join(dir, `seen-${patch}.json`);
+  const seen = new Set(read(seenFile, []));
+  // 시간대별 게임 수 (게임 시작 시각, UTC 기준 "YYYY-MM-DDTHH")
+  const activityFile = path.join(dir, "activity.json");
+  const activity = read(activityFile, { hours: {} });
 
-  // 1) 상위 랭커 목록
-  const entries = [];
-  for (const tier of ["challengerleagues", "grandmasterleagues", "masterleagues"]) {
-    const league = await riot(`${PLATFORM}/lol/league/v4/${tier}/by-queue/RANKED_SOLO_5x5`);
-    if (league?.entries) entries.push(...league.entries);
+  // 1) 구간별 랭커 목록
+  const seeds = { emerald: [], diamond: [], master: [] };
+  for (const league of ["challengerleagues", "grandmasterleagues", "masterleagues"]) {
+    const l = await riot(`${PLATFORM}/lol/league/v4/${league}/by-queue/RANKED_SOLO_5x5`);
+    if (l?.entries) seeds.master.push(...l.entries);
   }
-  for (const div of ["I", "II"]) {
-    const page = await riot(`${PLATFORM}/lol/league/v4/entries/RANKED_SOLO_5x5/DIAMOND/${div}?page=1`);
-    if (page) entries.push(...page);
+  for (const [tier, name] of [["diamond", "DIAMOND"], ["emerald", "EMERALD"]]) {
+    for (const div of ["I", "II", "III", "IV"]) {
+      const page = await riot(`${PLATFORM}/lol/league/v4/entries/RANKED_SOLO_5x5/${name}/${div}?page=1`);
+      if (page) seeds[tier].push(...page);
+    }
   }
-  const puuids = [...new Set(entries.map((e) => e.puuid).filter(Boolean))].sort(() => Math.random() - 0.5).slice(0, PLAYERS);
-  console.log(`랭커 ${puuids.length}명`);
+  const shuffle = (a) => a.sort(() => Math.random() - 0.5);
+  const per = Math.floor(PLAYERS / TIERS.length);
+  const picked = TIERS.map((t) => shuffle([...new Set(seeds[t].map((e) => e.puuid).filter(Boolean))]).slice(0, per).map((puuid) => ({ puuid, tier: t })));
+  // 구간을 번갈아 가며 조회해 시간이 끊겨도 고르게 모이게
+  const players = [];
+  for (let i = 0; i < per; i++) for (const list of picked) if (list[i]) players.push(list[i]);
+  console.log(`서버 ${SERVER} 랭커 ${players.length}명 (${TIERS.map((t, i) => `${t} ${picked[i].length}`).join(", ")})`);
 
-  // 2) 최근 7일 솔로랭크 게임 ID
+  // 2) 최근 7일 솔로랭크 게임 ID (처음 찾은 랭커의 구간으로 분류)
   const since = Math.floor(Date.now() / 1000) - 7 * 24 * 3600;
-  const queue = [];
-  for (const puuid of puuids) {
+  const queue = new Map();
+  for (const { puuid, tier } of players) {
     if (timeLeft() < 0.6 * MAX_MINUTES * 60_000) break; // 시간의 40%까지만 ID 수집에 사용
     const ids = await riot(`${REGION}/lol/match/v5/matches/by-puuid/${puuid}/ids?queue=420&type=ranked&startTime=${since}&count=20`);
-    for (const id of ids ?? []) if (!seen.has(id) && !queue.includes(id)) queue.push(id);
+    for (const id of ids ?? []) if (!seen.has(id) && !queue.has(id)) queue.set(id, tier);
   }
-  console.log(`새 게임 후보 ${queue.length}개`);
+  console.log(`새 게임 후보 ${queue.size}개`);
+
+  // 게임을 구간별로 번갈아 처리
+  const byTier = TIERS.map((t) => [...queue].filter(([, tier]) => tier === t).map(([id]) => [id, t]));
+  const order = [];
+  for (let i = 0; byTier.some((l) => l[i]); i++) for (const l of byTier) if (l[i]) order.push(l[i]);
 
   // 3) 게임 상세 + 타임라인 집계
   let added = 0;
-  for (const id of queue) {
+  for (const [id, tier] of order) {
     if (timeLeft() < 60_000) break;
     seen.add(id);
     const match = await riot(`${REGION}/lol/match/v5/matches/${id}`);
     if (!match || patchOf(match.info.gameVersion) !== patch || match.info.gameDuration < 900) continue;
     const timeline = await riot(`${REGION}/lol/match/v5/matches/${id}/timeline`);
     if (!timeline) continue;
-    addMatch(db, match, timeline, { isBoots, isCore, isTrinket });
+    addMatch(dbs[tier], match, timeline, { isBoots, isCore, isTrinket });
+    const hour = new Date(match.info.gameStartTimestamp).toISOString().slice(0, 13);
+    activity.hours[hour] = (activity.hours[hour] ?? 0) + 1;
     added++;
     if (added % 50 === 0) console.log(`  ${added}게임 집계`);
   }
 
   // 파일이 너무 커지지 않게 항목별 상위 40개만 유지
-  for (const c of Object.values(db.champs)) {
-    for (const k of ["runes", "spells", "starters", "core", "boots", "skills"]) {
-      c[k] = Object.fromEntries(Object.entries(c[k]).sort((a, b) => b[1][0] - a[1][0]).slice(0, 40));
+  const now = new Date().toISOString();
+  for (const t of TIERS) {
+    const db = dbs[t];
+    for (const c of Object.values(db.champs)) {
+      for (const k of ["runes", "spells", "starters", "core", "boots", "skills"]) {
+        c[k] = Object.fromEntries(Object.entries(c[k]).sort((a, b) => b[1][0] - a[1][0]).slice(0, 40));
+      }
     }
+    db.updatedAt = now;
+    fs.mkdirSync(path.dirname(fileOf(t)), { recursive: true });
+    fs.writeFileSync(fileOf(t), JSON.stringify(db));
   }
-  db.seen = [...seen].slice(-20000);
-  db.updatedAt = new Date().toISOString();
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify(db));
-  console.log(`완료: 이번에 ${added}게임 추가, 패치 ${patch} 누적 ${db.matches}게임`);
+  fs.writeFileSync(seenFile, JSON.stringify([...seen].slice(-30000)));
+  // 활동량은 최근 14일만 보관
+  const cutoff = new Date(Date.now() - 14 * 24 * 3600_000).toISOString().slice(0, 13);
+  activity.hours = Object.fromEntries(Object.entries(activity.hours).filter(([h]) => h >= cutoff).sort());
+  activity.updatedAt = now;
+  fs.writeFileSync(activityFile, JSON.stringify(activity));
+  console.log(`완료: 서버 ${SERVER} 이번에 ${added}게임 추가 (${TIERS.map((t) => `${t} 누적 ${dbs[t].matches}`).join(", ")})`);
 }
 
 function bump(obj, key, win) {

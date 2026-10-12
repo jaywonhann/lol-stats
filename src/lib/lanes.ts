@@ -9,10 +9,10 @@ export const LANES = [
 export type Lane = (typeof LANES)[number]["id"];
 
 export const RANKS = [
-  { id: "emerald", label: "에메랄드+" },
-  { id: "diamond", label: "다이아+" },
+  { id: "all", label: "에메랄드+ 전체" },
+  { id: "emerald", label: "에메랄드" },
+  { id: "diamond", label: "다이아몬드" },
   { id: "master", label: "마스터+" },
-  { id: "all", label: "전체" },
 ] as const;
 
 export type Rank = (typeof RANKS)[number]["id"];
@@ -24,4 +24,23 @@ export const parseLane = (v: string | undefined): Lane =>
   LANES.some((l) => l.id === v) ? (v as Lane) : "top";
 
 export const parseRank = (v: string | undefined): Rank =>
-  RANKS.some((r) => r.id === v) ? (v as Rank) : "emerald";
+  RANKS.some((r) => r.id === v) ? (v as Rank) : "all";
+
+export const rankLabel = (rank: Rank) =>
+  RANKS.find((r) => r.id === rank)!.label;
+
+export const SERVERS = [
+  { id: "kr", label: "한국" },
+  { id: "na1", label: "북미" },
+  { id: "euw1", label: "유럽 서부" },
+] as const;
+
+export type Server = (typeof SERVERS)[number]["id"];
+
+export const parseServer = (v: string | undefined): Server =>
+  SERVERS.some((s) => s.id === v) ? (v as Server) : "kr";
+
+export const serverLabel = (server: Server) =>
+  SERVERS.find((s) => s.id === server)!.label;
+
+export type Filter = { server: Server; rank: Rank };

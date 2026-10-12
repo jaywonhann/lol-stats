@@ -3,23 +3,26 @@ import ChampionSearch from "@/components/ChampionSearch";
 import { Icon, Panel, TierBadge, WinRate } from "@/components/ui";
 import { Sparkline } from "@/components/charts";
 import { getChampions, getPatches, img } from "@/lib/ddragon";
-import { LANES } from "@/lib/lanes";
+import { LANES, serverLabel } from "@/lib/lanes";
 import { boards, movers } from "@/lib/stats";
+import { getServer } from "@/lib/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [{ version, champions }, patches] = await Promise.all([
+  const [{ version, champions }, patches, server] = await Promise.all([
     getChampions(),
     getPatches(),
+    getServer(),
   ]);
+  const filter = { server, rank: "all" as const };
   const patch = patches[patches.length - 1];
   const top5 = (lane: (typeof LANES)[number]["id"]) => {
-    const b = boards(champions, lane, "emerald", patches).boards;
+    const b = boards(champions, lane, filter, patches).boards;
     return b[b.length - 1].slice(0, 5);
   };
   const moves = LANES.map((l) =>
-    movers(champions, l.id, "emerald", patches, 3),
+    movers(champions, l.id, filter, patches, 3),
   );
   const rising = moves
     .flatMap((m) => m.rising)
@@ -34,10 +37,11 @@ export default async function Home() {
     <div className="space-y-8">
       <section className="pt-4 text-center">
         <h1 className="text-3xl font-bold">
-          <span className="text-accent">협곡</span>지표
+          live<span className="text-accent">lol</span>.stats
         </h1>
         <p className="mt-2 text-sm text-muted">
-          패치 {patch} 기준 챔피언 티어, 빌드, 룬, 카운터
+          {serverLabel(server)} 서버 · 패치 {patch} 기준 챔피언 티어, 빌드, 룬,
+          카운터
         </p>
       </section>
 
