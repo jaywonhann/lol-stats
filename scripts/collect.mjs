@@ -5,7 +5,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-const KEY = process.env.RIOT_API_KEY;
+// 시크릿에 키 외의 글자(공백, 메모 등)가 같이 들어가도 키 부분만 사용
+const KEY = process.env.RIOT_API_KEY?.match(/RGAPI-[0-9a-f-]{36}/i)?.[0] ?? process.env.RIOT_API_KEY?.trim();
 const MAX_MINUTES = Number(process.env.MAX_MINUTES ?? 50);
 const PLAYERS = Number(process.env.PLAYERS ?? 400);
 const DATA_DIR = path.join(process.cwd(), "data");
