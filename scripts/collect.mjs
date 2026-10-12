@@ -63,6 +63,7 @@ async function main() {
   const patch = patchOf(version);
   const itemData = (await (await fetch(`${DDRAGON}/cdn/${version}/data/en_US/item.json`)).json()).data;
   const isBoots = (id) => itemData[id]?.tags?.includes("Boots") && (itemData[id]?.depth ?? 1) >= 2;
+  const isTrinket = (id) => itemData[id]?.tags?.includes("Trinket") ?? false;
   const isCore = (id) => {
     const it = itemData[id];
     if (!it || isBoots(id) || it.tags?.includes("Consumable") || it.tags?.includes("Trinket")) return false;
@@ -108,7 +109,7 @@ async function main() {
     if (!match || patchOf(match.info.gameVersion) !== patch || match.info.gameDuration < 900) continue;
     const timeline = await riot(`${REGION}/lol/match/v5/matches/${id}/timeline`);
     if (!timeline) continue;
-    addMatch(db, match, timeline, { isBoots, isCore });
+    addMatch(db, match, timeline, { isBoots, isCore, isTrinket });
     added++;
     if (added % 50 === 0) console.log(`  ${added}게임 집계`);
   }
@@ -132,7 +133,7 @@ function bump(obj, key, win) {
   if (win) v[1]++;
 }
 
-export function addMatch(db, match, timeline, { isBoots, isCore }) {
+export function addMatch(db, match, timeline, { isBoots, isCore, isTrinket = () => false }) {
   db.matches++;
   for (const team of match.info.teams) for (const b of team.bans) if (b.championId > 0) db.bans[b.championId] = (db.bans[b.championId] ?? 0) + 1;
 
@@ -161,13 +162,13 @@ export function addMatch(db, match, timeline, { isBoots, isCore }) {
     if (win) c.wins++;
 
     const [pri, sec] = p.perks.styles;
-    bump(c.runes, `${pri.style}|${pri.selections.map((s) => s.perk).join(",")}|${sec.style}|${sec.selections.map((s) => s.perk).join(",")}`, win);
+    bump(c.runes, `${pri.style}|${pri.selections.map((s) => s.perk).join(",")}|${sec.style}|${sec.selections.map((s) => s.perk).sort().join(",")}`, win);
     // 점멸은 항상 앞에
     const sp = [p.summoner1Id, p.summoner2Id].sort((a, b) => (a === 4 ? -1 : b === 4 ? 1 : a - b));
     bump(c.spells, sp.join(","), win);
 
     const list = buys[p.participantId] ?? [];
-    const start = list.filter((x) => x.t < 60_000).map((x) => x.id).sort();
+    const start = list.filter((x) => x.t < 60_000 && !isTrinket(x.id)).map((x) => x.id).sort();
     if (start.length) bump(c.starters, start.join(","), win);
     const core = [...new Set(list.filter((x) => isCore(x.id)).map((x) => x.id))].slice(0, 3);
     if (core.length === 3) bump(c.core, core.join(","), win);

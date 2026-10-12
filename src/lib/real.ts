@@ -82,6 +82,19 @@ function top<T>(
     .slice(0, n);
 }
 
+// 같은 의미의 키를 하나로 합치기 (예: 보조 룬 순서만 다른 페이지, 와드 토템이 섞인 시작템)
+function regroup(counts: Counts, normalize: (key: string) => string | null): Counts {
+  const out: Counts = {};
+  for (const [key, [g, w]] of Object.entries(counts)) {
+    const k = normalize(key);
+    if (k === null) continue;
+    const v = (out[k] ??= [0, 0]);
+    v[0] += g;
+    v[1] += w;
+  }
+  return out;
+}
+
 export function realBuild(
   c: ChampAgg,
   items: Item[],
@@ -89,6 +102,17 @@ export function realBuild(
   spells: SummonerSpell[],
 ): Build {
   const itemById = new Map(items.map((i) => [i.id, i]));
+  const isTrinket = (id: string) => itemById.get(id)?.tags.includes("Trinket") ?? false;
+  const runes = regroup(c.runes, (key) => {
+    const [pri, priRunes, sec, secRunes] = key.split("|");
+    return [pri, priRunes, sec, secRunes.split(",").sort().join(",")].join("|");
+  });
+  const starters = regroup(c.starters, (key) => {
+    const ids = key.split(",").filter((id) => !isTrinket(id));
+    return ids.length ? ids.join(",") : null;
+  });
+  // 코어 3개 조합은 표본이 쉽게 흩어져서, 먼저 완성한 두 아이템 기준으로 묶습니다
+  const core = regroup(c.core, (key) => key.split(",").slice(0, 2).join(","));
   const itemsOf = (key: string) => {
     const list = key.split(",").map((id) => itemById.get(id));
     return list.every(Boolean) ? (list as Item[]) : null;
@@ -97,7 +121,7 @@ export function realBuild(
   const spellByKey = new Map(spells.map((s) => [s.key, s]));
 
   return {
-    runes: top<RunePage>(c.runes, 2, (key) => {
+    runes: top<RunePage>(runes, 2, (key) => {
       const [pri, priRunes, sec, secRunes] = key.split("|");
       const primary = treeById.get(Number(pri));
       const secondary = treeById.get(Number(sec));
@@ -116,8 +140,8 @@ export function realBuild(
       return list.every(Boolean) ? (list as SummonerSpell[]) : null;
     }),
     skillOrder: top(c.skills, 2, (key) => key.split("")),
-    starters: top(c.starters, 2, itemsOf),
-    core: top(c.core, 3, itemsOf),
+    starters: top(starters, 2, itemsOf),
+    core: top(core, 3, itemsOf),
     boots: top(c.boots, 2, (id) => itemById.get(id) ?? null),
   };
 }
