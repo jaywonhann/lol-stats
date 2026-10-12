@@ -153,7 +153,7 @@ export function realMatchups(
 ) {
   const byKey = new Map(champions.map((ch) => [ch.key, ch]));
   const rows: Matchup[] = Object.entries(c.vs)
-    .filter(([key, [g]]) => g >= 5 && key !== champ.key) // 미러전 제외
+    .filter(([key, [g]]) => g >= 10 && key !== champ.key) // 미러전 제외
     .map(([key, [g, w]]) => ({
       champion: byKey.get(key)!,
       winRate: (w / g) * 100,

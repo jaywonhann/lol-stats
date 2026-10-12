@@ -135,7 +135,9 @@ function bump(obj, key, win) {
 
 export function addMatch(db, match, timeline, { isBoots, isCore, isTrinket = () => false }) {
   db.matches++;
-  for (const team of match.info.teams) for (const b of team.bans) if (b.championId > 0) db.bans[b.championId] = (db.bans[b.championId] ?? 0) + 1;
+  // 두 팀이 같은 챔피언을 밴해도 한 게임에 한 번만 셉니다
+  const banned = new Set(match.info.teams.flatMap((t) => t.bans.map((b) => b.championId)).filter((id) => id > 0));
+  for (const id of banned) db.bans[id] = (db.bans[id] ?? 0) + 1;
 
   // 참가자별 구매/스킬 기록
   const buys = {}; // participantId -> [{t, id}]
