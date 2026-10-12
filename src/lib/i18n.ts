@@ -81,6 +81,9 @@ const en = {
   fallingOnPatch: (p: string) => `Falling on patch ${p}`,
   viewAllTrends: "View all patch trends",
   championSearch: "Champion search",
+  hotBuildVideos: "Trending build videos",
+  hotBuildNote: "Most-viewed League build videos on YouTube lately. Click to play here.",
+  views: (n: string) => `${n} views`,
   searchPlaceholder: "Search champions (e.g. Ahri)",
   noResults: "No champions found.",
   // LIVE 패널
@@ -381,6 +384,9 @@ const ko: Dict = {
   fallingOnPatch: (p) => `패치 ${p} 떨어지는 챔피언`,
   viewAllTrends: "패치 트렌드 전체 보기",
   championSearch: "챔피언 검색",
+  hotBuildVideos: "조회수 핫한 템트리",
+  hotBuildNote: "요즘 유튜브에서 조회수 높은 롤 빌드 영상이에요. 누르면 바로 재생돼요.",
+  views: (n) => `조회수 ${n}회`,
   searchPlaceholder: "챔피언 이름으로 검색 (예: 아리, Ahri)",
   noResults: "검색 결과가 없어요.",
   liveSubtitle: (server, updated) =>

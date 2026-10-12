@@ -1,13 +1,15 @@
 import Link from "next/link";
+import VideoCard from "@/components/VideoCard";
 import ChampionSearch from "@/components/ChampionSearch";
 import SummonerSearch from "@/components/SummonerSearch";
 import { Icon, Panel, TierBadge, WinRate } from "@/components/ui";
 import { Sparkline } from "@/components/charts";
 import { getChampions, getPatches, img } from "@/lib/ddragon";
-import { ddLocale, dict, type Lang } from "@/lib/i18n";
+import { ddLocale, dict, numLocale, type Lang } from "@/lib/i18n";
 import { LANES, laneLabel, serverLabel } from "@/lib/lanes";
 import { boards, movers } from "@/lib/stats";
 import { getLang, getServer } from "@/lib/server";
+import { hotBuildVideos } from "@/lib/youtube";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +17,7 @@ export default async function Home() {
   const lang = await getLang();
   const t = dict(lang);
   const other: Lang = lang === "ko" ? "en" : "ko";
-  const [{ version, champions }, altChampions, patches, server] =
+  const [{ version, champions }, altChampions, patches, server, videos] =
     await Promise.all([
       getChampions(ddLocale(lang)),
       // 검색은 다른 언어 이름으로도 되게 (실패하면 무시)
@@ -24,7 +26,9 @@ export default async function Home() {
         .catch(() => []),
       getPatches(),
       getServer(),
+      hotBuildVideos(lang),
     ]);
+  const nf = new Intl.NumberFormat(numLocale(lang), { notation: "compact" });
   const altName = new Map(altChampions.map((c) => [c.id, c.name]));
   const filter = { server, rank: "all" as const };
   const patch = patches[patches.length - 1];
@@ -134,6 +138,24 @@ export default async function Home() {
             </Panel>
           ))}
         </div>
+      )}
+
+      {videos.length > 0 && (
+        <Panel title={t.hotBuildVideos}>
+          <p className="-mt-1 mb-3 text-xs text-muted">{t.hotBuildNote}</p>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {videos.map((v) => (
+              <VideoCard
+                key={v.id}
+                id={v.id}
+                title={v.title}
+                meta={[v.channel, v.views !== null ? t.views(nf.format(v.views)) : ""]
+                  .filter(Boolean)
+                  .join(" · ")}
+              />
+            ))}
+          </div>
+        </Panel>
       )}
 
       <Panel title={t.championSearch}>
