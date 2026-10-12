@@ -11,6 +11,8 @@ import {
   serverLabel,
 } from "@/lib/lanes";
 import { getServer } from "@/lib/server";
+import LivePanel from "@/components/LivePanel";
+import AutoRefresh from "@/components/AutoRefresh";
 import { boards } from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
@@ -44,46 +46,52 @@ export default async function TierPage({ searchParams }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <h1 className="text-2xl font-bold">챔피언 티어 리스트</h1>
-        <span className="text-sm text-muted">
-          패치 {patch} · {serverLabel(server)} 서버 · {rankLabel(rank)} ·{" "}
-          {source === "real"
-            ? `솔로랭크 ${real.get(patch)!.matches.toLocaleString("ko-KR")}게임`
-            : "예시 데이터"}
-        </span>
-      </div>
+      <AutoRefresh />
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 flex-1 space-y-4">
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <h1 className="text-2xl font-bold">챔피언 티어 리스트</h1>
+            <span className="text-sm text-muted">
+              패치 {patch} · {serverLabel(server)} 서버 · {rankLabel(rank)} ·{" "}
+              {source === "real"
+                ? `솔로랭크 ${real.get(patch)!.matches.toLocaleString("ko-KR")}게임`
+                : "예시 데이터"}
+            </span>
+          </div>
 
-      <div className="space-y-2">
-        <Tabs
-          active={lane}
-          items={LANES.map((l) => ({
-            id: l.id,
-            label: l.label,
-            href: q({ lane: l.id }),
-          }))}
-        />
-        <Tabs
-          active={rank}
-          items={RANKS.map((r) => ({
-            id: r.id,
-            label: r.label,
-            href: q({ rank: r.id }),
-          }))}
-        />
-        {patches.length > 1 && (
-          <Tabs
-            active={patch}
-            items={patches
-              .slice(-3)
-              .reverse()
-              .map((p) => ({
-                id: p,
-                label: `패치 ${p}`,
-                href: q({ patch: p }),
+          <div className="space-y-2">
+            <Tabs
+              active={lane}
+              items={LANES.map((l) => ({
+                id: l.id,
+                label: l.label,
+                href: q({ lane: l.id }),
               }))}
-          />
-        )}
+            />
+            <Tabs
+              active={rank}
+              items={RANKS.map((r) => ({
+                id: r.id,
+                label: r.label,
+                href: q({ rank: r.id }),
+              }))}
+            />
+            {patches.length > 1 && (
+              <Tabs
+                active={patch}
+                items={patches
+                  .slice(-3)
+                  .reverse()
+                  .map((p) => ({
+                    id: p,
+                    label: `패치 ${p}`,
+                    href: q({ patch: p }),
+                  }))}
+              />
+            )}
+          </div>
+        </div>
+        <LivePanel server={server} />
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-line bg-panel">

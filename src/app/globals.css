@@ -26,3 +26,15 @@ body {
   --chart-grid: #2a3242;
   --chart-mid: #383835;
 }
+
+/* LIVE 표시: 방송 중 표시처럼 깜빡임 (움직임 줄이기 설정이면 멈춤) */
+@keyframes live-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+.live-dot {
+  animation: live-blink 1.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-dot { animation: none; }
+}

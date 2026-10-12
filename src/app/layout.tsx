@@ -4,6 +4,7 @@ import { getPatches } from "@/lib/ddragon";
 import { statsSource } from "@/lib/stats";
 import { getServer } from "@/lib/server";
 import ServerSelect from "@/components/ServerSelect";
+import { LiveBadge } from "@/components/LivePanel";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -26,6 +27,7 @@ export default async function RootLayout({
             <Link href="/" className="text-lg font-bold tracking-tight">
               live<span className="text-accent">lol</span>.stats
             </Link>
+            <LiveBadge />
             <Link href="/tier" className="text-sm text-muted hover:text-text">
               티어 리스트
             </Link>

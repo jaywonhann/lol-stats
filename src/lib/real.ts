@@ -271,3 +271,19 @@ export function realWinRates(c: ChampAgg, items: Item[], trees: RuneTree[]) {
     boots: byWinRate(c.boots, c.games, 6, (id) => itemById.get(id) ?? null),
   };
 }
+
+export type Activity = { updatedAt: string; hours: Record<string, number> };
+
+// 서버별 시간대별 게임 수 (scripts/collect.mjs 가 activity.json 에 기록)
+export function loadActivity(server: Filter["server"]) {
+  const file = path.join(ROOT, server, "activity.json");
+  if (!fs.existsSync(file)) return null;
+  const a = readJson<Activity>(file);
+  const end = new Date(a.updatedAt).getTime();
+  // 수집 시각 기준 최근 24시간, 1시간 단위
+  const hours = Array.from({ length: 24 }, (_, i) => {
+    const t = new Date(end - (23 - i) * 3_600_000);
+    return { at: t.toISOString(), games: a.hours[t.toISOString().slice(0, 13)] ?? 0 };
+  });
+  return { updatedAt: a.updatedAt, hours, total: hours.reduce((s, h) => s + h.games, 0) };
+}
