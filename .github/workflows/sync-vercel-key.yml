@@ -62,6 +62,10 @@ jobs:
               | jq -r '.deployments[] | "::notice::최근 배포: \(.uid) \(.state) \(.target // "preview") \(.meta.githubCommitSha // "-" | .[0:7]) " + (.created / 1000 | todate)'
             curl -fsS -H "$AUTH" "$API/v9/projects/$PROJECT/env$Q" \
               | jq -r '.envs[] | "::notice::환경변수: \(.key) \(.type) \(.target | join(","))"'
+            r=$(curl -sS -D - "https://lol-stats-one.vercel.app/api/live?server=kr&n=$RANDOM" | tr -d '\r')
+            echo "::notice::사이트 응답: $(echo "$r" | grep -iE '^(x-vercel-cache|x-vercel-id|cache-control|age):' | tr '\n' ' ') $(echo "$r" | tail -1 | cut -c1-120)"
+            kid=$(curl -fsS -H "$AUTH" "$API/v9/projects/$PROJECT/env$Q" | jq -r '.envs[] | select(.key=="RIOT_API_KEY") | .id' | head -1)
+            echo "::notice::저장된 키 길이: $(curl -fsS -H "$AUTH" "$API/v1/projects/$PROJECT/env/$kid$Q" | jq -r '(.value // "") | length') / 시크릿 키 길이: ${#KEY}"
             echo "$proj" | jq -r '"::notice::롤백 상태: " + ((.rollbackDescription // .lastRollbackTarget // "없음") | tostring)'
             exit 0
           fi
