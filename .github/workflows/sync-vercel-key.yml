@@ -12,6 +12,10 @@ on:
         description: "키가 같아도 다시 넣고 재배포"
         type: boolean
         default: false
+      diagnose:
+        description: "실제 사이트가 어느 배포를 가리키는지 확인만"
+        type: boolean
+        default: false
 
 concurrency:
   group: sync-vercel-key
@@ -26,6 +30,7 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           PROJECT: lol-stats
           FORCE: ${{ inputs.force }}
+          DIAGNOSE: ${{ inputs.diagnose }}
         run: |
           set -euo pipefail
           if [ -z "${VERCEL_TOKEN:-}" ]; then
@@ -50,6 +55,16 @@ jobs:
           [ -n "$proj" ] || { echo "::error::Vercel 에서 $PROJECT 프로젝트를 못 찾았어요. 토큰 범위를 확인해 주세요."; exit 1; }
           S=${Q:+&${Q#?}}
           echo "::notice::프로젝트 찾음 (${Q:-개인 계정})"
+          if [ "${DIAGNOSE:-false}" = true ]; then
+            live=$(curl -fsS -H "$AUTH" "$API/v13/deployments/lol-stats-one.vercel.app$Q" || true)
+            echo "::notice::사이트 배포: $(echo "$live" | jq -r '"\(.id) \(.readyState) \(.target) \(.meta.githubCommitSha // "-" | .[0:7]) " + ((.createdAt // 0) / 1000 | todate)')"
+            curl -fsS -H "$AUTH" "$API/v6/deployments?projectId=$(echo "$proj" | jq -r .id)&limit=5$S" \
+              | jq -r '.deployments[] | "::notice::최근 배포: \(.uid) \(.state) \(.target // "preview") \(.meta.githubCommitSha // "-" | .[0:7]) " + (.created / 1000 | todate)'
+            curl -fsS -H "$AUTH" "$API/v9/projects/$PROJECT/env$Q" \
+              | jq -r '.envs[] | "::notice::환경변수: \(.key) \(.type) \(.target | join(","))"'
+            echo "$proj" | jq -r '"::notice::롤백 상태: " + ((.rollbackDescription // .lastRollbackTarget // "없음") | tostring)'
+            exit 0
+          fi
 
           # 지금 Vercel 키의 해시와 비교 (같으면 아무것도 안 함). 키 값 자체는 읽지 않는다.
           SHA=$(printf '%s' "$KEY" | sha256sum | cut -c1-16)
