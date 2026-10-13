@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Icon, Panel } from "@/components/ui";
 import { DivergingBars } from "@/components/charts";
+import TierEmblem from "@/components/TierEmblem";
 import FormChart from "@/components/FormChart";
 import SummonerSearch from "@/components/SummonerSearch";
 import { getChampions, getVersion, img, type Champion } from "@/lib/ddragon";
@@ -392,17 +393,17 @@ function Analysis({
   );
 }
 
-const TIER_COLOR: Record<string, string> = {
-  IRON: "text-stone-400",
-  BRONZE: "text-amber-700",
-  SILVER: "text-slate-300",
-  GOLD: "text-yellow-400",
-  PLATINUM: "text-teal-300",
-  EMERALD: "text-emerald-400",
-  DIAMOND: "text-sky-300",
-  MASTER: "text-purple-400",
-  GRANDMASTER: "text-rose-400",
-  CHALLENGER: "text-amber-300",
+const TIER_HEX: Record<string, string> = {
+  IRON: "#a39a94",
+  BRONZE: "#c8834f",
+  SILVER: "#b4c4d2",
+  GOLD: "#f0c75e",
+  PLATINUM: "#5fd0bd",
+  EMERALD: "#3fd486",
+  DIAMOND: "#86b6ff",
+  MASTER: "#c77dea",
+  GRANDMASTER: "#f06b6b",
+  CHALLENGER: "#f7d774",
 };
 
 function RankBox({ solo, lang }: { solo: LeagueEntry | null; lang: Lang }) {
@@ -410,25 +411,47 @@ function RankBox({ solo, lang }: { solo: LeagueEntry | null; lang: Lang }) {
   const nl = numLocale(lang);
   if (!solo)
     return (
-      <div className="w-full rounded-md bg-panel-2 px-4 py-2 text-sm sm:w-auto sm:text-right">
-        <p className="text-xs text-muted">{t.soloDuo}</p>
-        <p className="font-semibold">{t.unranked}</p>
+      <div className="flex w-full items-center gap-4 rounded-xl border border-line bg-panel-2 px-5 py-4 md:w-auto">
+        <TierEmblem tier="UNRANKED" size={72} />
+        <div>
+          <p className="text-xs text-muted">{t.soloDuo}</p>
+          <p className="text-2xl font-bold">{t.unranked}</p>
+        </div>
       </div>
     );
   const apex = ["MASTER", "GRANDMASTER", "CHALLENGER"].includes(solo.tier);
   const games = solo.wins + solo.losses;
   const wr = games ? (solo.wins / games) * 100 : 0;
+  const color = TIER_HEX[solo.tier] ?? "#5b6475";
   return (
-    <div className="w-full rounded-md bg-panel-2 px-4 py-2 text-sm sm:w-auto sm:text-right">
-      <p className="text-xs text-muted">{t.soloDuo}</p>
-      <p className={`text-lg font-bold ${TIER_COLOR[solo.tier] ?? ""}`}>
-        {t.tiers[solo.tier] ?? solo.tier}
-        {!apex && ` ${solo.rank}`}
-        <span className="ml-2 text-sm font-normal text-text">{t.lp(solo.leaguePoints.toLocaleString(nl))}</span>
-      </p>
-      <p className="text-xs text-muted">
-        {t.record(solo.wins.toLocaleString(nl), solo.losses.toLocaleString(nl))} · {dict(lang).winRate} {wr.toFixed(1)}%
-      </p>
+    <div
+      className="flex w-full items-center gap-5 rounded-xl border px-5 py-4 md:w-auto md:min-w-[22rem]"
+      style={{
+        borderColor: `${color}66`,
+        background: `radial-gradient(120% 140% at 0% 50%, ${color}2e 0%, transparent 60%), var(--color-panel-2)`,
+      }}
+    >
+      <TierEmblem tier={solo.tier} size={96} />
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted">{t.soloDuo}</p>
+        <p className="text-2xl font-extrabold leading-tight sm:text-3xl" style={{ color }}>
+          {t.tiers[solo.tier] ?? solo.tier}
+          {!apex && ` ${solo.rank}`}
+        </p>
+        <p className="mt-0.5 text-3xl font-black tabular-nums leading-tight sm:text-4xl">
+          {solo.leaguePoints.toLocaleString(nl)}
+          <span className="ml-1 text-base font-semibold text-muted">LP</span>
+        </p>
+        {!apex && (
+          <div className="mt-2 h-1.5 w-full max-w-[14rem] overflow-hidden rounded-full bg-black/30" aria-hidden>
+            <div className="h-full rounded-full" style={{ width: `${Math.min(100, solo.leaguePoints)}%`, background: color }} />
+          </div>
+        )}
+        <p className="mt-2 text-xs text-muted">
+          {t.record(solo.wins.toLocaleString(nl), solo.losses.toLocaleString(nl))} · {dict(lang).winRate}{" "}
+          <span className={wr >= 50 ? "text-win" : "text-lose"}>{wr.toFixed(1)}%</span>
+        </p>
+      </div>
     </div>
   );
 }
