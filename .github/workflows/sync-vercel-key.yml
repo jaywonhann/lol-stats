@@ -7,6 +7,11 @@ on:
   schedule:
     - cron: "*/30 * * * *"
   workflow_dispatch:
+    inputs:
+      force:
+        description: "키가 같아도 다시 넣고 재배포"
+        type: boolean
+        default: false
 
 concurrency:
   group: sync-vercel-key
@@ -20,6 +25,7 @@ jobs:
           RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           PROJECT: lol-stats
+          FORCE: ${{ inputs.force }}
         run: |
           set -euo pipefail
           if [ -z "${VERCEL_TOKEN:-}" ]; then
@@ -43,14 +49,15 @@ jobs:
           fi
           [ -n "$proj" ] || { echo "::error::Vercel 에서 $PROJECT 프로젝트를 못 찾았어요. 토큰 범위를 확인해 주세요."; exit 1; }
           S=${Q:+&${Q#?}}
+          echo "::notice::프로젝트 찾음 (${Q:-개인 계정})"
 
           # 지금 Vercel 키의 해시와 비교 (같으면 아무것도 안 함). 키 값 자체는 읽지 않는다.
           SHA=$(printf '%s' "$KEY" | sha256sum | cut -c1-16)
           envs=$(curl -fsS -H "$AUTH" "$API/v9/projects/$PROJECT/env$Q")
           cur=$(echo "$envs" | jq -r '.envs[] | select(.key=="RIOT_API_KEY_SHA") | .value' | head -1)
           has=$(echo "$envs" | jq -r '[.envs[] | select(.key=="RIOT_API_KEY")] | length')
-          if [ "$cur" = "$SHA" ] && [ "$has" != 0 ]; then
-            echo "Vercel 키가 이미 최신이에요."
+          if [ "$cur" = "$SHA" ] && [ "$has" != 0 ] && [ "${FORCE:-false}" != true ]; then
+            echo "::notice::Vercel 키가 이미 최신이에요."
             exit 0
           fi
 
@@ -66,11 +73,12 @@ jobs:
           jq -n --arg v "$SHA" '{key:"RIOT_API_KEY_SHA", value:$v, type:"plain", target:["production","preview","development"]}' \
             | curl -fsS -X POST -H "$AUTH" -H "Content-Type: application/json" \
                 "$API/v10/projects/$PROJECT/env$Q" -d @- > /dev/null
-          echo "Vercel 키를 새로 넣었어요."
+          echo "::notice::Vercel 키를 새로 넣었어요."
 
           # 최신 프로덕션 배포를 다시 배포해서 새 키 적용
           dep=$(curl -fsS -H "$AUTH" "$API/v6/deployments?projectId=$(echo "$proj" | jq -r .id)&target=production&state=READY&limit=1$S" \
             | jq -r '.deployments[0].uid')
           jq -n --arg d "$dep" --arg n "$PROJECT" '{name:$n, deploymentId:$d, target:"production"}' \
             | curl -fsS -X POST -H "$AUTH" -H "Content-Type: application/json" \
-                "$API/v13/deployments$Q" -d @- | jq -r '"재배포 시작: " + .url'
+                "$API/v13/deployments$Q" -d @- \
+            | jq -r '"::notice::재배포 시작: " + (.url // "?") + " (" + (.readyState // .status // "?") + ")"'
