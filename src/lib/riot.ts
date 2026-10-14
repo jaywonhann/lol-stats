@@ -41,14 +41,14 @@ const MINUTE = 60;
 const SHORT = 10 * MINUTE;
 const LONG = 30 * 24 * 60 * MINUTE;
 
-async function get<T>(host: Server | Region, path: string, revalidate = SHORT): Promise<T> {
+async function get<T>(host: Server | Region, path: string, revalidate = SHORT, tags?: string[]): Promise<T> {
   const k = key();
   if (!k) throw new RiotError("unavailable");
   let res: Response;
   try {
     res = await fetch(url(host, path), {
       headers: { "X-Riot-Token": k },
-      next: { revalidate },
+      next: { revalidate, tags },
       signal: AbortSignal.timeout(8000),
     });
   } catch {
@@ -128,6 +128,10 @@ async function pool<T, R>(items: T[], limit: number, fn: (t: T) => Promise<R>) {
   return out;
 }
 
+// 업데이트 버튼이 이 태그로 캐시를 비웁니다 (summoner-cache.ts)
+export const summonerTag = (server: Server, gameName: string, tagLine: string) =>
+  `sum:${server}:${encodeURIComponent(`${gameName}#${tagLine}`.toLowerCase())}`;
+
 export async function lookupSummoner(
   server: Server,
   gameName: string,
@@ -135,9 +139,12 @@ export async function lookupSummoner(
   count = 20,
 ): Promise<Lookup> {
   const region = REGION[server];
+  const tags = [summonerTag(server, gameName, tagLine)];
   const account = await get<Account>(
     region,
     `/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`,
+    SHORT,
+    tags,
   );
   const puuid = encodeURIComponent(account.puuid);
   // 랭크·프로필은 없어도 분석은 할 수 있으니 실패해도 넘어갑니다. 키 거부/요청 한도는 그대로 알립니다.
@@ -147,9 +154,9 @@ export async function lookupSummoner(
       return null;
     });
   const [entries, profile, ids] = await Promise.all([
-    soft(get<LeagueEntry[]>(server, `/lol/league/v4/entries/by-puuid/${puuid}`)),
-    soft(get<SummonerProfile>(server, `/lol/summoner/v4/summoners/by-puuid/${puuid}`)),
-    get<string[]>(region, `/lol/match/v5/matches/by-puuid/${puuid}/ids?queue=420&start=0&count=${count}`),
+    soft(get<LeagueEntry[]>(server, `/lol/league/v4/entries/by-puuid/${puuid}`, SHORT, tags)),
+    soft(get<SummonerProfile>(server, `/lol/summoner/v4/summoners/by-puuid/${puuid}`, SHORT, tags)),
+    get<string[]>(region, `/lol/match/v5/matches/by-puuid/${puuid}/ids?queue=420&start=0&count=${count}`, SHORT, tags),
   ]);
   const matches = await pool(ids.slice(0, count), 5, (id) =>
     get<Match>(region, `/lol/match/v5/matches/${encodeURIComponent(id)}`, LONG).catch(() => null),

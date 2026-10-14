@@ -3,16 +3,20 @@ import Link from "next/link";
 import { Icon, Panel } from "@/components/ui";
 import { DivergingBars } from "@/components/charts";
 import TierEmblem from "@/components/TierEmblem";
+import UpdateButton from "@/components/UpdateButton";
 import FormChart from "@/components/FormChart";
 import SummonerSearch from "@/components/SummonerSearch";
-import { getChampions, getVersion, img, type Champion } from "@/lib/ddragon";
-import { ddLocale, dict, numLocale, type Lang } from "@/lib/i18n";
+import { getChampions, getPatches, getVersion, img, type Champion } from "@/lib/ddragon";
+import { ddLocale, dict, numLocale, timeAgo, type Lang } from "@/lib/i18n";
+import { boards } from "@/lib/stats";
+import { fetchedAt } from "@/lib/summoner-cache";
 import { laneLabel, serverLabel, type Lane, type Server } from "@/lib/lanes";
 import { getLang, getServer } from "@/lib/server";
 import {
   lookupSummoner,
   parseRiotId,
   RiotError,
+  summonerTag,
   type LeagueEntry,
   type Lookup,
   type LookupError,
@@ -95,12 +99,28 @@ export default async function SummonerPage({ searchParams }: Props) {
     );
   }
 
-  const [version, champions] = await Promise.all([
+  const [version, champions, patches, at] = await Promise.all([
     getVersion().catch(() => null),
     getChampions(ddLocale(lang))
       .then((r) => r.champions)
       .catch(() => [] as Champion[]),
+    getPatches().catch(() => [] as string[]),
+    fetchedAt(summonerTag(server, parsed.gameName, parsed.tagLine)),
   ]);
+  const update = (
+    <UpdateButton
+      id={riotId}
+      server={server}
+      fetchedAt={at}
+      labels={{
+        update: t.update,
+        updating: t.updating,
+        updatedAgo: t.updatedAgo(timeAgo(new Date(at).toISOString(), lang, { minutes: true })),
+        failed: t.updateFailed,
+        wait: t.updateWait(-1),
+      }}
+    />
+  );
 
   return (
     <div className="space-y-6">
@@ -111,7 +131,9 @@ export default async function SummonerPage({ searchParams }: Props) {
         server={server}
         version={version}
         champions={champions}
+        patches={patches}
         tagNote={tagNote}
+        update={update}
       />
     </div>
   );
@@ -125,13 +147,17 @@ function Analysis({
   server,
   version,
   champions,
+  patches,
   tagNote,
+  update,
 }: {
   result: Lookup;
   lang: Lang;
   server: Server;
   version: string | null;
   champions: Champion[];
+  patches: string[];
+  update: React.ReactNode;
   tagNote: React.ReactNode;
 }) {
   const t = dict(lang).summoner;
@@ -158,6 +184,7 @@ function Analysis({
         </div>
         <RankBox solo={solo} lang={lang} />
       </div>
+      <div className="mt-3 flex justify-end border-t border-line pt-3">{update}</div>
     </Panel>
   );
 
@@ -225,9 +252,112 @@ function Analysis({
   const nameOf = (g: { championId: number; championName: string }) =>
     champions.find((c) => c.key === String(g.championId))?.name ?? g.championName;
 
+  // 지금 흐름 · 이번 게임 추천 (규칙 기반)
+  const last5 = games.slice(0, 5);
+  const w5 = last5.filter((g) => g.win).length;
+  const l5 = last5.length - w5;
+  const flow =
+    f.streak && f.streak.count >= 3
+      ? f.streak.win
+        ? t.flowWinStreak(f.streak.count)
+        : t.flowLossStreak(f.streak.count)
+      : last5.length >= 3 && (w5 / last5.length) * 100 >= f.winRate + 10
+        ? t.flowRising(w5, l5)
+        : last5.length >= 3 && (w5 / last5.length) * 100 <= f.winRate - 10
+          ? t.flowFalling(w5, l5)
+          : t.flowSteady(w5, l5);
+  const flowTone = f.streak && f.streak.count >= 3 ? (f.streak.win ? "up" : "down") : w5 > l5 ? "up" : w5 < l5 ? "down" : null;
+  const lastChamp = champs.find((c) => c.championId === games[0].championId);
+  const personal = champs
+    .filter((c) => c.games >= 2 && c.winRate >= 55 && (!mainLane || c.lane === mainLane))
+    .sort((a, b) => b.winRate - a.winRate || b.games - a.games)[0];
+  const metaTop = mainLane
+    ? boards(champions, mainLane, { server, rank: "all" }, patches).boards.at(-1)?.[0]
+    : undefined;
+  let pick: { text: string; champ: Champion | null; name: string; lane: Lane | null } | null = null;
+  if (f.streak?.win && f.streak.count >= 2 && lastChamp) {
+    const lane = games[0].lane ?? lastChamp.lane;
+    pick = { text: t.pickKeep(lastChamp.championName, lane ? laneName(lane) : ""), champ: lastChamp.champion, name: lastChamp.championName, lane };
+  } else if (personal) {
+    pick = { text: t.pickBest(personal.championName, personal.lane ? laneName(personal.lane) : "", fix(personal.winRate, 0)), champ: personal.champion, name: personal.championName, lane: personal.lane };
+  } else if (metaTop && mainLane) {
+    pick = { text: t.pickMeta(metaTop.champion.name, laneName(mainLane), fix(metaTop.winRate, 1)), champ: metaTop.champion, name: metaTop.champion.name, lane: mainLane };
+  }
+  const rest = champs
+    .filter((c) => c.games >= 3 && c.winRate <= 34 && String(c.championId) !== pick?.champ?.key)
+    .sort((a, b) => a.winRate - b.winRate)[0];
+  // "연습 포인트: 시야. 귀환할 때마다…" → "귀환할 때마다…"
+  const goalRaw = (w0 ? t.tipPractice[w0.metric] : t.tipKeepGoing).replace(/^[^:：]+[:：]\s*/, "");
+  const goalBody = goalRaw.replace(/^[^.]+\.\s*/, "");
+  const goal = goalBody || goalRaw.charAt(0).toUpperCase() + goalRaw.slice(1);
+  const nowPanel = (
+    <section className="rounded-xl border border-accent/40 bg-panel p-5 shadow-[0_0_40px_-16px_var(--color-accent)] md:p-6">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-accent">{t.nowTitle}</h2>
+      <div className="mt-4 grid gap-5 md:grid-cols-2">
+        <div>
+          <p className="text-xs font-medium text-muted">{t.flowLabel}</p>
+          <p
+            className="mt-1 text-xl font-bold leading-snug sm:text-2xl"
+            style={flowTone ? { color: flowTone === "up" ? "var(--chart-up)" : "var(--chart-down)" } : undefined}
+          >
+            {flowTone === "up" ? "▲ " : flowTone === "down" ? "▼ " : ""}
+            {flow}
+          </p>
+          <div className="mt-3 flex gap-1.5" aria-hidden>
+            {[...last5].reverse().map((g) => (
+              <span
+                key={g.id}
+                className="flex h-8 w-8 items-center justify-center rounded-md text-xs font-bold text-white"
+                style={{ background: g.win ? "var(--chart-up)" : "var(--chart-down)" }}
+              >
+                {g.win ? t.winShort : t.lossShort}
+              </span>
+            ))}
+          </div>
+        </div>
+        {pick && (
+          <div>
+            <p className="text-xs font-medium text-muted">{t.pickLabel}</p>
+            <div className="mt-1 flex items-start gap-3">
+              {pick.champ && version && (
+                <Icon src={img.champion(version, pick.champ.image.full)} alt={pick.name} size={56} className="rounded-lg" />
+              )}
+              <div className="min-w-0">
+                <p className="text-xl font-bold leading-snug sm:text-2xl">{pick.text}</p>
+                {pick.champ && (
+                  <Link
+                    href={`/champions/${pick.champ.id}${pick.lane ? `?lane=${pick.lane}` : ""}`}
+                    className="mt-1 inline-block text-sm font-semibold text-accent hover:underline"
+                  >
+                    {t.pickBuild} →
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="mt-5 grid gap-4 border-t border-line pt-4 md:grid-cols-2">
+        <div>
+          <p className="text-xs font-medium text-muted">{t.goalLabel}</p>
+          <p className="mt-1 text-lg font-semibold leading-snug">{goal}</p>
+        </div>
+        {rest && (
+          <div>
+            <p className="text-xs font-medium text-muted">{t.avoidLabel}</p>
+            <p className="mt-1 text-lg font-semibold leading-snug" style={{ color: "var(--chart-down)" }}>
+              {t.avoidText(rest.championName, rest.wins, rest.games - rest.wins)}
+            </p>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+
   return (
     <>
       {profileHeader}
+      {nowPanel}
       <div className="space-y-1 text-xs text-muted">
         <p>{t.analyzed(total, result.matchIds)}</p>
         {tagNote}
