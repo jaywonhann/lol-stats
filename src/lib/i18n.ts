@@ -26,7 +26,9 @@ const en = {
     trends: "Patch Trends",
     meta: "Meta Chart",
     summoner: "Summoner",
+    faq: "FAQ",
   },
+  footerFeedback: "Have feedback? Tell us",
   mockBanner:
     "We're still collecting real games for this server, so the win rates, pick rates and ranks shown are sample data. They'll switch to real stats and builds once enough games are in.",
   server: "Server",
@@ -354,7 +356,9 @@ const ko: Dict = {
     trends: "패치 트렌드",
     meta: "메타 차트",
     summoner: "소환사 검색",
+    faq: "FAQ",
   },
+  footerFeedback: "의견 남기기",
   mockBanner:
     "이 서버는 아직 실제 게임을 모으는 중이라 지금 보이는 승률·픽률·순위는 예시 데이터예요. 게임이 모이면 실제 통계와 빌드로 바뀌어요.",
   server: "서버",

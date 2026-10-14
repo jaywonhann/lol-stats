@@ -1,4 +1,4 @@
-# GitHub 시크릿 RIOT_API_KEY 를 Vercel 환경변수로 복사하고, 바뀌었으면 다시 배포합니다.
+# GitHub 시크릿 RIOT_API_KEY (와 있으면 FEEDBACK_TOKEN) 을 Vercel 환경변수로 복사하고, 바뀌었으면 다시 배포합니다.
 # 필요한 시크릿: VERCEL_TOKEN (vercel.com/account/tokens 에서 발급, 한 번만 넣으면 됨)
 # 30분마다 확인하고, Actions 탭에서 직접 실행할 수도 있어요.
 name: Vercel 키 동기화
@@ -28,6 +28,7 @@ jobs:
         env:
           RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          FEEDBACK_TOKEN: ${{ secrets.FEEDBACK_TOKEN }}
           PROJECT: lol-stats
           FORCE: ${{ inputs.force }}
           DIAGNOSE: ${{ inputs.diagnose }}
@@ -70,29 +71,33 @@ jobs:
             exit 0
           fi
 
-          # 지금 Vercel 키의 해시와 비교 (같으면 아무것도 안 함). 키 값 자체는 읽지 않는다.
-          SHA=$(printf '%s' "$KEY" | sha256sum | cut -c1-16)
+          # 값의 해시(앞 16자)를 NAME_SHA 로 같이 저장해 두고, 같으면 건드리지 않는다. 값 자체는 읽지 않는다.
           envs=$(curl -fsS -H "$AUTH" "$API/v9/projects/$PROJECT/env$Q")
-          cur=$(echo "$envs" | jq -r '.envs[] | select(.key=="RIOT_API_KEY_SHA") | .value' | head -1)
-          has=$(echo "$envs" | jq -r '[.envs[] | select(.key=="RIOT_API_KEY")] | length')
-          if [ "$cur" = "$SHA" ] && [ "$has" != 0 ] && [ "${FORCE:-false}" != true ]; then
-            echo "::notice::Vercel 키가 이미 최신이에요."
-            exit 0
-          fi
-
-          # 기존 RIOT_API_KEY 항목을 지우고 새로 만든다 (Production, Preview, Development)
-          curl -fsS -H "$AUTH" "$API/v9/projects/$PROJECT/env$Q" \
-            | jq -r '.envs[] | select(.key=="RIOT_API_KEY" or .key=="RIOT_API_KEY_SHA") | .id' \
-            | while read -r old; do
-                curl -fsS -X DELETE -H "$AUTH" "$API/v9/projects/$PROJECT/env/$old$Q" > /dev/null
-              done
-          jq -n --arg v "$KEY" '{key:"RIOT_API_KEY", value:$v, type:"encrypted", target:["production","preview","development"]}' \
-            | curl -fsS -X POST -H "$AUTH" -H "Content-Type: application/json" \
-                "$API/v10/projects/$PROJECT/env$Q" -d @- > /dev/null
-          jq -n --arg v "$SHA" '{key:"RIOT_API_KEY_SHA", value:$v, type:"plain", target:["production","preview","development"]}' \
-            | curl -fsS -X POST -H "$AUTH" -H "Content-Type: application/json" \
-                "$API/v10/projects/$PROJECT/env$Q" -d @- > /dev/null
-          echo "::notice::Vercel 키를 새로 넣었어요."
+          sync_var() {
+            local name=$1 val=$2 sha cur has
+            sha=$(printf '%s' "$val" | sha256sum | cut -c1-16)
+            cur=$(echo "$envs" | jq -r --arg k "${name}_SHA" '.envs[] | select(.key==$k) | .value' | head -1)
+            has=$(echo "$envs" | jq -r --arg k "$name" '[.envs[] | select(.key==$k)] | length')
+            if [ "$cur" = "$sha" ] && [ "$has" != 0 ] && [ "${FORCE:-false}" != true ]; then
+              echo "::notice::$name 은 이미 최신이에요."
+              return 0
+            fi
+            echo "$envs" | jq -r --arg a "$name" --arg b "${name}_SHA" '.envs[] | select(.key==$a or .key==$b) | .id' \
+              | while read -r old; do
+                  curl -fsS -X DELETE -H "$AUTH" "$API/v9/projects/$PROJECT/env/$old$Q" > /dev/null
+                done
+            jq -n --arg k "$name" --arg v "$val" '{key:$k, value:$v, type:"encrypted", target:["production","preview","development"]}' \
+              | curl -fsS -X POST -H "$AUTH" -H "Content-Type: application/json" "$API/v10/projects/$PROJECT/env$Q" -d @- > /dev/null
+            jq -n --arg k "${name}_SHA" --arg v "$sha" '{key:$k, value:$v, type:"plain", target:["production","preview","development"]}' \
+              | curl -fsS -X POST -H "$AUTH" -H "Content-Type: application/json" "$API/v10/projects/$PROJECT/env$Q" -d @- > /dev/null
+            echo "::notice::Vercel 에 $name 을 새로 넣었어요."
+            changed=1
+          }
+          changed=0
+          sync_var RIOT_API_KEY "$KEY"
+          FT=$(printf '%s' "${FEEDBACK_TOKEN:-}" | tr -d '[:space:]')
+          if [ -n "$FT" ]; then sync_var FEEDBACK_TOKEN "$FT"; fi
+          [ "$changed" = 1 ] || exit 0
 
           # 최신 프로덕션 배포를 다시 배포해서 새 키 적용
           dep=$(curl -fsS -H "$AUTH" "$API/v6/deployments?projectId=$(echo "$proj" | jq -r .id)&target=production&state=READY&limit=1$S" \

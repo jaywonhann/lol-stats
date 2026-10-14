@@ -46,6 +46,9 @@ export default async function RootLayout({
             <Link href="/summoner" className="text-sm text-muted hover:text-text">
               {t.nav.summoner}
             </Link>
+            <Link href="/faq" className="text-sm text-muted hover:text-text">
+              {t.nav.faq}
+            </Link>
             <div className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-2">
               <ServerSelect value={server} lang={lang} />
               <LangSelect value={lang} />
@@ -59,6 +62,13 @@ export default async function RootLayout({
         )}
         <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
         <footer className="mt-12 border-t border-line px-4 py-6 text-center text-xs text-muted">
+          <p className="mb-3 text-sm">
+            <Link href="/faq" className="hover:text-text">FAQ</Link>
+            {" · "}
+            <Link href="/faq#feedback" className="font-semibold text-accent hover:underline">
+              {t.footerFeedback}
+            </Link>
+          </p>
           livelol.stats isn&apos;t endorsed by Riot Games and doesn&apos;t reflect
           the views or opinions of Riot Games or anyone officially involved in
           producing or managing Riot Games properties. Riot Games, and all
