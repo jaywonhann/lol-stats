@@ -1,0 +1,41 @@
+# Vercel 프로젝트에 짧은 주소(도메인)를 붙입니다. 앞에서부터 차례로 시도해서 처음 되는 하나만 붙여요.
+# 필요한 시크릿: VERCEL_TOKEN
+name: 짧은 주소 붙이기
+
+on:
+  workflow_dispatch:
+    inputs:
+      domains:
+        description: "붙일 주소 후보 (공백으로 구분, 앞에서부터 시도)"
+        default: "livelol.vercel.app lollive.vercel.app livelol-stats.vercel.app"
+
+jobs:
+  add:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 주소 붙이기
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          PROJECT: lol-stats
+          DOMAINS: ${{ inputs.domains }}
+        run: |
+          set -uo pipefail
+          API=https://api.vercel.com
+          AUTH="Authorization: Bearer $VERCEL_TOKEN"
+          Q=""
+          if ! curl -fsS -o /dev/null -H "$AUTH" "$API/v9/projects/$PROJECT"; then
+            for t in $(curl -fsS -H "$AUTH" "$API/v2/teams" | jq -r '.teams[].id'); do
+              if curl -fsS -o /dev/null -H "$AUTH" "$API/v9/projects/$PROJECT?teamId=$t"; then Q="?teamId=$t"; break; fi
+            done
+          fi
+          echo "::notice::지금 붙은 주소: $(curl -fsS -H "$AUTH" "$API/v9/projects/$PROJECT/domains$Q" | jq -r '[.domains[].name] | join(", ")')"
+          for d in $DOMAINS; do
+            r=$(curl -sS -X POST -H "$AUTH" -H 'Content-Type: application/json' -d "{\"name\":\"$d\"}" "$API/v10/projects/$PROJECT/domains$Q")
+            if echo "$r" | jq -e '.name' >/dev/null 2>&1; then
+              echo "::notice::성공: https://$d (verified=$(echo "$r" | jq -r .verified))"
+              exit 0
+            fi
+            echo "::notice::실패 $d: $(echo "$r" | jq -r '.error.code + " " + .error.message' | cut -c1-200)"
+          done
+          echo "::error::후보 주소를 하나도 붙이지 못했어요."
+          exit 1
