@@ -425,13 +425,13 @@ function RankBox({ solo, lang }: { solo: LeagueEntry | null; lang: Lang }) {
   const color = TIER_HEX[solo.tier] ?? "#5b6475";
   return (
     <div
-      className="flex w-full items-center gap-5 rounded-xl border px-5 py-4 md:w-auto md:min-w-[22rem]"
+      className="flex w-full items-center gap-4 rounded-xl border px-4 py-3 md:w-auto md:min-w-[22rem]"
       style={{
         borderColor: `${color}66`,
         background: `radial-gradient(120% 140% at 0% 50%, ${color}2e 0%, transparent 60%), var(--color-panel-2)`,
       }}
     >
-      <TierEmblem tier={solo.tier} size={96} />
+      <TierEmblem tier={solo.tier} size={128} />
       <div className="min-w-0 flex-1">
         <p className="text-xs font-medium uppercase tracking-wide text-muted">{t.soloDuo}</p>
         <p className="text-2xl font-extrabold leading-tight sm:text-3xl" style={{ color }}>

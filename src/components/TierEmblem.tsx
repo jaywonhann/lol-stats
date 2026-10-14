@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-// 랭크 엠블럼 (CommunityDragon 이미지). 못 불러오면 티어 색 방패로 대신 보여준다.
+// 롤 클라이언트 랭크 엠블럼 (public/emblems, fetch-emblems 워크플로가 받아 둠). 없으면 티어 색 방패로 대신 보여준다.
 const FALLBACK: Record<string, string> = {
   IRON: "#7a6f69",
   BRONZE: "#a0623a",
@@ -25,7 +25,7 @@ export default function TierEmblem({ tier, size = 112 }: { tier: string; size?: 
     if (el?.complete && el.naturalWidth === 0) setFailed(true);
   }, []);
   const color = FALLBACK[tier] ?? "#5b6475";
-  if (failed)
+  if (failed || !FALLBACK[tier])
     return (
       <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden className="shrink-0">
         <path d="M50 6 88 22v28c0 22-16 38-38 44C28 88 12 72 12 50V22z" fill={color} opacity="0.25" stroke={color} strokeWidth="4" />
@@ -38,13 +38,13 @@ export default function TierEmblem({ tier, size = 112 }: { tier: string; size?: 
     // eslint-disable-next-line @next/next/no-img-element
     <img
       ref={ref}
-      src={`https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-emblem/emblem-${tier.toLowerCase()}.png`}
+      src={`/emblems/${tier.toLowerCase()}.png`}
       alt=""
       width={size}
       height={size}
       onError={() => setFailed(true)}
-      className="shrink-0 object-cover drop-shadow-[0_6px_18px_rgba(0,0,0,0.45)]"
-      style={{ width: size, height: size, transform: "scale(1.3)" }}
+      className="shrink-0 object-contain drop-shadow-[0_6px_18px_rgba(0,0,0,0.45)]"
+      style={{ width: size, height: size }}
     />
   );
 }
