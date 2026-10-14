@@ -18,6 +18,7 @@ jobs:
       - name: 엠블럼 내려받기
         run: |
           set -euo pipefail
+          command -v convert >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq imagemagick >/dev/null; }
           BASE=https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-emblem
           LIST=https://raw.communitydragon.org/json/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-emblem/
           echo "::notice::목록: $(curl -fsS "$LIST" | jq -r '[.[].name] | join(", ")' || echo '못 읽음')"
