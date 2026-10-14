@@ -7,6 +7,7 @@ import { dict } from "@/lib/i18n";
 import ServerSelect from "@/components/ServerSelect";
 import LangSelect from "@/components/LangSelect";
 import { LiveBadge } from "@/components/LivePanel";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -75,6 +76,7 @@ export default async function RootLayout({
           associated properties are trademarks or registered trademarks of Riot
           Games, Inc.
         </footer>
+        <Analytics />
       </body>
     </html>
   );
