@@ -62,6 +62,13 @@ jobs:
           S=${Q:+&${Q#?}}
           echo "::notice::프로젝트 찾음 (${Q:-개인 계정})"
           if [ "${DIAGNOSE:-false}" = true ]; then
+            # 알림은 단계마다 10개까지만 보여서, 중요한 것부터
+            echo "::notice::피드백 사용 가능: $(curl -sS "https://lol-stats-one.vercel.app/api/feedback?n=$RANDOM")"
+            if [ "${TEST_FEEDBACK:-false}" = true ]; then
+              echo "::notice::테스트 피드백 결과: $(curl -sS -X POST -H 'Content-Type: application/json' \
+                -d '{"rating":"good","message":"테스트 피드백이에요. 피드백이 잘 도착하는지 확인용이니 닫아도 돼요.","lang":"ko","page":"/faq"}' \
+                https://lol-stats-one.vercel.app/api/feedback)"
+            fi
             live=$(curl -fsS -H "$AUTH" "$API/v13/deployments/lol-stats-one.vercel.app$Q" || true)
             echo "::notice::사이트 배포: $(echo "$live" | jq -r '"\(.id) \(.readyState) \(.target) \(.meta.githubCommitSha // "-" | .[0:7]) " + ((.createdAt // 0) / 1000 | todate)')"
             curl -fsS -H "$AUTH" "$API/v6/deployments?projectId=$(echo "$proj" | jq -r .id)&limit=5$S" \
@@ -72,12 +79,6 @@ jobs:
             echo "::notice::사이트 응답: $(echo "$r" | grep -iE '^(x-vercel-cache|x-vercel-id|cache-control|age):' | tr '\n' ' ') $(echo "$r" | tail -1 | cut -c1-120)"
             kid=$(curl -fsS -H "$AUTH" "$API/v9/projects/$PROJECT/env$Q" | jq -r '.envs[] | select(.key=="RIOT_API_KEY") | .id' | head -1)
             echo "::notice::저장된 키 길이: $(curl -fsS -H "$AUTH" "$API/v1/projects/$PROJECT/env/$kid$Q" | jq -r '(.value // "") | length') / 시크릿 키 길이: ${#KEY}"
-            echo "::notice::피드백 사용 가능: $(curl -sS "https://lol-stats-one.vercel.app/api/feedback?n=$RANDOM")"
-            if [ "${TEST_FEEDBACK:-false}" = true ]; then
-              echo "::notice::테스트 피드백 결과: $(curl -sS -X POST -H 'Content-Type: application/json' \
-                -d '{"rating":"good","message":"테스트 피드백이에요. 피드백이 잘 도착하는지 확인용이니 닫아도 돼요.","lang":"ko","page":"/faq"}' \
-                https://lol-stats-one.vercel.app/api/feedback)"
-            fi
             echo "$proj" | jq -r '"::notice::롤백 상태: " + ((.rollbackDescription // .lastRollbackTarget // "없음") | tostring)'
             exit 0
           fi
