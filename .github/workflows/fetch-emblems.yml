@@ -1,0 +1,38 @@
+# 롤 클라이언트의 랭크 엠블럼 이미지를 CommunityDragon에서 받아 public/emblems 에 저장합니다.
+# 패치로 엠블럼이 바뀌었을 때 Actions 탭에서 한 번 실행하면 돼요.
+name: 랭크 엠블럼 받기
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: 엠블럼 내려받기
+        run: |
+          set -euo pipefail
+          BASE=https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-emblem
+          LIST=https://raw.communitydragon.org/json/latest/plugins/rcp-fe-lol-static-assets/global/default/images/ranked-emblem/
+          echo "::notice::목록: $(curl -fsS "$LIST" | jq -r '[.[].name] | join(", ")' || echo '못 읽음')"
+          mkdir -p public/emblems
+          for t in iron bronze silver gold platinum emerald diamond master grandmaster challenger; do
+            curl -fsSL "$BASE/emblem-$t.png" -o "/tmp/$t.png"
+            # 투명 여백을 잘라내고 256px 정사각형으로
+            convert "/tmp/$t.png" -trim +repage -resize 256x256 -background none -gravity center -extent 256x256 "public/emblems/$t.png"
+            echo "::notice::$t $(identify -format '%wx%h' "/tmp/$t.png") → $(du -h "public/emblems/$t.png" | cut -f1)"
+          done
+      - name: 커밋
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/emblems
+          git diff --cached --quiet && exit 0
+          git commit -m "랭크 엠블럼 이미지 업데이트"
+          for i in 1 2 3; do git pull --rebase origin main && git push origin HEAD:main && break; sleep 5; done
