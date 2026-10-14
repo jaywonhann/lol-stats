@@ -1,4 +1,5 @@
 import Link from "next/link";
+import LivePanel from "@/components/LivePanel";
 import VideoCard from "@/components/VideoCard";
 import ChampionSearch from "@/components/ChampionSearch";
 import SummonerSearch from "@/components/SummonerSearch";
@@ -61,6 +62,8 @@ export default async function Home() {
           <SummonerSearch lang={lang} server={server} large />
         </div>
       </section>
+
+      <LivePanel server={server} lang={lang} hero />
 
       <div className="grid gap-3 md:grid-cols-5">
         {LANES.map((lane) => (

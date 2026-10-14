@@ -100,6 +100,7 @@ const en = {
   liveUnavailable: "Live player count isn't available yet.",
   liveChecking: "Checking how many players are in game…",
   playersUnit: "players",
+  liveHeroTitle: "Players in game right now",
   liveCaption: (total: string) =>
     `Master+ players in game now (estimate, of ${total})`,
   liveAria: "Live player count trend",
@@ -402,6 +403,7 @@ const ko: Dict = {
   liveUnavailable: "실시간 인원은 아직 준비 중이에요.",
   liveChecking: "지금 게임 중인 인원을 확인하는 중…",
   playersUnit: "명",
+  liveHeroTitle: "지금 게임 중인 플레이어",
   liveCaption: (total) =>
     `지금 게임 중인 마스터 이상 랭커 (추정, 전체 ${total}명 중)`,
   liveAria: "실시간 인원 추이",
