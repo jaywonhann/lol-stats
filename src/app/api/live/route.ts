@@ -1,6 +1,6 @@
 // 지금 게임 중인 상위 랭커(마스터+) 수 추정.
 // Riot은 서버 접속자 수를 공개하지 않아서, 마스터+ 랭커 일부가 지금 게임 중인지 확인해 전체 인원에 비율을 곱합니다.
-// Vercel 환경변수 RIOT_API_KEY 가 있어야 동작하고, 결과는 2분 동안 CDN에 캐시됩니다.
+// Vercel 환경변수 RIOT_API_KEY 가 있어야 동작하고, 결과는 1분 동안 CDN에 캐시됩니다.
 import { NextResponse } from "next/server";
 import { parseServer, type Server } from "@/lib/lanes";
 
@@ -62,7 +62,7 @@ export async function GET(req: Request) {
         estimate: Math.round((inGame / checked) * all.length),
         at: new Date().toISOString(),
       },
-      { headers: { "Cache-Control": "public, s-maxage=120, stale-while-revalidate=60" } },
+      { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=30" } },
     );
   } catch (e) {
     const reason = e instanceof Error && e.message === "key" ? "key-rejected" : "error";

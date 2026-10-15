@@ -107,6 +107,8 @@ const en = {
   playersUnit: "players",
   liveHeroTitle: "Players in game right now",
   liveVsHour: "vs 1 hour ago",
+  liveJust: "just now",
+  liveNext: (s: number) => `next update in ${s}s`,
   liveRange: (h: number) => `Last ${h}h`,
   liveNow: "now",
   liveFromHistory: "Showing the last recorded number.",
@@ -115,7 +117,7 @@ const en = {
   liveAria: "Live player count trend",
   livePointTitle: (time: string, n: number) => `${time} ~${n} players`,
   liveFoot:
-    "Recorded every 10 min, live number every 2 min · estimated from a sample of Master+ players",
+    "Live number updates every minute, graph recorded every 10 min · estimated from a sample of Master+ players",
   // 티어 리스트
   tierTitle: "Champion Tier List",
   soloGames: (n: string) => `${n} Ranked Solo games`,
@@ -441,6 +443,8 @@ const ko: Dict = {
   playersUnit: "명",
   liveHeroTitle: "지금 게임 중인 플레이어",
   liveVsHour: "1시간 전보다",
+  liveJust: "방금",
+  liveNext: (s) => `다음 갱신까지 ${s}초`,
   liveRange: (h) => `최근 ${h}시간`,
   liveNow: "지금",
   liveFromHistory: "마지막으로 기록된 인원이에요.",
@@ -449,7 +453,7 @@ const ko: Dict = {
   liveAria: "실시간 인원 추이",
   livePointTitle: (time, n) => `${time} 약 ${n}명`,
   liveFoot:
-    "10분마다 기록, 지금 숫자는 2분마다 갱신 · 마스터+ 랭커 표본 조사로 추정",
+    "지금 숫자는 1분마다, 그래프는 10분마다 기록 · 마스터+ 랭커 표본 조사로 추정",
   tierTitle: "챔피언 티어 리스트",
   soloGames: (n) => `솔로랭크 ${n}게임`,
   trendsTitle: "패치 트렌드",

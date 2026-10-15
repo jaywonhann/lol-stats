@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { dict, numLocale, type Lang } from "@/lib/i18n";
 import type { Server } from "@/lib/lanes";
 
@@ -9,6 +9,7 @@ type Reply =
   | ({ available: true } & Point)
   | { available: false; reason: string };
 
+const POLL_MS = 30_000; // 30초마다 확인 (서버 값은 1분마다 새로 잼)
 const KEEP_MS = 3 * 3_600_000; // 브라우저에 최근 3시간 기록을 남겨 두고 그래프로 보여줍니다
 
 function load(server: Server): Point[] {
@@ -42,6 +43,8 @@ export default function LiveCounter({
     .sort((a, b) => a.at.localeCompare(b.at))
     .filter((p, i, arr) => i === 0 || p.at !== arr[i - 1].at);
   const [state, setState] = useState<"loading" | "ok" | "off">("loading");
+  const [nextAt, setNextAt] = useState(0);
+  const [clock, setClock] = useState(0);
 
   useEffect(() => {
     setPoints(load(server));
@@ -72,24 +75,68 @@ export default function LiveCounter({
         if (!stop) setState((s) => (s === "loading" ? "off" : s));
       }
     };
-    tick();
-    const id = setInterval(tick, 60_000);
+    const run = () => {
+      setNextAt(Date.now() + POLL_MS);
+      tick();
+    };
+    run();
+    const id = setInterval(run, POLL_MS);
     return () => {
       stop = true;
       clearInterval(id);
     };
   }, [server]);
 
+  // 1초마다 다음 갱신까지 남은 시간 표시
+  useEffect(() => {
+    const id = setInterval(() => setClock(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // 표본이 작아 값이 튀므로 최근 3번 평균을 큰 숫자로
+  const recent = points.slice(-3);
+  const now = recent.length
+    ? Math.round(recent.reduce((s, p) => s + p.estimate, 0) / recent.length)
+    : 0;
+
+  // 숫자가 바뀌면 이전 값에서 새 값까지 굴러가듯 바뀌고, 바뀐 만큼 잠깐 보여줌
+  const [shown, setShown] = useState(now);
+  const [bump, setBump] = useState<{ d: number; key: number } | null>(null);
+  const prevNow = useRef<number | null>(null);
+  useEffect(() => {
+    const from = prevNow.current;
+    prevNow.current = now;
+    if (from === null || from === now || !now) {
+      setShown(now);
+      return;
+    }
+    setBump({ d: now - from, key: Date.now() });
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setShown(now);
+      return;
+    }
+    const start = performance.now();
+    let raf = 0;
+    const step = (t: number) => {
+      const k = Math.min(1, (t - start) / 1200);
+      setShown(Math.round(from + (now - from) * (1 - (1 - k) ** 3)));
+      if (k < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [now]);
+  useEffect(() => {
+    if (!bump) return;
+    const id = setTimeout(() => setBump(null), 5000);
+    return () => clearTimeout(id);
+  }, [bump]);
+  const left = nextAt && clock ? Math.max(0, Math.ceil((nextAt - clock) / 1000)) : null;
+
   if (state === "off" && !points.length)
     return <p className="mt-3 text-sm text-muted">{t.liveUnavailable}</p>;
   if (!points.length)
     return <p className="mt-3 text-sm text-muted">{t.liveChecking}</p>;
 
-  // 표본이 작아 값이 튀므로 최근 3번 평균을 큰 숫자로
-  const recent = points.slice(-3);
-  const now = Math.round(
-    recent.reduce((s, p) => s + p.estimate, 0) / recent.length,
-  );
   const last = points[points.length - 1];
   const lastT = new Date(last.at).getTime();
   // 1시간 전쯤(40~80분 전) 값들의 평균과 비교
@@ -128,13 +175,26 @@ export default function LiveCounter({
         <span
           className={`${big ? "text-6xl sm:text-7xl font-black" : "text-4xl font-bold"} tabular-nums leading-none`}
         >
-          {now.toLocaleString(nl)}
+          {shown.toLocaleString(nl)}
         </span>
         <span
           className={`${big ? "text-2xl" : "text-lg"} font-semibold text-muted`}
         >
           {t.playersUnit}
         </span>
+        {bump && (
+          <span
+            key={bump.key}
+            className={`fade-up whitespace-nowrap rounded-full px-2 py-0.5 ${big ? "text-sm" : "text-xs"} font-bold tabular-nums`}
+            style={{
+              color: bump.d > 0 ? "var(--chart-up)" : "var(--chart-down)",
+              background: bump.d > 0 ? "rgba(57,135,229,0.15)" : "rgba(230,103,103,0.15)",
+            }}
+          >
+            {t.liveJust} {bump.d > 0 ? "▲" : "▼"}
+            {Math.abs(bump.d).toLocaleString(nl)}
+          </span>
+        )}
         {diff !== null && diff !== 0 && (
           <span
             className={`${big ? "text-lg" : "text-sm"} whitespace-nowrap font-semibold tabular-nums`}
@@ -152,6 +212,18 @@ export default function LiveCounter({
         {t.liveCaption(last.total.toLocaleString(nl))}
         {state === "off" && <> · {t.liveFromHistory}</>}
       </p>
+      {state === "ok" && left !== null && (
+        <div className="mt-2 flex items-center gap-2 text-[11px] text-muted">
+          <span className="live-dot h-1.5 w-1.5 rounded-full bg-red-500" aria-hidden />
+          <span className="tabular-nums">{t.liveNext(left)}</span>
+          <span className="h-0.5 w-16 overflow-hidden rounded bg-line">
+            <span
+              className="block h-full bg-accent transition-[width] duration-1000 ease-linear"
+              style={{ width: `${100 - (left / (POLL_MS / 1000)) * 100}%` }}
+            />
+          </span>
+        </div>
+      )}
       {points.length > 1 && (
         <div className="mt-3 flex justify-between text-[11px] text-muted">
           <span>{t.liveRange(hours)}</span>
@@ -183,6 +255,7 @@ export default function LiveCounter({
             cx={x(i)}
             cy={y(p.estimate)}
             r={i === points.length - 1 ? 3 : 0}
+            className={i === points.length - 1 && state === "ok" ? "live-dot" : undefined}
             fill="var(--chart-up)"
           >
             <title>
