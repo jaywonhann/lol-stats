@@ -60,10 +60,11 @@ for (const server of SERVERS) {
       console.log(`::notice::${server} 약 ${p.estimate}명 게임 중 (${p.inGame}/${p.checked}, 전체 ${p.total})`);
     } else console.log(`::warning::${server} 표본을 못 얻었어요.`);
   } catch (e) {
-    if (e.message === "key") { console.log("::error::Riot 키가 거절됐어요. 새 키로 바꿔 주세요."); bad = true; break; }
+    if (e.message === "key") { console.log("::warning::Riot 키가 거절됐어요. 새 키로 바꿔 주세요."); bad = true; break; }
     console.log(`::warning::${server} ${e.message}`);
   }
   points = points.filter((p) => Date.now() - new Date(p.at).getTime() < KEEP_MS);
   writeFileSync(file, JSON.stringify({ server, updatedAt: new Date().toISOString(), points }));
 }
-if (bad) process.exit(1);
+// 키가 만료되면 10분마다 실패 메일이 가지 않도록 경고만 남기고 끝냅니다
+if (bad) process.exit(0);
