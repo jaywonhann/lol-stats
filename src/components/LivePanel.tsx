@@ -2,6 +2,7 @@ import { dict, numLocale, timeAgo, type Lang } from "@/lib/i18n";
 import { serverLabel, type Server } from "@/lib/lanes";
 import { loadActivity } from "@/lib/real";
 import LiveCounter from "./LiveCounter";
+import { liveHistory } from "@/lib/live-history";
 
 // 한국 시간(KST, UTC+9) 기준 시(0~23)
 const kstHour = (iso: string) => (new Date(iso).getUTCHours() + 9) % 24;
@@ -16,7 +17,7 @@ export function LiveBadge() {
 }
 
 // 서버별 최근 24시간 랭크 게임 수와 시간대별 막대
-export default function LivePanel({
+export default async function LivePanel({
   server,
   lang,
   hero = false,
@@ -28,6 +29,7 @@ export default function LivePanel({
   const t = dict(lang);
   const name = serverLabel(server, lang);
   const a = loadActivity(server);
+  const history = hero ? await liveHistory(server) : [];
   const max = Math.max(1, ...(a?.hours.map((h) => h.games) ?? []));
   return (
     <section
@@ -54,7 +56,7 @@ export default function LivePanel({
             )}
           </span>
         </div>
-        <LiveCounter server={server} lang={lang} big={hero} />
+        <LiveCounter server={server} lang={lang} big={hero} history={history} />
       </div>
       <div className={hero ? "md:border-l md:border-line md:pl-6" : ""}>
         {a ? (

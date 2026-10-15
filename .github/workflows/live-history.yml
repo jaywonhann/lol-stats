@@ -1,0 +1,49 @@
+# 10분마다 서버별 "지금 게임 중인 마스터+ 랭커 수"를 기록해서 live-data 브랜치에 올립니다.
+# 사이트 첫 페이지의 실시간 인원 그래프(최근 24시간)가 이 기록을 읽어요.
+name: 실시간 인원 기록
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: live-history
+  cancel-in-progress: false
+
+jobs:
+  sample:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          sparse-checkout: scripts
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 이전 기록 가져오기
+        run: |
+          mkdir -p /tmp/live-data
+          git fetch --depth=1 origin live-data 2>/dev/null || exit 0
+          for s in kr na1 euw1; do git show origin/live-data:$s.json > /tmp/live-data/$s.json 2>/dev/null || rm -f /tmp/live-data/$s.json; done
+      - name: 지금 인원 재기
+        env:
+          RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
+          OUT: /tmp/live-data
+        run: node scripts/live-sample.mjs
+      - name: live-data 브랜치에 올리기
+        if: always()
+        run: |
+          cd /tmp/live-data
+          ls *.json >/dev/null 2>&1 || exit 0
+          git init -q -b live-data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add *.json
+          git commit -q -m "실시간 인원 기록"
+          git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" live-data

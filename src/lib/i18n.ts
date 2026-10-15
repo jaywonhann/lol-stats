@@ -106,12 +106,16 @@ const en = {
   liveChecking: "Checking how many players are in game…",
   playersUnit: "players",
   liveHeroTitle: "Players in game right now",
+  liveVsHour: "vs 1 hour ago",
+  liveRange: (h: number) => `Last ${h}h`,
+  liveNow: "now",
+  liveFromHistory: "Showing the last recorded number.",
   liveCaption: (total: string) =>
     `Master+ players in game now (estimate, of ${total})`,
   liveAria: "Live player count trend",
   livePointTitle: (time: string, n: number) => `${time} ~${n} players`,
   liveFoot:
-    "Updates every 2 min · trend while this page is open · samples 20 Master+ players at a time",
+    "Recorded every 10 min, live number every 2 min · estimated from a sample of Master+ players",
   // 티어 리스트
   tierTitle: "Champion Tier List",
   soloGames: (n: string) => `${n} Ranked Solo games`,
@@ -436,12 +440,16 @@ const ko: Dict = {
   liveChecking: "지금 게임 중인 인원을 확인하는 중…",
   playersUnit: "명",
   liveHeroTitle: "지금 게임 중인 플레이어",
+  liveVsHour: "1시간 전보다",
+  liveRange: (h) => `최근 ${h}시간`,
+  liveNow: "지금",
+  liveFromHistory: "마지막으로 기록된 인원이에요.",
   liveCaption: (total) =>
     `지금 게임 중인 마스터 이상 랭커 (추정, 전체 ${total}명 중)`,
   liveAria: "실시간 인원 추이",
   livePointTitle: (time, n) => `${time} 약 ${n}명`,
   liveFoot:
-    "2분마다 갱신 · 이 페이지를 열어 둔 동안의 흐름 · 마스터+ 랭커 20명씩 표본 조사",
+    "10분마다 기록, 지금 숫자는 2분마다 갱신 · 마스터+ 랭커 표본 조사로 추정",
   tierTitle: "챔피언 티어 리스트",
   soloGames: (n) => `솔로랭크 ${n}게임`,
   trendsTitle: "패치 트렌드",
