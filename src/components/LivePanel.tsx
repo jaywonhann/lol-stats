@@ -33,7 +33,7 @@ export default function LivePanel({
     <section
       className={
         hero
-          ? "grid gap-6 rounded-xl border border-red-600/40 bg-panel p-5 shadow-[0_0_40px_-12px_rgba(220,38,38,0.45)] md:grid-cols-[1.3fr_1fr] md:p-6"
+          ? "relative grid gap-6 overflow-hidden rounded-xl border border-line bg-panel p-5 before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-red-500/70 before:to-transparent md:grid-cols-[1.3fr_1fr] md:p-6"
           : "rounded-lg border border-line bg-panel p-4 lg:w-[380px]"
       }
     >

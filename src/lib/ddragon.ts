@@ -160,6 +160,8 @@ export const img = {
   spell: (v: string, file: string) => `${BASE}/cdn/${v}/img/spell/${file}`,
   passive: (v: string, file: string) => `${BASE}/cdn/${v}/img/passive/${file}`,
   rune: (icon: string) => `${BASE}/cdn/img/${icon}`,
+  splash: (id: string, skin = 0) =>
+    `${BASE}/cdn/img/champion/splash/${id}_${skin}.jpg`,
   profileIcon: (v: string, id: number) =>
     `${BASE}/cdn/${v}/img/profileicon/${id}.png`,
 };

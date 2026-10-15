@@ -49,57 +49,107 @@ export default async function Home() {
     .sort((a, b) => a.stat.scoreChange! - b.stat.scoreChange!)
     .slice(0, 5);
 
+  const picks = LANES.map((lane) => ({ lane: lane.id, rows: top5(lane.id) }));
+  // 히어로 배경: 라인별 1위 중 승률이 가장 높은 챔피언
+  const featured = picks
+    .filter((p) => p.rows.length > 0)
+    .map((p) => ({ lane: p.lane, s: p.rows[0] }))
+    .sort((a, b) => b.s.winRate - a.s.winRate)[0];
+  const quick = [
+    { href: "/tier", label: t.nav.tier },
+    { href: "/meta", label: t.nav.meta },
+    { href: "/trends", label: t.nav.trends },
+    { href: "/summoner", label: t.nav.summoner },
+  ];
+
   return (
-    <div className="space-y-8">
-      <section className="pt-4 text-center">
-        <h1 className="text-3xl font-bold">
-          live<span className="text-accent">lol</span>.stats
-        </h1>
-        <p className="mt-2 text-sm text-muted">
-          {t.homeSubtitle(serverLabel(server, lang), patch)}
-        </p>
-        <div className="mx-auto mt-5 max-w-xl text-left">
-          <SummonerSearch lang={lang} server={server} large />
+    <div className="space-y-10">
+      <section className="fade-up relative -mx-4 overflow-hidden rounded-none border-line bg-panel px-4 py-12 sm:mx-0 sm:rounded-2xl sm:border sm:px-10 sm:py-14">
+        {featured && (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={img.splash(featured.s.champion.id)}
+              alt=""
+              aria-hidden
+              className="pointer-events-none absolute inset-y-0 right-0 h-full w-full object-cover object-[70%_20%] opacity-35 sm:w-3/4"
+            />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-panel via-panel/90 to-panel/30" />
+          </>
+        )}
+        <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-accent/15 blur-3xl" />
+        <div className="relative max-w-xl">
+          <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">
+            live<span className="text-accent">lol</span>.stats
+          </h1>
+          <p className="mt-3 text-lg font-semibold sm:text-xl">{t.heroTagline}</p>
+          <p className="mt-1 text-sm text-muted">
+            {t.homeSubtitle(serverLabel(server, lang), patch)}
+          </p>
+          <div className="mt-6">
+            <SummonerSearch lang={lang} server={server} large />
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {quick.map((q) => (
+              <Link
+                key={q.href}
+                href={q.href}
+                className="rounded-full border border-line bg-panel-2/70 px-3 py-1 text-xs text-muted transition-colors hover:border-accent hover:text-text"
+              >
+                {q.label}
+              </Link>
+            ))}
+          </div>
+          {featured && (
+            <Link
+              href={`/champions/${featured.s.champion.id}?lane=${featured.lane}`}
+              className="mt-6 inline-flex items-center gap-2 text-xs text-muted hover:text-accent"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
+              {t.heroFeatured(featured.s.champion.name, laneLabel(featured.lane, lang))}
+              <span aria-hidden>→</span>
+            </Link>
+          )}
         </div>
       </section>
 
-      <LivePanel server={server} lang={lang} hero />
-
-      <div className="grid gap-3 md:grid-cols-5">
-        {LANES.map((lane) => (
-          <Panel key={lane.id} title={t.bestPicks(laneLabel(lane.id, lang))}>
-            <ul className="space-y-2">
-              {top5(lane.id).map((s) => (
-                <li key={s.champion.id}>
-                  <Link
-                    href={`/champions/${s.champion.id}?lane=${lane.id}`}
-                    className="flex items-center gap-2 hover:text-accent"
-                  >
-                    <Icon
-                      src={img.champion(version, s.champion.image.full)}
-                      alt={s.champion.name}
-                      size={28}
-                    />
-                    <span className="flex-1 truncate text-sm">
-                      {s.champion.name}
-                    </span>
-                    <TierBadge tier={s.tier} lang={lang} />
-                  </Link>
-                  <div className="pl-9 text-xs text-muted">
-                    {t.winRate} <WinRate value={s.winRate} />
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <Link
-              href={`/tier?lane=${lane.id}`}
-              className="mt-3 block text-xs text-accent hover:underline"
-            >
-              {t.viewAll}
-            </Link>
-          </Panel>
-        ))}
+      <div className="fade-up" style={{ animationDelay: "80ms" }}>
+        <LivePanel server={server} lang={lang} hero />
       </div>
+
+      <section className="fade-up" style={{ animationDelay: "160ms" }}>
+        <SectionTitle title={t.bestPicksTitle} href="/tier" link={t.viewAll} />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {picks.map(({ lane, rows }) => (
+            <div key={lane} className="lift rounded-xl border border-line bg-panel p-3">
+              <div className="mb-2 flex items-center justify-between px-1">
+                <h3 className="text-sm font-semibold">{laneLabel(lane, lang)}</h3>
+                <Link href={`/tier?lane=${lane}`} className="text-xs text-muted hover:text-accent">
+                  {t.viewAll}
+                </Link>
+              </div>
+              <ol>
+                {rows.map((s, i) => (
+                  <li key={s.champion.id}>
+                    <Link
+                      href={`/champions/${s.champion.id}?lane=${lane}`}
+                      className="flex items-center gap-2 rounded-lg px-1 py-1.5 transition-colors hover:bg-panel-2"
+                    >
+                      <span className="w-3 text-center text-xs tabular-nums text-muted">{i + 1}</span>
+                      <Icon src={img.champion(version, s.champion.image.full)} alt={s.champion.name} size={30} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm">{s.champion.name}</span>
+                        <span className="block text-xs tabular-nums"><WinRate value={s.winRate} /></span>
+                      </span>
+                      <TierBadge tier={s.tier} lang={lang} />
+                    </Link>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {(rising.length > 0 || falling.length > 0) && (
         <div className="grid gap-3 md:grid-cols-2">
@@ -144,8 +194,8 @@ export default async function Home() {
       )}
 
       {videos.length > 0 && (
-        <Panel title={t.hotBuildVideos}>
-          <p className="-mt-1 mb-3 text-xs text-muted">{t.hotBuildNote}</p>
+        <section className="fade-up" style={{ animationDelay: "240ms" }}>
+          <SectionTitle title={t.hotBuildVideos} note={t.hotBuildNote} />
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {videos.map((v) => (
               <VideoCard
@@ -158,10 +208,12 @@ export default async function Home() {
               />
             ))}
           </div>
-        </Panel>
+        </section>
       )}
 
-      <Panel title={t.championSearch}>
+      <section>
+        <SectionTitle title={t.championSearch} />
+        <Panel>
         <ChampionSearch
           lang={lang}
           champions={champions.map((c) => ({
@@ -171,7 +223,24 @@ export default async function Home() {
             icon: img.champion(version, c.image.full),
           }))}
         />
-      </Panel>
+        </Panel>
+      </section>
+    </div>
+  );
+}
+
+function SectionTitle({ title, note, href, link }: { title: string; note?: string; href?: string; link?: string }) {
+  return (
+    <div className="mb-3 flex items-end justify-between gap-3">
+      <div>
+        <h2 className="text-lg font-bold">{title}</h2>
+        {note && <p className="mt-0.5 text-xs text-muted">{note}</p>}
+      </div>
+      {href && link && (
+        <Link href={href} className="shrink-0 text-xs text-accent hover:underline">
+          {link}
+        </Link>
+      )}
     </div>
   );
 }

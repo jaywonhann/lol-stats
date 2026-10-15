@@ -29,7 +29,7 @@ export default async function RootLayout({
   return (
     <html lang={lang}>
       <body className="min-h-screen antialiased">
-        <header className="border-b border-line bg-panel">
+        <header className="z-30 sm:sticky sm:top-0 border-b border-line bg-panel/85 backdrop-blur">
           <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 whitespace-nowrap px-4 py-3 sm:gap-x-6">
             <Link href="/" className="text-lg font-bold tracking-tight">
               live<span className="text-accent">lol</span>.stats

@@ -78,6 +78,9 @@ const en = {
   homeSubtitle: (server: string, patch: string) =>
     `${server} · Champion tiers, builds, runes and counters for patch ${patch}`,
   bestPicks: (lane: string) => `Best ${lane} picks`,
+  heroTagline: "See what's winning right now.",
+  heroFeatured: (name: string, lane: string) => `Top pick right now · ${name} ${lane}`,
+  bestPicksTitle: "Best picks by lane",
   viewAll: "View all",
   risingOnPatch: (p: string) => `Rising on patch ${p}`,
   fallingOnPatch: (p: string) => `Falling on patch ${p}`,
@@ -406,6 +409,9 @@ const ko: Dict = {
   homeSubtitle: (server, patch) =>
     `${server} 서버 · 패치 ${patch} 기준 챔피언 티어, 빌드, 룬, 카운터`,
   bestPicks: (lane) => `${lane} 추천 챔피언`,
+  heroTagline: "지금 이기는 픽을 가장 빠르게.",
+  heroFeatured: (name, lane) => `지금 가장 좋은 픽 · ${name} ${lane}`,
+  bestPicksTitle: "라인별 추천 챔피언",
   viewAll: "전체 보기",
   risingOnPatch: (p) => `패치 ${p} 떠오르는 챔피언`,
   fallingOnPatch: (p) => `패치 ${p} 떨어지는 챔피언`,
