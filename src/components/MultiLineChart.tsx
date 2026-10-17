@@ -45,10 +45,7 @@ export default function MultiLineChart({
     let d = "";
     let pen = false;
     vals.forEach((v, i) => {
-      if (v === null) {
-        pen = false;
-        return;
-      }
+      if (v === null) return; // 빈 값은 건너뛰고 다음 점과 바로 이음
       d += `${pen ? "L" : "M"}${x(i)},${y(v)}`;
       pen = true;
     });

@@ -63,7 +63,22 @@ export function pickMovers(daily: Daily, lane: Lane, count = 6) {
   };
 }
 
-// 챔피언 한 명의 코어템 두 개 조합별 날짜별 승률(%). 표본이 적은 날은 비워 둡니다.
+// 빈 날을 앞뒤 값으로 메워 선이 끊기지 않게 합니다 (사이는 직선으로 잇고, 양 끝은 가장 가까운 값을 이어 씀).
+function fillGaps(vals: (number | null)[]): (number | null)[] {
+  const known = vals.flatMap((v, i) => (v === null ? [] : [i]));
+  if (!known.length) return vals;
+  return vals.map((v, i) => {
+    if (v !== null) return v;
+    const next = known.find((k) => k > i);
+    const prev = [...known].reverse().find((k) => k < i);
+    if (prev === undefined) return vals[next!];
+    if (next === undefined) return vals[prev];
+    const a = vals[prev]!, b = vals[next]!;
+    return a + ((b - a) * (i - prev)) / (next - prev);
+  });
+}
+
+// 챔피언 한 명의 코어템 두 개 조합별 날짜별 승률(%). 표본이 적은 날은 앞뒤 값으로 이어 줍니다.
 export function buildSeries(daily: Daily, key: string, count = 3) {
   const { days, raw } = daily;
   const totals: Record<string, number> = {};
@@ -79,7 +94,7 @@ export function buildSeries(daily: Daily, key: string, count = 3) {
       return {
         pair,
         total,
-        values: days.map((_, i) => (roll(g, i) >= 10 ? (roll(w, i) / roll(g, i)) * 100 : null)),
+        values: fillGaps(days.map((_, i) => (roll(g, i) >= 10 ? (roll(w, i) / roll(g, i)) * 100 : null))),
       };
     });
 }

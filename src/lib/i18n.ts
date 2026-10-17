@@ -161,7 +161,7 @@ const en = {
   boots: "Boots",
   buildTrend: "Build win rate over time",
   buildTrendNote: (window: number, server: string) =>
-    `Daily win rate of popular core item pairs (first 2 completed) · ${window}-day moving average · ${server} Emerald+ · days with few games left blank`,
+    `Daily win rate of popular core item pairs (first 2 completed) · ${window}-day moving average · ${server} Emerald+ · days with few games are bridged from neighbouring days`,
   recRunes: "Recommended runes",
   coreItems: "Core items",
   corePath: "Build path (1st–4th core)",
@@ -500,7 +500,7 @@ const ko: Dict = {
   boots: "신발",
   buildTrend: "템트리 승률 추이",
   buildTrendNote: (window, server) =>
-    `많이 쓰인 코어템 조합(먼저 완성한 2개)의 날짜별 승률 · ${window}일 이동 평균 · ${server} 서버 에메랄드+ · 표본이 적은 날은 비워 둠`,
+    `많이 쓰인 코어템 조합(먼저 완성한 2개)의 날짜별 승률 · ${window}일 이동 평균 · ${server} 서버 에메랄드+ · 표본이 적은 날은 앞뒤 날짜로 이어 그림`,
   recRunes: "추천 룬",
   coreItems: "코어 아이템",
   corePath: "코어템 순서 (1~4코어)",
