@@ -130,19 +130,13 @@ async function pool(lang: Lang): Promise<Video[]> {
     .filter((v, i, all) => all.findIndex((x) => x.id === v.id) === i);
 }
 
-/** 선택한 언어의 조회수 상위 빌드 영상. 모자라면 다른 언어로 채운다. */
+/** 선택한 언어의 조회수 상위 빌드 영상. 모자라면 같은 언어의 시드 영상으로 채운다 (다른 언어 영상은 섞지 않음). */
 export async function hotBuildVideos(lang: Lang, n = 4): Promise<Video[]> {
-  const other: Lang = lang === "ko" ? "en" : "ko";
-  const mine = await pool(lang);
-  const out = mine.slice(0, n);
-  if (out.length < n)
-    out.push(
-      ...(await pool(other))
-        .filter((v) => !out.some((x) => x.id === v.id))
-        .slice(0, n - out.length),
-    );
-  if (out.length > 0) return out;
-  return SEEDS[lang]
-    .slice(0, n)
-    .map((s) => ({ ...s, channel: "", views: null, published: null }));
+  const out = (await pool(lang)).slice(0, n);
+  for (const s of SEEDS[lang]) {
+    if (out.length >= n) break;
+    if (!out.some((v) => v.id === s.id))
+      out.push({ ...s, channel: "", views: null, published: null });
+  }
+  return out;
 }
