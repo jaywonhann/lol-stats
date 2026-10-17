@@ -3,7 +3,7 @@ import { Icon } from "./ui";
 import { img, type Champion } from "@/lib/ddragon";
 import { dict, type Lang } from "@/lib/i18n";
 import type { Server } from "@/lib/lanes";
-import { liveChampions } from "@/lib/live-history";
+import { liveChampions, liveHistory } from "@/lib/live-history";
 
 // 지금 진행 중인 랭크 게임에서 가장 많이 나온 챔피언 (표본 게임 기준)
 export default async function LiveChampions({
@@ -18,13 +18,20 @@ export default async function LiveChampions({
   version: string;
 }) {
   const t = dict(lang);
-  const data = await liveChampions(server);
+  const [data, history] = await Promise.all([liveChampions(server), liveHistory(server)]);
+  // 지금 게임 중인 인원(추정, 최근 3번 평균)에 챔피언별 픽 비율을 곱해 "약 몇 명"으로 환산
+  const recent = history.slice(-3);
+  const players = recent.length
+    ? Math.round(recent.reduce((s, p) => s + p.estimate, 0) / recent.length)
+    : 0;
+  const nl = lang === "ko" ? "ko-KR" : "en-US";
   const byKey = new Map(champions.map((c) => [c.key, c]));
   const rows = data.top
     .map((r) => ({ ...r, champ: byKey.get(r.key) }))
     .filter((r): r is typeof r & { champ: Champion } => !!r.champ)
     .slice(0, 10);
   const max = rows[0]?.n ?? 1;
+  const share = (n: number) => (data.picks ? n / data.picks : 0);
 
   return (
     <section>
@@ -35,7 +42,10 @@ export default async function LiveChampions({
             {t.liveChampsTitle}
           </h2>
           {rows.length > 0 && (
-            <p className="mt-0.5 text-xs text-muted">{t.liveChampsNote(data.games, data.hours)}</p>
+            <p className="mt-0.5 text-xs text-muted">
+              {players > 0 && <>{t.liveChampsOf(players.toLocaleString(nl))} · </>}
+              {t.liveChampsNote(data.games, data.hours)}
+            </p>
           )}
         </div>
       </div>
@@ -59,7 +69,14 @@ export default async function LiveChampions({
                       style={{ width: `${(r.n / max) * 100}%` }}
                     />
                   </span>
-                  <span className="mt-0.5 block text-xs tabular-nums text-muted">{t.liveChampsGames(r.n)}</span>
+                  <span className="mt-0.5 flex justify-between text-xs tabular-nums text-muted">
+                    <span className="font-semibold text-text">
+                      {players > 0
+                        ? t.liveChampsPlayers(Math.max(1, Math.round(share(r.n) * players)).toLocaleString(nl))
+                        : t.liveChampsGames(r.n)}
+                    </span>
+                    <span>{(share(r.n) * 100).toFixed(1)}%</span>
+                  </span>
                 </span>
               </Link>
             </li>

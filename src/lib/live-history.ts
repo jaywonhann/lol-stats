@@ -44,5 +44,6 @@ export async function liveChampions(server: Server) {
     .sort((a, b) => b[1] - a[1])
     .map(([key, n]) => ({ key: String(key), n }));
   const last = pool.reduce((m, g) => (g.at > m ? g.at : m), "");
-  return { games: pool.length, hours, top, updatedAt: last || null };
+  const picks = pool.reduce((s, g) => s + g.champs.length, 0);
+  return { games: pool.length, picks, hours, top, updatedAt: last || null };
 }
