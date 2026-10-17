@@ -66,5 +66,5 @@ for (const server of SERVERS) {
   points = points.filter((p) => Date.now() - new Date(p.at).getTime() < KEEP_MS);
   writeFileSync(file, JSON.stringify({ server, updatedAt: new Date().toISOString(), points }));
 }
-// 키가 만료되면 10분마다 실패 메일이 가지 않도록 경고만 남기고 끝냅니다
-if (bad) process.exit(0);
+// 키가 거절되면 3으로 끝내서, 워크플로가 새 실행(새 키를 받는)으로 넘어가게 합니다
+if (bad) process.exit(3);

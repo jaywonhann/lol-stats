@@ -43,12 +43,14 @@ jobs:
           start=$(date +%s)
           while [ $(( $(date +%s) - start )) -lt $((335 * 60)) ]; do
             t0=$(date +%s)
-            node scripts/live-sample.mjs || true
+            code=0; node scripts/live-sample.mjs || code=$?
             ( cd $OUT && ls *.json >/dev/null 2>&1 && rm -rf .git && git init -q -b live-data \
               && git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" add *.json \
               && git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -q -m "실시간 인원 기록" \
               && git push -q --force "https://x-access-token:$TOKEN@github.com/$REPO.git" live-data ) || echo "::warning::올리기 실패"
             sleep $(( 600 - ( $(date +%s) - t0 ) > 0 ? 600 - ( $(date +%s) - t0 ) : 1 ))
+            # 시크릿은 실행이 시작될 때 한 번만 들어오니, 키가 거절되면 이번 실행을 끝내고 새 실행에서 새 키를 받는다
+            [ "$code" = 3 ] && break
           done
       - name: 다음 회차 이어서 실행
         if: always()
