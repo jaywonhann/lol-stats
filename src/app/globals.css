@@ -58,3 +58,45 @@ body {
   .fade-up { animation: none; }
   .lift, .lift:hover { transition: none; transform: none; }
 }
+
+/* 맨 위 메뉴: 굵게, 마우스를 올리면 살짝 떠오르며 밑줄이 가운데서 펼쳐짐 */
+.nav-link {
+  position: relative;
+  padding: 0.25rem 0.125rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--color-text) 85%, transparent);
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  right: 50%;
+  bottom: -2px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--color-accent);
+  transition: left 0.25s ease, right 0.25s ease;
+}
+.nav-link:hover,
+.nav-link:focus-visible {
+  color: var(--color-accent);
+  transform: translateY(-2px);
+}
+.nav-link:hover::after,
+.nav-link:focus-visible::after {
+  left: 0;
+  right: 0;
+}
+.nav-logo {
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+.nav-logo:hover {
+  transform: scale(1.05);
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-link, .nav-link::after, .nav-logo { transition: none; }
+  .nav-link:hover, .nav-logo:hover { transform: none; }
+}

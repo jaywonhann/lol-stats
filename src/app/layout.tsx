@@ -31,23 +31,23 @@ export default async function RootLayout({
       <body className="min-h-screen antialiased">
         <header className="z-30 sm:sticky sm:top-0 border-b border-line bg-panel/85 backdrop-blur">
           <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 whitespace-nowrap px-4 py-3 sm:gap-x-6">
-            <Link href="/" className="text-lg font-bold tracking-tight">
+            <Link href="/" className="nav-logo text-xl font-extrabold tracking-tight">
               live<span className="text-accent">lol</span>.stats
             </Link>
             <LiveBadge />
-            <Link href="/tier" className="text-sm text-muted hover:text-text">
+            <Link href="/tier" className="nav-link">
               {t.nav.tier}
             </Link>
-            <Link href="/trends" className="text-sm text-muted hover:text-text">
+            <Link href="/trends" className="nav-link">
               {t.nav.trends}
             </Link>
-            <Link href="/meta" className="text-sm text-muted hover:text-text">
+            <Link href="/meta" className="nav-link">
               {t.nav.meta}
             </Link>
-            <Link href="/summoner" className="text-sm text-muted hover:text-text">
+            <Link href="/summoner" className="nav-link">
               {t.nav.summoner}
             </Link>
-            <Link href="/faq" className="text-sm text-muted hover:text-text">
+            <Link href="/faq" className="nav-link">
               {t.nav.faq}
             </Link>
             <div className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-2">
