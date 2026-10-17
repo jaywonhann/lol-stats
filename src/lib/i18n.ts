@@ -110,7 +110,7 @@ const en = {
   liveChampsTitle: "Most played right now",
   liveChampsNote: (games: number, h: number) =>
     `Champions in ${games} live ranked games of Master+ players, last ${h === 1 ? "hour" : `${h} hours`}`,
-  liveChampsGames: (n: number) => `in ${n} games`,
+  liveChampsGames: (n: number) => `in ${n} game${n === 1 ? "" : "s"}`,
   liveChampsEmpty: "Collecting live games. Check back in a few minutes.",
   liveJust: "just now",
   liveNext: (s: number) => `next update in ${s}s`,
