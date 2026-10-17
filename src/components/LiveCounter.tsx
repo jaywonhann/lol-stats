@@ -99,6 +99,13 @@ export default function LiveCounter({
     ? Math.round(recent.reduce((s, p) => s + p.estimate, 0) / recent.length)
     : 0;
 
+  // 아래 "지금 많이 하는 챔피언"이 같은 숫자로 나눌 수 있게 알려줌
+  useEffect(() => {
+    if (now <= 0) return;
+    (window as unknown as { livelolNow?: number }).livelolNow = now;
+    window.dispatchEvent(new CustomEvent("livelol:now", { detail: now }));
+  }, [now]);
+
   // 숫자가 바뀌면 이전 값에서 새 값까지 굴러가듯 바뀌고, 바뀐 만큼 잠깐 보여줌
   const [shown, setShown] = useState(now);
   const [bump, setBump] = useState<{ d: number; key: number } | null>(null);
