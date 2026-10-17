@@ -1,5 +1,6 @@
 import Link from "next/link";
 import LivePanel from "@/components/LivePanel";
+import LiveChampions from "@/components/LiveChampions";
 import VideoCard from "@/components/VideoCard";
 import ChampionSearch from "@/components/ChampionSearch";
 import SummonerSearch from "@/components/SummonerSearch";
@@ -115,6 +116,10 @@ export default async function Home() {
 
       <div className="fade-up" style={{ animationDelay: "80ms" }}>
         <LivePanel server={server} lang={lang} hero />
+      </div>
+
+      <div className="fade-up" style={{ animationDelay: "120ms" }}>
+        <LiveChampions server={server} lang={lang} champions={champions} version={version} />
       </div>
 
       <section className="fade-up" style={{ animationDelay: "160ms" }}>
