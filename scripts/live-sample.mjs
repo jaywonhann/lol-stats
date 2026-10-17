@@ -46,7 +46,8 @@ async function sample(server) {
       checked++; inGame++;
       // 진행 중인 게임의 챔피언 10명 (솔로/자유 랭크만)
       const g = await res.json().catch(() => null);
-      if (g && (g.gameQueueConfigId === 420 || g.gameQueueConfigId === 440))
+      // 표본 두 명이 같은 게임에 있으면 한 번만 센다
+      if (g && (g.gameQueueConfigId === 420 || g.gameQueueConfigId === 440) && !games.some((x) => x.id === g.gameId))
         games.push({ id: g.gameId, champs: (g.participants ?? []).map((x) => x.championId).filter(Boolean) });
     }
     else if (res?.status === 404) checked++;

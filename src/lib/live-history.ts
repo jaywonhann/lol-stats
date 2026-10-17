@@ -28,7 +28,8 @@ export async function liveHistory(server: Server): Promise<LivePoint[]> {
 
 // 표본으로 잡힌 진행 중 랭크 게임에서 챔피언별 등장 횟수 (최근 1시간, 게임이 적으면 2시간)
 export async function liveChampions(server: Server) {
-  const games = (await load(server))?.games ?? [];
+  // 이미 쌓인 기록에 같은 게임이 두 번 들어가 있어도 한 번만 센다
+  const games = [...new Map(((await load(server))?.games ?? []).map((g) => [g.id, g])).values()];
   const within = (h: number) =>
     games.filter((g) => Date.now() - new Date(g.at).getTime() < h * 3_600_000);
   let hours = 1;
