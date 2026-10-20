@@ -115,11 +115,19 @@ async function leaguepedia() {
         if (data.error?.code !== "ratelimited") break;
         await sleep(30_000 * (t + 1));
       }
+      let page;
       if (data.error) {
-        console.log(`::warning::Leaguepedia 오류: ${JSON.stringify(data.error).slice(0, 300)}`);
-        break;
-      }
-      const page = (data.cargoquery ?? []).map((r) => r.title);
+        // API 가 막히면 위키의 Cargo 내보내기 페이지로 한 번 더 시도
+        console.log(`::warning::Leaguepedia API 오류: ${data.error.code}`);
+        const ex = new URLSearchParams({ tables: "Players", fields: "ID,Team,Role,SoloqueueIds", where: q.get("where"), limit: "500", offset: String(offset), format: "json" });
+        const res = await fetch(`https://lol.fandom.com/wiki/Special:CargoExport?${ex}`, { headers: { "User-Agent": "livelol.stats pro-builds (github.com/jaywonhann/lol-stats)" } });
+        const arr = res.ok ? await res.json().catch(() => null) : null;
+        if (!Array.isArray(arr)) {
+          console.log(`::warning::Leaguepedia 내보내기도 실패 (${res.status})`);
+          break;
+        }
+        page = arr;
+      } else page = (data.cargoquery ?? []).map((r) => r.title);
       rows.push(...page);
       if (page.length < 500) break;
       await sleep(1500);
