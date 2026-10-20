@@ -1,7 +1,7 @@
 import type { Server } from "./lanes";
 
 export type LivePoint = { at: string; estimate: number; total: number };
-export type LiveGame = { id: number; at: string; champs: number[] };
+export type LiveGame = { id: number; at: string; champs: number[]; ps?: number[][] };
 
 const DAY = 24 * 3_600_000;
 
@@ -46,4 +46,25 @@ export async function liveChampions(server: Server) {
   const last = pool.reduce((m, g) => (g.at > m ? g.at : m), "");
   const picks = pool.reduce((s, g) => s + g.champs.length, 0);
   return { games: pool.length, picks, hours, top, updatedAt: last || null };
+}
+
+// 지금 이 챔피언을 쓰는 라이브 게임 표본에서 룬(핵심 룬·보조 계열)과 소환사 주문 사용 횟수 (최근 6시간)
+export async function liveChampionBuild(server: Server, champKey: string) {
+  const games = [...new Map(((await load(server))?.games ?? []).map((g) => [g.id, g])).values()];
+  const mine = games
+    .filter((g) => Date.now() - new Date(g.at).getTime() < 6 * 3_600_000)
+    .flatMap((g) => (g.ps ?? []).filter((p) => String(p[0]) === champKey));
+  const tally = (keyOf: (p: number[]) => string) => {
+    const m = new Map<string, number>();
+    for (const p of mine) m.set(keyOf(p), (m.get(keyOf(p)) ?? 0) + 1);
+    return [...m.entries()].sort((a, b) => b[1] - a[1]).map(([key, n]) => ({ key, n }));
+  };
+  const last = games.reduce((m, g) => (g.at > m ? g.at : m), "");
+  return {
+    players: mine.length,
+    keystones: tally((p) => String(p[5])), // 첫 번째 룬이 핵심 룬
+    secondaries: tally((p) => String(p[4])),
+    spells: tally((p) => [p[1], p[2]].sort((a, b) => a - b).join(",")),
+    updatedAt: last || null,
+  };
 }

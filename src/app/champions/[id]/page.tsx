@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon, Panel, Tabs, TierBadge, WinRate, pct } from "@/components/ui";
 import TrendChart from "@/components/TrendChart";
-import { WinRateBars } from "@/components/charts";
+import WinRateGrid from "@/components/WinRateGrid";
 import MultiLineChart from "@/components/MultiLineChart";
 import { buildSeries, dayLabel, loadDaily, WINDOW } from "@/lib/daily";
 import {
@@ -100,7 +100,7 @@ export default async function ChampionPage({ params, searchParams }: Props) {
     : null;
   const mu = allAgg ? realMatchups(allAgg, champion, champions) : null;
   const cp = agg ? realCorePath(agg, items) : null;
-  const wr = agg ? realWinRates(agg, items, trees) : null;
+  const wr = agg ? realWinRates(agg, items, trees, spells) : null;
   const updatedAt = source === "real" ? real.get(patch)!.updatedAt : null;
   const daily = loadDaily(server);
   const builds = daily ? buildSeries(daily, `${champion.key}:${lane}`) : [];
@@ -212,57 +212,7 @@ export default async function ChampionPage({ params, searchParams }: Props) {
               updatedAt ? t.updated(timeAgo(updatedAt, lang)) : null,
             )}
           </p>
-          <div className="grid gap-6 lg:grid-cols-3">
-            <WinRateBars
-              title={t.keystoneSecondary}
-              lang={lang}
-              rows={wr.runes.map((r) => ({
-                key: `${r.value.keystone.id}-${r.value.secondary.id}`,
-                name: `${r.value.keystone.name} + ${r.value.secondary.name}`,
-                winRate: r.winRate,
-                games: r.games,
-                label: (
-                  <>
-                    <Icon src={img.rune(r.value.keystone.icon)} alt={r.value.keystone.name} size={28} className="rounded-full bg-bg" />
-                    <Icon src={img.rune(r.value.secondary.icon)} alt={r.value.secondary.name} size={18} />
-                    <span className="truncate text-xs">{r.value.keystone.name}</span>
-                  </>
-                ),
-              }))}
-            />
-            <WinRateBars
-              title={t.coreFirstTwo}
-              lang={lang}
-              rows={wr.core.map((r) => ({
-                key: r.value.map((i) => i.id).join("-"),
-                name: r.value.map((i) => i.name).join(" › "),
-                winRate: r.winRate,
-                games: r.games,
-                label: r.value.map((item, j) => (
-                  <span key={item.id} className="flex items-center gap-1">
-                    {j > 0 && <span className="text-muted">›</span>}
-                    <Icon src={img.item(version, item.id)} alt={item.name} size={28} />
-                  </span>
-                )),
-              }))}
-            />
-            <WinRateBars
-              title={t.boots}
-              lang={lang}
-              rows={wr.boots.map((r) => ({
-                key: r.value.id,
-                name: r.value.name,
-                winRate: r.winRate,
-                games: r.games,
-                label: (
-                  <>
-                    <Icon src={img.item(version, r.value.id)} alt={r.value.name} size={28} />
-                    <span className="truncate text-xs">{r.value.name}</span>
-                  </>
-                ),
-              }))}
-            />
-          </div>
+          <WinRateGrid wr={wr} version={version} lang={lang} />
         </Panel>
       )}
 

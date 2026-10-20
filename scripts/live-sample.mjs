@@ -5,7 +5,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 const KEY = (process.env.RIOT_API_KEY ?? "").match(/RGAPI-[0-9a-f-]{36}/i)?.[0] ?? process.env.RIOT_API_KEY?.trim();
 const OUT = process.env.OUT ?? "live-data";
 const SAMPLE = Number(process.env.SAMPLE ?? 80);
-const GAMES_KEEP_MS = 2 * 3_600_000; // 지금 많이 하는 챔피언용: 최근 2시간 게임만 보관
+const GAMES_KEEP_MS = 6 * 3_600_000; // 지금 많이 쓰는 챔피언·룬·스펠용: 최근 6시간 게임만 보관
 const KEEP_MS = 7 * 24 * 3_600_000;
 const SERVERS = ["kr", "na1", "euw1"];
 if (!KEY) {
@@ -48,7 +48,14 @@ async function sample(server) {
       const g = await res.json().catch(() => null);
       // 표본 두 명이 같은 게임에 있으면 한 번만 센다
       if (g && (g.gameQueueConfigId === 420 || g.gameQueueConfigId === 440) && !games.some((x) => x.id === g.gameId))
-        games.push({ id: g.gameId, champs: (g.participants ?? []).map((x) => x.championId).filter(Boolean) });
+        games.push({
+          id: g.gameId,
+          champs: (g.participants ?? []).map((x) => x.championId).filter(Boolean),
+          // 참가자별 [챔피언, 스펠1, 스펠2, 룬 주 계열, 룬 보조 계열, ...룬 ID]
+          ps: (g.participants ?? [])
+            .filter((x) => x.championId && x.perks?.perkIds?.length)
+            .map((x) => [x.championId, x.spell1Id, x.spell2Id, x.perks.perkStyle, x.perks.perkSubStyle, ...x.perks.perkIds]),
+        });
     }
     else if (res?.status === 404) checked++;
     await sleep(120);

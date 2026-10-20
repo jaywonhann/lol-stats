@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import ApplyButtons from "@/components/ApplyButtons";
+import AutoRefresh from "@/components/AutoRefresh";
 import ChampionSearch from "@/components/ChampionSearch";
+import LiveBuild from "@/components/LiveBuild";
+import WinRateGrid from "@/components/WinRateGrid";
 import { Icon, Panel, Tabs, WinRate, pct } from "@/components/ui";
 import {
   getChampion,
@@ -16,7 +19,8 @@ import { ddLocale, dict, numLocale, timeAgo, type Lang } from "@/lib/i18n";
 import { LANES, laneLabel, type Lane } from "@/lib/lanes";
 import { proBuilds, type ProBuild } from "@/lib/pro-builds";
 import { applyPayloads } from "@/lib/app-build";
-import { realBuild, realChamp, realCorePath } from "@/lib/real";
+import { liveChampionBuild } from "@/lib/live-history";
+import { realBuild, realChamp, realCorePath, realWinRates } from "@/lib/real";
 import { getLang, getServer } from "@/lib/server";
 import { boards, lanesOf } from "@/lib/stats";
 
@@ -66,7 +70,8 @@ export default async function AppPage({ searchParams }: Props) {
   const b = agg ? realBuild(agg, items, trees, spells) : null;
   const cp = agg ? realCorePath(agg, items) : null;
   const fixed = cp?.builds[0] ?? null;
-  const pros = await proBuilds(champ.key, lane);
+  const [pros, live] = await Promise.all([proBuilds(champ.key, lane), liveChampionBuild(server, champ.key)]);
+  const wr = agg ? realWinRates(agg, items, trees, spells) : null;
   const itemById = new Map(items.map((i) => [i.id, i]));
   const runeById = new Map(trees.flatMap((tr) => [[tr.id, { name: tr.name, icon: tr.icon }] as const, ...tr.slots.flatMap((s) => s.runes.map((r) => [r.id, r] as const))]));
   const spellByKey = new Map(spells.map((s) => [s.key, s]));
@@ -77,6 +82,7 @@ export default async function AppPage({ searchParams }: Props) {
 
   return (
     <div className="space-y-4">
+      <AutoRefresh minutes={2} />
       <div className="flex flex-wrap items-center gap-3">
         <Icon src={img.champion(version, champ.image.full)} alt={champ.name} size={56} className="rounded-lg" />
         <div className="flex-1">
@@ -174,6 +180,17 @@ export default async function AppPage({ searchParams }: Props) {
           </div>
         )}
       </Panel>
+
+      <Panel title={t.app.liveTitle(champ.name)}>
+        <LiveBuild live={live} champName={champ.name} trees={trees} spells={spells} version={version} lang={lang} />
+      </Panel>
+
+      {wr && (
+        <Panel title={t.app.winTitle}>
+          <p className="mb-3 text-xs text-muted">{t.app.winNote}</p>
+          <WinRateGrid wr={wr} version={version} lang={lang} />
+        </Panel>
+      )}
 
       <Panel title={t.app.proTitle}>
         <p className="mb-1 text-xs text-muted">{t.app.proNote}</p>

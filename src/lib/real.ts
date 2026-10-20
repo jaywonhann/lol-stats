@@ -291,7 +291,7 @@ function byWinRate<T>(
 }
 
 // 승률 비교 그래프용: 핵심 룬+보조 빌드, 코어템 두 개 조합, 신발
-export function realWinRates(c: ChampAgg, items: Item[], trees: RuneTree[]) {
+export function realWinRates(c: ChampAgg, items: Item[], trees: RuneTree[], spells: SummonerSpell[] = []) {
   const itemById = new Map(items.map((i) => [i.id, i]));
   const treeById = new Map(trees.map((t) => [t.id, t]));
   const runeById = new Map(
@@ -303,7 +303,12 @@ export function realWinRates(c: ChampAgg, items: Item[], trees: RuneTree[]) {
     return `${priRunes.split(",")[0]}|${sec}`;
   });
   const core = regroup(c.core, (key) => key.split(",").slice(0, 2).join(","));
+  const spellByKey = new Map(spells.map((sp) => [sp.key, sp]));
   return {
+    spells: byWinRate(c.spells, c.games, 6, (key) => {
+      const list = key.split(",").map((k) => spellByKey.get(k));
+      return list.length === 2 && list.every(Boolean) ? (list as SummonerSpell[]) : null;
+    }),
     runes: byWinRate(runes, c.games, 8, (key) => {
       const [ks, sec] = key.split("|").map(Number);
       const keystone = runeById.get(ks);
