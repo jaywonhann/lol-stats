@@ -7,6 +7,7 @@ import { dict } from "@/lib/i18n";
 import ServerSelect from "@/components/ServerSelect";
 import LangSelect from "@/components/LangSelect";
 import { LiveBadge } from "@/components/LivePanel";
+import { ADSENSE_CLIENT } from "@/lib/ads";
 import AdSlot from "@/components/AdSlot";
 import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
@@ -17,6 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { default: t.siteTitle, template: "%s - livelol.stats" },
     description: t.siteDescription,
+    other: { "google-adsense-account": ADSENSE_CLIENT },
   };
 }
 
@@ -69,14 +71,12 @@ export default async function RootLayout({
             {t.mockBanner}
           </div>
         )}
-        {process.env.NEXT_PUBLIC_ADSENSE_CLIENT && (
-          <Script
-            async
-            strategy="afterInteractive"
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_ADSENSE_CLIENT}`}
-            crossOrigin="anonymous"
-          />
-        )}
+        <Script
+          async
+          strategy="afterInteractive"
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
+          crossOrigin="anonymous"
+        />
         <div className="relative">
           <div className="mx-auto flex max-w-6xl justify-center px-4 pt-4">
             <AdSlot kind="banner" slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_TOP} />

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect } from "react";
 
-const CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
+import { ADSENSE_CLIENT as CLIENT } from "@/lib/ads";
 
 const SIZES = {
   banner: "h-[90px] w-full max-w-[728px]",
