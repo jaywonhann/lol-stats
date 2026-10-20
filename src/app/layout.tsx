@@ -51,13 +51,19 @@ export default async function RootLayout({
               {t.nav.faq}
             </Link>
             <div className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-2">
+              <Link
+                href="/download"
+                className="rounded-md bg-accent px-3 py-1.5 text-sm font-bold text-white transition hover:brightness-110"
+              >
+                ⬇ {t.nav.app}
+              </Link>
               <ServerSelect value={server} lang={lang} />
               <LangSelect value={lang} />
             </div>
           </nav>
         </header>
         {source === "mock" && (
-          <div className="border-b border-line bg-amber-500/10 px-4 py-2 text-center text-xs text-amber-300">
+          <div className="mock-banner border-b border-line bg-amber-500/10 px-4 py-2 text-center text-xs text-amber-300">
             {t.mockBanner}
           </div>
         )}

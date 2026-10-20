@@ -2,7 +2,8 @@
   "git": {
     "deploymentEnabled": {
       "live-data": false,
-      "screenshots": false
+      "screenshots": false,
+      "pro-data": false
     }
   }
 }

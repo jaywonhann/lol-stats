@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'" />
+    <style>
+      body { margin: 0; height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 10px; background: #111827; color: #e5e7eb; font: 13px "Segoe UI", "Malgun Gothic", sans-serif; border-bottom: 1px solid #1f2937; user-select: none; }
+      b { font-weight: 800; } b span { color: #2dd4bf; }
+      #dot { width: 9px; height: 9px; border-radius: 50%; background: #6b7280; flex: none; }
+      #dot.on { background: #22c55e; } #dot.sel { background: #ef4444; animation: blink 1.2s infinite; }
+      @keyframes blink { 50% { opacity: 0.3; } }
+      #msg { flex: 1; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      button { background: #1f2937; color: #e5e7eb; border: 0; border-radius: 6px; height: 28px; min-width: 30px; padding: 0 8px; cursor: pointer; font: inherit; }
+      button:hover { background: #374151; } button.on { background: #2dd4bf; color: #0b0f19; }
+    </style>
+  </head>
+  <body>
+    <b>live<span>lol</span>.stats</b>
+    <span id="dot"></span>
+    <span id="msg"></span>
+    <button id="back" title="Back">‹</button>
+    <button id="home" title="Champions">☰</button>
+    <button id="lang"></button>
+    <button id="pin" title="Always on top">📌</button>
+    <button id="reload" title="Reload">↻</button>
+    <script>
+      const T = {
+        ko: { noclient: "롤 클라이언트를 기다리는 중", idle: "클라이언트 연결됨 · 챔피언 선택을 기다리는 중", select: "챔피언 선택 중 · 자동으로 바뀌어요" },
+        en: { noclient: "Waiting for the League client", idle: "Client connected · waiting for champ select", select: "Champ select · switches automatically" },
+      };
+      for (const id of ["back", "home", "lang", "pin", "reload"]) document.getElementById(id).onclick = () => window.livelol.send(id);
+      window.livelol.onStatus((s) => {
+        document.getElementById("msg").textContent = T[s.lang][s.state];
+        document.getElementById("dot").className = s.state === "select" ? "sel" : s.state === "idle" ? "on" : "";
+        document.getElementById("lang").textContent = s.lang === "ko" ? "EN" : "한";
+        document.getElementById("pin").className = s.pinned ? "on" : "";
+      });
+    </script>
+  </body>
+</html>

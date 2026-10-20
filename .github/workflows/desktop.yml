@@ -1,0 +1,34 @@
+# 윈도우 앱(desktop/)을 윈도우에서 빌드해 GitHub 릴리스 "desktop"에 livelol-setup.exe 로 올립니다.
+# 사이트의 다운로드 버튼은 releases/latest/download/livelol-setup.exe 를 가리켜요.
+name: 윈도우 앱 빌드
+
+on:
+  push:
+    branches: [main]
+    paths: ["desktop/**", ".github/workflows/desktop.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run dist
+      - name: 릴리스에 올리기
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view desktop >/dev/null 2>&1 || gh release create desktop --title "livelol.stats Windows app" --notes "Download livelol-setup.exe below, or use the button on the site." --latest
+          gh release upload desktop dist/livelol-setup.exe --clobber
