@@ -138,7 +138,8 @@ function watch(onChange) {
           for (const group of s.actions ?? [])
             for (const a of group)
               if (a.actorCellId === s.localPlayerCellId && a.type === "pick" && a.championId) champ = a.championId;
-        emit({ state: "select", champ: champ || null, lane: LANE[me?.assignedPosition] ?? null, server });
+        // locked: 챔피언을 확정했는지 (고르는 중이면 false)
+        emit({ state: "select", champ: champ || null, locked: !!me?.championId, lane: LANE[me?.assignedPosition] ?? null, server });
       }
     }
     setTimeout(tick, conn ? 1500 : 4000);
@@ -146,8 +147,25 @@ function watch(onChange) {
   tick();
 }
 
+// 능력치 파편 기본값: 클라이언트가 알려 주는 선택 가능 목록에서 흔히 쓰는 적응형 힘 · 적응형 힘 · 체력 을 고릅니다.
+// 목록에 없으면 각 칸의 첫 번째 파편을 써서, 어떤 시즌이어도 올바른 룬 페이지가 되게 해요.
+async function defaultShards(conn) {
+  const res = await request(conn, "GET", "/lol-perks/v1/styles");
+  if (!res || res.status !== 200 || !Array.isArray(res.data)) return null;
+  const slots = res.data.flatMap((st) => st.slots ?? []).filter((sl) => sl.slotLabel === "kStatMod" || sl.type === "kStatMod");
+  // 같은 스타일 목록이 여러 번 나오므로 첫 세 칸만 씁니다
+  const three = slots.slice(0, 3);
+  if (three.length !== 3) return null;
+  const prefer = [[5008, 5005, 5007], [5008, 5010, 5001], [5011, 5013, 5001]];
+  const out = three.map((sl, i) => {
+    const ids = (sl.perks ?? []).map(Number);
+    return prefer[i].find((id) => ids.includes(id)) ?? ids[0];
+  });
+  return out.every(Number.isInteger) ? out : null;
+}
+
 // 룬 페이지 적용: 이름이 "livelol" 로 시작하는 내 페이지만 바꾸거나 지우고, 다른 페이지는 건드리지 않아요.
-// page = { name, primaryStyleId, subStyleId, selectedPerkIds: 숫자 9개 }
+// page = { name, primaryStyleId, subStyleId, selectedPerkIds: 숫자 9개 (능력치 파편 없이 6개만 오면 기본 파편을 채움) }
 async function applyRunes(page) {
   const conn = api.conn();
   if (!conn) return { ok: false, reason: "noclient" };
@@ -156,10 +174,16 @@ async function applyRunes(page) {
     !Number.isInteger(page.primaryStyleId) ||
     !Number.isInteger(page.subStyleId) ||
     !Array.isArray(page.selectedPerkIds) ||
-    page.selectedPerkIds.length !== 9 ||
+    (page.selectedPerkIds.length !== 9 && page.selectedPerkIds.length !== 6) ||
     !page.selectedPerkIds.every(Number.isInteger)
   )
     return { ok: false, reason: "invalid" };
+  let perks = page.selectedPerkIds;
+  if (perks.length === 6) {
+    // 클라이언트 목록을 못 읽으면 흔한 값으로 시도하고, 잘못된 페이지로 판정되면 아래에서 지웁니다
+    const shards = (await defaultShards(conn)) ?? [5008, 5008, 5011];
+    perks = [...perks, ...shards];
+  }
   const list = await request(conn, "GET", "/lol-perks/v1/pages");
   if (!list || list.status !== 200 || !Array.isArray(list.data)) return { ok: false, reason: "error" };
   for (const p of list.data) {
@@ -170,12 +194,19 @@ async function applyRunes(page) {
     name: `livelol ${String(page.name ?? "").slice(0, 20)}`.trim(),
     primaryStyleId: page.primaryStyleId,
     subStyleId: page.subStyleId,
-    selectedPerkIds: page.selectedPerkIds,
+    selectedPerkIds: perks,
     current: true,
   });
-  if (res && res.status >= 200 && res.status < 300) return { ok: true };
+  if (res && res.status >= 200 && res.status < 300) {
+    if (res.data?.isValid === false) {
+      await request(conn, "DELETE", `/lol-perks/v1/pages/${res.data.id}`);
+      return { ok: false, reason: "invalid" };
+    }
+    return { ok: true };
+  }
   // 페이지 칸이 가득 찬 경우: 내 페이지가 아니면 지우지 않고 알려 줍니다
-  return { ok: false, reason: "full" };
+  const text = JSON.stringify(res?.data ?? "").toLowerCase();
+  return { ok: false, reason: text.includes("max pages") ? "full" : "error" };
 }
 
 // 소환사 주문 적용 (챔피언 선택 중에만 가능)

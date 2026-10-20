@@ -56,7 +56,7 @@ export default function ApplyButtons({ lang, runes, spells }: { lang: Lang; rune
           {t.applySpells}
         </button>
       </div>
-      {!runes && <p className="mt-2 text-xs text-muted">{t.applyNoShards}</p>}
+      {runes && runes.selectedPerkIds.length === 6 && <p className="mt-2 text-xs text-muted">{t.applyNoShards}</p>}
       {msg && <p className="mt-2 text-xs">{msg}</p>}
     </div>
   );

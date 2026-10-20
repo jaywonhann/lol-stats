@@ -21,6 +21,7 @@
     <button id="back" title="Back">‹</button>
     <button id="home" title="Champions">☰</button>
     <button id="lang"></button>
+    <button id="auto" title="Auto apply runes and spells">⚡</button>
     <button id="pin" title="Always on top">📌</button>
     <button id="reload" title="Reload">↻</button>
     <script>
@@ -28,9 +29,14 @@
         ko: { noclient: "롤 클라이언트를 기다리는 중", idle: "클라이언트 연결됨 · 챔피언 선택을 기다리는 중", select: "챔피언 선택 중 · 자동으로 바뀌어요", ingame: "게임 중 · 마지막으로 고른 챔피언 빌드" },
         en: { noclient: "Waiting for the League client", idle: "Client connected · waiting for champ select", select: "Champ select · switches automatically", ingame: "In game · showing your last champion" },
       };
-      for (const id of ["back", "home", "lang", "pin", "reload"]) document.getElementById(id).onclick = () => window.livelol.send(id);
+      for (const id of ["back", "home", "lang", "auto", "pin", "reload"]) document.getElementById(id).onclick = () => window.livelol.send(id);
+      const N = {
+        ko: { working: "룬·스펠 넣는 중…", done: "추천 룬·스펠을 넣었어요", runes: "룬을 넣었어요 (스펠은 실패)", spells: "스펠을 넣었어요 (룬은 실패)", full: "룬 페이지 칸이 가득 찼어요. 하나 지워 주세요", nodata: "이 챔피언은 아직 데이터가 부족해요", autofail: "자동 적용에 실패했어요. 버튼으로 다시 눌러 보세요" },
+        en: { working: "Applying runes and spells…", done: "Recommended runes and spells applied", runes: "Runes applied (spells failed)", spells: "Spells applied (runes failed)", full: "Rune pages are full. Delete one", nodata: "Not enough data for this champion yet", autofail: "Auto apply failed. Try the buttons" },
+      };
       window.livelol.onStatus((s) => {
-        document.getElementById("msg").textContent = T[s.lang][s.state];
+        document.getElementById("msg").textContent = (s.state === "select" && s.note && N[s.lang][s.note]) || T[s.lang][s.state];
+        document.getElementById("auto").className = s.auto ? "on" : "";
         document.getElementById("dot").className = s.state === "select" ? "sel" : s.state === "idle" || s.state === "ingame" ? "on" : "";
         document.getElementById("lang").textContent = s.lang === "ko" ? "EN" : "한";
         document.getElementById("pin").className = s.pinned ? "on" : "";

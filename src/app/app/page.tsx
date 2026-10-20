@@ -15,7 +15,8 @@ import {
 import { ddLocale, dict, numLocale, timeAgo, type Lang } from "@/lib/i18n";
 import { LANES, laneLabel, type Lane } from "@/lib/lanes";
 import { proBuilds, type ProBuild } from "@/lib/pro-builds";
-import { realBuild, realChamp, realCorePath, realShards } from "@/lib/real";
+import { applyPayloads } from "@/lib/app-build";
+import { realBuild, realChamp, realCorePath } from "@/lib/real";
 import { getLang, getServer } from "@/lib/server";
 import { boards, lanesOf } from "@/lib/stats";
 
@@ -72,25 +73,7 @@ export default async function AppPage({ searchParams }: Props) {
   const rune = b?.runes[0]?.value;
   const nl = numLocale(lang);
   const recommended = new Set(fixed?.value.map((i) => i.id) ?? []);
-  // 룬 적용에는 능력치 파편까지 9개가 필요해요. 파편 데이터가 아직 없으면 버튼을 막아 둡니다
-  const shards = agg ? realShards(agg) : null;
-  const runePayload =
-    rune && shards
-      ? {
-          name: champ.name,
-          primaryStyleId: rune.primary.id,
-          subStyleId: rune.secondary.id,
-          selectedPerkIds: [rune.keystone, ...rune.primaryRunes, ...rune.secondaryRunes, ...shards],
-        }
-      : null;
-  // 점멸은 F(두 번째 칸)에 둡니다
-  const spellKeys = b?.spells[0]?.value.map((x) => Number(x.key)) ?? null;
-  const spellPayload =
-    spellKeys?.length === 2 && spellKeys.every(Number.isFinite)
-      ? spellKeys[0] === 4
-        ? [spellKeys[1], spellKeys[0]]
-        : spellKeys
-      : null;
+  const { runes: runePayload, spells: spellPayload } = agg && b ? applyPayloads(agg, b, champ.name) : { runes: null, spells: null };
 
   return (
     <div className="space-y-4">
