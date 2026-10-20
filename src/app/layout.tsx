@@ -96,6 +96,10 @@ export default async function RootLayout({
           <p className="mb-3 text-sm">
             <Link href="/faq" className="hover:text-text">FAQ</Link>
             {" · "}
+            <Link href="/privacy" className="hover:text-text">
+              {lang === "ko" ? "개인정보처리방침" : "Privacy"}
+            </Link>
+            {" · "}
             <Link href="/faq#feedback" className="font-semibold text-accent hover:underline">
               {t.footerFeedback}
             </Link>
