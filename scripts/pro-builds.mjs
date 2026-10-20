@@ -257,7 +257,12 @@ for (const p of people) {
       core,
       boots,
       start,
-      runes: { pri: pri.style, sec: sec.style, perks: [...pri.selections, ...sec.selections].map((s) => s.perk) },
+      runes: {
+        pri: pri.style,
+        sec: sec.style,
+        perks: [...pri.selections, ...sec.selections].map((s) => s.perk),
+        shards: me.perks.statPerks ? [me.perks.statPerks.offense, me.perks.statPerks.flex, me.perks.statPerks.defense] : null,
+      },
       spells: [me.summoner1Id, me.summoner2Id],
     });
     added++;

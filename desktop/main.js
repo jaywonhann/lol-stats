@@ -2,7 +2,7 @@
 // 챔피언 선택에서 고르거나 확정한 챔피언이 바뀌면 그 챔피언·라인 빌드 화면으로 바꿔 줍니다.
 const { app, BrowserWindow, WebContentsView, ipcMain, shell, session } = require("electron");
 const path = require("node:path");
-const { watch } = require("./lcu");
+const { watch, applyRunes, applySpells } = require("./lcu");
 
 const SITE = "https://lollive.vercel.app";
 const BAR = 44;
@@ -46,7 +46,7 @@ app.whenReady().then(async () => {
   });
   win.setMenu(null);
   win.loadFile("toolbar.html");
-  view = new WebContentsView();
+  view = new WebContentsView({ webPreferences: { preload: path.join(__dirname, "view-preload.js") } });
   win.contentView.addChildView(view);
   layout();
   win.on("resize", layout);
@@ -75,6 +75,11 @@ app.whenReady().then(async () => {
       open(s.champ, s.lane);
     }
   });
+
+  // 사이트 화면의 룬·스펠 적용 버튼. 우리 사이트 주소에서 온 요청만 받아요.
+  const fromSite = (e) => e.senderFrame?.url?.startsWith(SITE);
+  ipcMain.handle("apply-runes", (e, page) => (fromSite(e) ? applyRunes(page) : { ok: false, reason: "denied" }));
+  ipcMain.handle("apply-spells", (e, ids) => (fromSite(e) ? applySpells(ids) : { ok: false, reason: "denied" }));
 
   ipcMain.on("cmd", async (_e, cmd) => {
     if (cmd === "home") {

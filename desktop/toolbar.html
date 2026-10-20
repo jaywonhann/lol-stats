@@ -25,13 +25,13 @@
     <button id="reload" title="Reload">↻</button>
     <script>
       const T = {
-        ko: { noclient: "롤 클라이언트를 기다리는 중", idle: "클라이언트 연결됨 · 챔피언 선택을 기다리는 중", select: "챔피언 선택 중 · 자동으로 바뀌어요" },
-        en: { noclient: "Waiting for the League client", idle: "Client connected · waiting for champ select", select: "Champ select · switches automatically" },
+        ko: { noclient: "롤 클라이언트를 기다리는 중", idle: "클라이언트 연결됨 · 챔피언 선택을 기다리는 중", select: "챔피언 선택 중 · 자동으로 바뀌어요", ingame: "게임 중 · 마지막으로 고른 챔피언 빌드" },
+        en: { noclient: "Waiting for the League client", idle: "Client connected · waiting for champ select", select: "Champ select · switches automatically", ingame: "In game · showing your last champion" },
       };
       for (const id of ["back", "home", "lang", "pin", "reload"]) document.getElementById(id).onclick = () => window.livelol.send(id);
       window.livelol.onStatus((s) => {
         document.getElementById("msg").textContent = T[s.lang][s.state];
-        document.getElementById("dot").className = s.state === "select" ? "sel" : s.state === "idle" ? "on" : "";
+        document.getElementById("dot").className = s.state === "select" ? "sel" : s.state === "idle" || s.state === "ingame" ? "on" : "";
         document.getElementById("lang").textContent = s.lang === "ko" ? "EN" : "한";
         document.getElementById("pin").className = s.pinned ? "on" : "";
       });

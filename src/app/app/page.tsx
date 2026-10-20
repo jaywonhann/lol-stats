@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import ApplyButtons from "@/components/ApplyButtons";
 import ChampionSearch from "@/components/ChampionSearch";
 import { Icon, Panel, Tabs, WinRate, pct } from "@/components/ui";
 import {
@@ -14,7 +15,7 @@ import {
 import { ddLocale, dict, numLocale, timeAgo, type Lang } from "@/lib/i18n";
 import { LANES, laneLabel, type Lane } from "@/lib/lanes";
 import { proBuilds, type ProBuild } from "@/lib/pro-builds";
-import { realBuild, realChamp, realCorePath } from "@/lib/real";
+import { realBuild, realChamp, realCorePath, realShards } from "@/lib/real";
 import { getLang, getServer } from "@/lib/server";
 import { boards, lanesOf } from "@/lib/stats";
 
@@ -70,6 +71,26 @@ export default async function AppPage({ searchParams }: Props) {
   const spellByKey = new Map(spells.map((s) => [s.key, s]));
   const rune = b?.runes[0]?.value;
   const nl = numLocale(lang);
+  const recommended = new Set(fixed?.value.map((i) => i.id) ?? []);
+  // 룬 적용에는 능력치 파편까지 9개가 필요해요. 파편 데이터가 아직 없으면 버튼을 막아 둡니다
+  const shards = agg ? realShards(agg) : null;
+  const runePayload =
+    rune && shards
+      ? {
+          name: champ.name,
+          primaryStyleId: rune.primary.id,
+          subStyleId: rune.secondary.id,
+          selectedPerkIds: [rune.keystone, ...rune.primaryRunes, ...rune.secondaryRunes, ...shards],
+        }
+      : null;
+  // 점멸은 F(두 번째 칸)에 둡니다
+  const spellKeys = b?.spells[0]?.value.map((x) => Number(x.key)) ?? null;
+  const spellPayload =
+    spellKeys?.length === 2 && spellKeys.every(Number.isFinite)
+      ? spellKeys[0] === 4
+        ? [spellKeys[1], spellKeys[0]]
+        : spellKeys
+      : null;
 
   return (
     <div className="space-y-4">
@@ -90,6 +111,8 @@ export default async function AppPage({ searchParams }: Props) {
           }))}
         />
       </div>
+
+      <ApplyButtons lang={lang} runes={runePayload} spells={spellPayload} />
 
       <Panel title={t.app.fixedTitle}>
         {!b || !fixed ? (
@@ -170,13 +193,14 @@ export default async function AppPage({ searchParams }: Props) {
       </Panel>
 
       <Panel title={t.app.proTitle}>
-        <p className="mb-3 text-xs text-muted">{t.app.proNote}</p>
+        <p className="mb-1 text-xs text-muted">{t.app.proNote}</p>
+        <p className="mb-3 text-xs text-muted"><mark className="rounded bg-yellow-300/40 px-1 text-text">abc</mark> {t.app.hlLegend}</p>
         {pros.list.length === 0 ? (
           <p className="text-sm text-muted">{t.app.proEmpty}</p>
         ) : (
           <ul className="space-y-2">
             {pros.list.map((p) => (
-              <ProRow key={p.m} p={p} lang={lang} version={version} itemById={itemById} runeById={runeById} spellByKey={spellByKey} />
+              <ProRow key={p.m} p={p} recommended={recommended} lang={lang} version={version} itemById={itemById} runeById={runeById} spellByKey={spellByKey} />
             ))}
           </ul>
         )}
@@ -187,6 +211,7 @@ export default async function AppPage({ searchParams }: Props) {
 
 function ProRow({
   p,
+  recommended,
   lang,
   version,
   itemById,
@@ -194,6 +219,7 @@ function ProRow({
   spellByKey,
 }: {
   p: ProBuild;
+  recommended: Set<string>;
   lang: Lang;
   version: string;
   itemById: Map<string, { name: string }>;
@@ -203,11 +229,36 @@ function ProRow({
   const t = dict(lang);
   const key = runeById.get(p.runes.perks[0]);
   const [k, d, a] = p.kda;
+  const name = p.label.replace(/ \(.*\)$/, "");
+  const initials = name.slice(0, 2).toUpperCase();
+  const hue = [...name].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 0);
+  const compared = recommended.size ? p.core.slice(0, recommended.size) : [];
+  const same = compared.filter((id) => recommended.has(id)).length;
   return (
     <li className={`flex flex-wrap items-center gap-3 rounded-md border-l-4 bg-panel-2 px-3 py-2 ${p.win ? "border-sky-500" : "border-rose-500"}`}>
-      <div className="w-36 min-w-0">
+      <span
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+        style={{ background: `hsl(${hue} 45% 38%)` }}
+        aria-hidden
+      >
+        {initials}
+      </span>
+      <div className="w-32 min-w-0">
         <p className={`truncate text-sm font-semibold ${p.kind === "challenger" ? "" : "text-accent"}`}>{p.label}</p>
-        <p className="truncate text-[11px] text-muted">{p.who}</p>
+        <p className="truncate text-[11px] text-muted">
+          {p.kind === "pro" ? (
+            <a
+              href={`https://lol.fandom.com/wiki/${encodeURIComponent(name.replace(/ /g, "_"))}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-text hover:underline"
+            >
+              {t.app.profile} ↗
+            </a>
+          ) : (
+            p.who
+          )}
+        </p>
       </div>
       <div className="w-20 text-xs">
         <span className={p.win ? "text-sky-400" : "text-rose-400"}>{p.win ? t.app.win : t.app.loss}</span>
@@ -226,13 +277,19 @@ function ProRow({
           return (
             <span key={id} className="flex items-center gap-1">
               {i > 0 && <span className="text-xs text-muted">›</span>}
-              <Icon src={img.item(version, id)} alt={it?.name ?? id} size={32} />
+              {/* 추천 빌드에 없는 아이템은 형광펜으로 칠해서 보여줘요 */}
+              <span className={`rounded p-0.5 ${recommended.size && !recommended.has(id) && i < recommended.size ? "bg-yellow-300/50" : ""}`}>
+                <Icon src={img.item(version, id)} alt={it?.name ?? id} size={32} />
+              </span>
             </span>
           );
         })}
         {p.boots && <Icon src={img.item(version, p.boots)} alt={itemById.get(p.boots)?.name ?? ""} size={28} className="ml-2 opacity-90" />}
       </div>
-      <span className="text-[11px] text-muted">{timeAgo(new Date(p.at).toISOString(), lang)}</span>
+      <span className="text-right text-[11px] text-muted">
+        {compared.length > 0 && <span className="block font-semibold text-text">{t.app.hlSame(same, compared.length)}</span>}
+        {timeAgo(new Date(p.at).toISOString(), lang)}
+      </span>
     </li>
   );
 }

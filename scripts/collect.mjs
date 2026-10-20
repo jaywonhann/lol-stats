@@ -220,11 +220,14 @@ export function addMatch(db, match, timeline, { isBoots, isCore, isTrinket = () 
     const c = (db.champs[`${p.championId}:${lane}`] ??= { games: 0, wins: 0, runes: {}, spells: {}, starters: {}, core: {}, boots: {}, skills: {}, vs: {} });
     c.core4 ??= {};
     c.slots ??= {};
+    c.shards ??= {}; // 능력치 파편 (공격/유연/방어)
     const win = p.win;
     c.games++;
     if (win) c.wins++;
 
     const [pri, sec] = p.perks.styles;
+    const sh = p.perks.statPerks;
+    if (sh) bump(c.shards, `${sh.offense},${sh.flex},${sh.defense}`, win);
     bump(c.runes, `${pri.style}|${pri.selections.map((s) => s.perk).join(",")}|${sec.style}|${sec.selections.map((s) => s.perk).sort().join(",")}`, win);
     // 점멸은 항상 앞에
     const sp = [p.summoner1Id, p.summoner2Id].sort((a, b) => (a === 4 ? -1 : b === 4 ? 1 : a - b));

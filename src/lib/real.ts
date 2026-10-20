@@ -19,6 +19,7 @@ export type ChampAgg = {
   vs: Counts;
   core4?: Counts; // 먼저 완성한 코어템 4개 순서
   slots?: Counts; // "n:아이템ID" n번째로 완성한 코어템
+  shards?: Counts; // "공격,유연,방어" 능력치 파편
 };
 
 export type PatchData = {
@@ -68,7 +69,7 @@ function merge(list: PatchData[]): PatchData {
       t.wins += c.wins;
       for (const key of ["runes", "spells", "starters", "core", "boots", "skills", "vs"] as const)
         addCounts(t[key], c[key]);
-      for (const key of ["core4", "slots"] as const) if (c[key]) addCounts((t[key] ??= {}), c[key]);
+      for (const key of ["core4", "slots", "shards"] as const) if (c[key]) addCounts((t[key] ??= {}), c[key]);
     }
   }
   return out;
@@ -331,4 +332,12 @@ export function loadActivity(server: Filter["server"]) {
     return { at: t.toISOString(), games: a.hours[t.toISOString().slice(0, 13)] ?? 0 };
   });
   return { updatedAt: a.updatedAt, hours, total: hours.reduce((s, h) => s + h.games, 0) };
+}
+
+// 가장 많이 쓴 능력치 파편 [공격, 유연, 방어]. 아직 모인 게임이 없으면 null
+export function realShards(c: ChampAgg): number[] | null {
+  const top = Object.entries(c.shards ?? {}).sort((a, b) => b[1][0] - a[1][0])[0];
+  if (!top || top[1][0] < 3) return null;
+  const ids = top[0].split(",").map(Number);
+  return ids.length === 3 && ids.every(Number.isFinite) ? ids : null;
 }

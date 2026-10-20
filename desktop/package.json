@@ -1,7 +1,7 @@
 {
   "name": "livelol-desktop",
   "productName": "livelol.stats",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Champ select build helper for League of Legends (livelol.stats)",
   "author": "livelol.stats",
   "main": "main.js",
@@ -17,7 +17,7 @@
   "build": {
     "appId": "stats.livelol.desktop",
     "productName": "livelol.stats",
-    "files": ["main.js", "lcu.js", "preload.js", "toolbar.html", "build/icon.png"],
+    "files": ["main.js", "lcu.js", "preload.js", "view-preload.js", "toolbar.html", "build/icon.png"],
     "directories": { "output": "dist" },
     "win": { "target": "nsis", "icon": "build/icon.ico" },
     "nsis": {
