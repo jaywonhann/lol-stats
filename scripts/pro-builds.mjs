@@ -107,8 +107,14 @@ async function leaguepedia() {
       offset: String(offset),
     });
     try {
-      const res = await fetch(`https://lol.fandom.com/api.php?${q}`, { headers: { "User-Agent": "livelol.stats pro-builds (github.com/jaywonhann/lol-stats)" } });
-      const data = await res.json();
+      let data;
+      // 공용 IP 라서 한도에 자주 걸려요. 잠깐 쉬었다가 몇 번 다시 시도합니다
+      for (let t = 0; t < 5; t++) {
+        const res = await fetch(`https://lol.fandom.com/api.php?${q}`, { headers: { "User-Agent": "livelol.stats pro-builds (github.com/jaywonhann/lol-stats)" } });
+        data = await res.json();
+        if (data.error?.code !== "ratelimited") break;
+        await sleep(30_000 * (t + 1));
+      }
       if (data.error) {
         console.log(`::warning::Leaguepedia 오류: ${JSON.stringify(data.error).slice(0, 300)}`);
         break;
@@ -136,7 +142,12 @@ try {
 } catch {
   console.log("::warning::data/pros.json 을 읽지 못했어요");
 }
-for (const p of await leaguepedia())
+// 프로 명단은 하루에 한 번만 새로 받고, 못 받으면 지난 명단을 씁니다
+if (!db.roster?.list?.length || Date.now() - db.roster.at > 86_400_000) {
+  const list = await leaguepedia();
+  if (list.length) db.roster = { at: Date.now(), list };
+}
+for (const p of db.roster?.list ?? [])
   if (!pros.some((x) => x.server === p.server && x.riotId.toLowerCase() === p.riotId.toLowerCase())) pros.push(p);
 
 const known = [];
