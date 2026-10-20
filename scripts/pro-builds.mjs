@@ -81,6 +81,11 @@ async function account(server, riotId) {
 // Leaguepedia SoloqueueIds 예: "KR: Hide on bush#KR1, ...". 형식이 사람마다 달라서 너그럽게 읽습니다
 function parseIds(raw) {
   const text = String(raw ?? "")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;/g, "'")
+    .replace(/&amp;/g, "&")
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/'''|''/g, "")
     .replace(/\[\[(?:[^|\]]*\|)?([^\]]*)\]\]/g, "$1")
@@ -142,12 +147,15 @@ async function leaguepedia() {
     }
   }
   if (rows.length) console.log(`::notice::Leaguepedia 현역 ${rows.length}명, 예: ${rows.slice(0, 3).map((r) => `${r.ID}=${r.SoloqueueIds}`).join(" / ").slice(0, 400)}`);
-  return rows.flatMap((r) =>
+  return rows.map((r) => ({ ID: r.ID, Team: r.Team, SoloqueueIds: r.SoloqueueIds }));
+}
+
+const rosterOf = (rows) =>
+  rows.flatMap((r) =>
     parseIds(r.SoloqueueIds)
       .slice(0, 2)
       .map((x) => ({ ...x, label: r.Team ? `${r.ID} (${r.Team})` : r.ID, kind: "pro" })),
   );
-}
 
 const pros = [];
 try {
@@ -156,11 +164,11 @@ try {
   console.log("::warning::data/pros.json 을 읽지 못했어요");
 }
 // 프로 명단은 하루에 한 번만 새로 받고, 못 받으면 지난 명단을 씁니다
-if (!db.roster?.list?.length || Date.now() - db.roster.at > 86_400_000) {
-  const list = await leaguepedia();
-  if (list.length) db.roster = { at: Date.now(), list };
+if (!db.roster?.rows?.length || Date.now() - db.roster.at > 86_400_000) {
+  const rows = await leaguepedia();
+  if (rows.length) db.roster = { at: Date.now(), rows };
 }
-for (const p of db.roster?.list ?? [])
+for (const p of rosterOf(db.roster?.rows ?? []))
   if (!pros.some((x) => x.server === p.server && x.riotId.toLowerCase() === p.riotId.toLowerCase())) pros.push(p);
 
 // 서버별 마스터+ 랭커 목록. Leaguepedia 계정은 태그가 빠진 경우가 많아서,
