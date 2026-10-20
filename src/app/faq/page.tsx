@@ -28,11 +28,11 @@ const CONTENT: Record<Lang, Content> = {
       },
       {
         q: "How often is it updated?",
-        a: "Champion stats update every 6 hours (00:00, 06:00, 12:00 and 18:00 KST). The live player number refreshes every 2 minutes. Summoner pages refresh when you press Update.",
+        a: "Champion stats update every 6 hours (00:00, 06:00, 12:00 and 18:00 KST). The live player number is recorded every 10 minutes. Summoner pages refresh when you press Update.",
       },
       {
         q: "Is the live player count every player online?",
-        a: "No. Riot doesn't publish how many people are online. We check a sample of Master+ players to see how many are in a game right now and scale that to the whole Master+ ladder, so it's an estimate.",
+        a: "It's an estimate of everyone in a game right now, across all queues. Riot doesn't publish how many people are online, so we measure how fast new games start (game IDs rise in order on each server) and multiply by the average game length and 10 players per game.",
       },
       {
         q: "Summoner search says it can't find me or isn't available.",
@@ -86,11 +86,11 @@ const CONTENT: Record<Lang, Content> = {
       },
       {
         q: "얼마나 자주 업데이트되나요?",
-        a: "챔피언 통계는 6시간마다(한국 시간 0시, 6시, 12시, 18시) 갱신돼요. 실시간 플레이어 수는 2분마다, 소환사 정보는 업데이트 버튼을 누르면 바로 갱신돼요.",
+        a: "챔피언 통계는 6시간마다(한국 시간 0시, 6시, 12시, 18시) 갱신돼요. 실시간 플레이어 수는 10분마다, 소환사 정보는 업데이트 버튼을 누르면 바로 갱신돼요.",
       },
       {
         q: "실시간 플레이어 수는 접속자 전체인가요?",
-        a: "아니요. Riot은 접속자 수를 공개하지 않아요. 마스터 이상 랭커 일부가 지금 게임 중인지 확인하고, 그 비율을 마스터 이상 전체에 곱한 추정치예요.",
+        a: "지금 게임 중인 전체 플레이어(모든 큐 포함)의 추정치예요. Riot은 접속자 수를 공개하지 않아서, 새 게임이 시작되는 속도(게임 ID가 서버마다 순서대로 올라가요)를 재고 평균 게임 시간과 게임당 10명을 곱해요.",
       },
       {
         q: "소환사 검색이 안 되거나 못 찾는다고 나와요.",

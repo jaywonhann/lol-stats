@@ -1,6 +1,6 @@
 import type { Server } from "./lanes";
 
-export type LivePoint = { at: string; estimate: number; total: number };
+export type LivePoint = { at: string; estimate: number; total: number; v?: number };
 export type LiveGame = { id: number; at: string; champs: number[]; ps?: number[][] };
 
 const DAY = 24 * 3_600_000;
@@ -21,8 +21,9 @@ async function load(server: Server) {
 // GitHub Actions(live-history.yml)가 10분마다 live-data 브랜치에 남기는 기록 중 최근 24시간
 export async function liveHistory(server: Server): Promise<LivePoint[]> {
   const data = await load(server);
+  // v:2 = 전체 플레이어 추정. 예전(마스터+ 랭커 수) 기록은 규모가 달라서 뺍니다
   return (data?.points ?? [])
-    .filter((p) => Date.now() - new Date(p.at).getTime() < DAY)
+    .filter((p) => p.v === 2 && Date.now() - new Date(p.at).getTime() < DAY)
     .map(({ at, estimate, total }) => ({ at, estimate, total }));
 }
 
