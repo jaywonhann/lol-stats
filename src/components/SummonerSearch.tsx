@@ -1,7 +1,8 @@
-// 소환사 검색창: 일반 GET 폼이라 자바스크립트 없이도 동작합니다
+// 소환사 검색창: 일반 GET 폼 (자동완성은 클라이언트 입력창이 담당)
 import { dict, type Lang } from "@/lib/i18n";
 import { serverLabel, type Server } from "@/lib/lanes";
 import { DEFAULT_TAG } from "@/lib/riot";
+import SummonerInput from "./SummonerInput";
 
 export default function SummonerSearch({
   lang,
@@ -21,17 +22,12 @@ export default function SummonerSearch({
         {t.inputLabel}
       </label>
       <div className="flex gap-2">
-        <input
-          id="summoner-id"
-          name="id"
-          type="search"
-          required
-          maxLength={40}
+        <SummonerInput
           defaultValue={defaultValue}
           placeholder={t.placeholder}
-          autoComplete="off"
-          spellCheck={false}
-          className={`min-w-0 flex-1 rounded-md border border-line bg-panel-2 px-3 text-text placeholder:text-muted focus:border-accent focus:outline-none ${large ? "h-12 text-base" : "h-10 text-sm"}`}
+          server={server}
+          recentLabel={lang === "ko" ? "최근 검색" : "Recent"}
+          className={`w-full rounded-md border border-line bg-panel-2 px-3 text-text placeholder:text-muted focus:border-accent focus:outline-none ${large ? "h-12 text-base" : "h-10 text-sm"}`}
         />
         <button
           type="submit"
