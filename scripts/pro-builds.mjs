@@ -8,7 +8,7 @@ const OUT = process.env.OUT ?? "pro-data";
 const TOP = Number(process.env.TOP ?? 10); // 서버별 챌린저 상위 몇 명
 const PER = Number(process.env.PER ?? 4); // 한 사람당 최근 몇 게임
 const ROTATE = Number(process.env.ROTATE ?? 60); // 이번 회차에 볼 프로 계정 수
-const LOOKUPS = Number(process.env.LOOKUPS ?? 150); // 이번 회차에 새로 찾을 계정 수 (API 한도 보호)
+const LOOKUPS = Number(process.env.LOOKUPS ?? 250); // 이번 회차에 새로 찾을 계정 수 (API 한도 보호)
 const KEEP_MS = 5 * 24 * 3_600_000;
 const MAX_KEEP = 1500;
 const SERVERS = { kr: "asia", na1: "americas", euw1: "europe" };
@@ -22,6 +22,9 @@ if (!KEY) {
 mkdirSync(OUT, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// 키가 거절돼 일찍 끝날 때도 그동안 받은 프로 명단·계정은 저장해 둡니다
+let saveNow = () => {};
+
 async function riot(url) {
   for (let i = 0; i < 5; i++) {
     const res = await fetch(url, { headers: { "X-Riot-Token": KEY } });
@@ -31,6 +34,7 @@ async function riot(url) {
     }
     if (res.status === 401 || res.status === 403) {
       console.log("::warning::Riot API 키가 거절됐어요. 키를 새로 넣으면 다음 실행부터 다시 모아요.");
+      saveNow();
       process.exit(0);
     }
     await sleep(150);
@@ -42,6 +46,7 @@ async function riot(url) {
 const file = `${OUT}/builds.json`;
 const db = existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : { builds: [], names: {} };
 db.names ??= {};
+saveNow = () => writeFileSync(file, JSON.stringify(db));
 const seen = new Set(db.builds.map((b) => b.m));
 
 const versions = await (await fetch(`${DDRAGON}/api/versions.json`)).json();
@@ -146,7 +151,7 @@ async function leaguepedia() {
 
 const pros = [];
 try {
-  pros.push(...JSON.parse(readFileSync("data/pros.json", "utf8")).map((p) => ({ ...p, kind: p.kind ?? "pro" })));
+  pros.push(...JSON.parse(readFileSync("data/pros.json", "utf8")).map((p) => ({ ...p, kind: p.kind ?? "pro", manual: true })));
 } catch {
   console.log("::warning::data/pros.json 을 읽지 못했어요");
 }
@@ -158,19 +163,32 @@ if (!db.roster?.list?.length || Date.now() - db.roster.at > 86_400_000) {
 for (const p of db.roster?.list ?? [])
   if (!pros.some((x) => x.server === p.server && x.riotId.toLowerCase() === p.riotId.toLowerCase())) pros.push(p);
 
+// 서버별 마스터+ 랭커 목록. Leaguepedia 계정은 태그가 빠진 경우가 많아서,
+// 이름이 같은 다른 사람을 프로로 잘못 표시하지 않도록 마스터+ 에 있는 계정만 프로로 인정합니다
+const ladder = {};
+for (const server of Object.keys(SERVERS)) {
+  ladder[server] = { set: new Set(), challenger: [] };
+  for (const l of ["challengerleagues", "grandmasterleagues", "masterleagues"]) {
+    const league = await riot(`https://${server}.api.riotgames.com/lol/league/v4/${l}/by-queue/RANKED_SOLO_5x5`);
+    for (const e of league?.entries ?? []) if (e.puuid) ladder[server].set.add(e.puuid);
+    if (l === "challengerleagues") ladder[server].challenger = (league?.entries ?? []).filter((e) => e.puuid);
+  }
+}
+
 const known = [];
 for (const p of pros) {
   if (!SERVERS[p.server]) continue;
   const puuid = await account(p.server, p.riotId);
-  if (puuid && !known.some((x) => x.puuid === puuid)) known.push({ puuid, server: p.server, who: p.riotId, label: p.label, kind: p.kind });
+  // data/pros.json 에 직접 넣은 계정은 그대로 믿어요
+  if (!puuid || (!p.manual && !ladder[p.server].set.has(puuid))) continue;
+  if (!known.some((x) => x.puuid === puuid)) known.push({ puuid, server: p.server, who: p.riotId, label: p.label, kind: p.kind });
 }
 // 프로는 많아서 한 번에 다 보지 않고, 오래 확인 안 한 사람부터 ROTATE 명씩 돌아가며 봅니다
 const people = [...known].sort((a, b) => (db.checked[a.puuid] ?? 0) - (db.checked[b.puuid] ?? 0)).slice(0, ROTATE);
 console.log(`::notice::프로 계정 ${known.length}개 확인 (명단 ${pros.length}개, 이번에 새로 조회 ${lookups}번), 이번 회차 ${people.length}명`);
 
 for (const server of Object.keys(SERVERS)) {
-  const league = await riot(`https://${server}.api.riotgames.com/lol/league/v4/challengerleagues/by-queue/RANKED_SOLO_5x5`);
-  const top = (league?.entries ?? []).filter((e) => e.puuid).sort((a, b) => b.leaguePoints - a.leaguePoints).slice(0, TOP);
+  const top = ladder[server].challenger.sort((a, b) => b.leaguePoints - a.leaguePoints).slice(0, TOP);
   for (const [i, e] of top.entries()) {
     if (people.some((p) => p.puuid === e.puuid)) continue;
     // 챌린저가 프로 계정이면 프로 이름으로 보여줍니다
