@@ -51,6 +51,15 @@ export default async function RootLayout({
             <Link href="/summoner" className="nav-link">
               {t.nav.summoner}
             </Link>
+            <Link href="/pros" className="nav-link">
+              {lang === "ko" ? "프로 라이브" : "Pros live"}
+            </Link>
+            <Link href="/predict" className="nav-link">
+              {lang === "ko" ? "승률 예측" : "Predict"}
+            </Link>
+            <Link href="/tools" className="nav-link">
+              {lang === "ko" ? "도구" : "Tools"}
+            </Link>
             <Link href="/faq" className="nav-link">
               {t.nav.faq}
             </Link>

@@ -71,6 +71,7 @@ export type SummonerSpell = {
   key: string;
   name: string;
   modes: string[];
+  cooldown?: number[];
   image: { full: string };
 };
 
