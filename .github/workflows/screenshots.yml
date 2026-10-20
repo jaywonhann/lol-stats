@@ -27,6 +27,7 @@ jobs:
       - name: screenshots 브랜치에 올리기
         run: |
           cd shots
+          echo '{"git":{"deploymentEnabled":false}}' > vercel.json
           git init -q -b screenshots
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

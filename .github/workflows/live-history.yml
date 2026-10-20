@@ -40,6 +40,8 @@ jobs:
           git fetch --depth=1 origin live-data 2>/dev/null && for s in kr na1 euw1; do
             git show origin/live-data:$s.json > $OUT/$s.json 2>/dev/null || rm -f $OUT/$s.json
           done
+          # 이 브랜치는 데이터만 담아서 Vercel 이 배포하지 않게 (안 그러면 하루 배포 한도를 다 써요)
+          ( cd $OUT && echo '{"git":{"deploymentEnabled":false}}' > vercel.json )
           start=$(date +%s)
           while [ $(( $(date +%s) - start )) -lt $((335 * 60)) ]; do
             t0=$(date +%s)

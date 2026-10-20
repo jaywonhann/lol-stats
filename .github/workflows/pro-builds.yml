@@ -40,7 +40,8 @@ jobs:
           git fetch --depth=1 origin pro-data 2>/dev/null && git show origin/pro-data:builds.json > $OUT/builds.json 2>/dev/null || rm -f $OUT/builds.json
           node scripts/pro-builds.mjs
           cd $OUT && [ -f builds.json ] || exit 0
+          echo '{"git":{"deploymentEnabled":false}}' > vercel.json
           git init -q -b pro-data \
-            && git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" add builds.json \
+            && git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" add builds.json vercel.json \
             && git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -q -m "프로 빌드" \
             && git push -q --force "https://x-access-token:$TOKEN@github.com/$REPO.git" pro-data
