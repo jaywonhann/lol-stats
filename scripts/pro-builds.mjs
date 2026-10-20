@@ -7,6 +7,8 @@ const KEY = (process.env.RIOT_API_KEY ?? "").match(/RGAPI-[0-9a-f-]{36}/i)?.[0] 
 const OUT = process.env.OUT ?? "pro-data";
 const TOP = Number(process.env.TOP ?? 10); // 서버별 챌린저 상위 몇 명
 const PER = Number(process.env.PER ?? 4); // 한 사람당 최근 몇 게임
+const ROTATE = Number(process.env.ROTATE ?? 60); // 이번 회차에 볼 프로 계정 수
+const LOOKUPS = Number(process.env.LOOKUPS ?? 150); // 이번 회차에 새로 찾을 계정 수 (API 한도 보호)
 const KEEP_MS = 5 * 24 * 3_600_000;
 const MAX_KEEP = 1500;
 const SERVERS = { kr: "asia", na1: "americas", euw1: "europe" };
@@ -52,28 +54,112 @@ const isCore = (id) => {
   return !it.into?.length && (it.gold?.total ?? 0) >= 2000;
 };
 
-// 누구를 볼지: pros.json + 서버별 챌린저 상위 랭커
-const people = [];
-try {
-  const pros = JSON.parse(readFileSync("data/pros.json", "utf8"));
-  for (const p of pros) {
-    if (!SERVERS[p.server]) continue;
-    const [name, tag] = p.riotId.split("#");
-    const acc = await riot(`https://${SERVERS[p.server]}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`);
-    if (!acc) {
-      console.log(`::warning::${p.riotId} 계정을 찾지 못했어요`);
-      continue;
+// 누구를 볼지: Leaguepedia 의 현역 프로 선수 솔로랭크 계정 + data/pros.json(직접 추가) + 서버별 챌린저 상위 랭커
+db.accounts ??= {}; // "server|이름#태그" -> { puuid, at } (못 찾으면 puuid 없이 at 만, 3일 뒤 다시 시도)
+db.checked ??= {}; // puuid -> 마지막으로 게임을 확인한 시각
+const TAG = { kr: "KR1", na1: "NA1", euw1: "EUW" };
+const SERVER_OF = { KR: "kr", NA: "na1", EUW: "euw1" };
+let lookups = 0;
+
+async function account(server, riotId) {
+  const k = `${server}|${riotId}`;
+  const c = db.accounts[k];
+  if (c && (c.puuid || Date.now() - c.at < 3 * 86_400_000)) return c.puuid ?? null;
+  if (lookups >= LOOKUPS) return null;
+  lookups++;
+  const [name, tag] = riotId.split("#");
+  const acc = await riot(`https://${SERVERS[server]}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`);
+  db.accounts[k] = { puuid: acc?.puuid, at: Date.now() };
+  return acc?.puuid ?? null;
+}
+
+// Leaguepedia SoloqueueIds 예: "KR: Hide on bush#KR1, ...". 형식이 사람마다 달라서 너그럽게 읽습니다
+function parseIds(raw) {
+  const text = String(raw ?? "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/'''|''/g, "")
+    .replace(/\[\[(?:[^|\]]*\|)?([^\]]*)\]\]/g, "$1")
+    .replace(/<[^>]+>/g, " ");
+  const parts = text.split(/\b([A-Z]{2,4})\s*:\s*/);
+  const out = [];
+  for (let i = 1; i < parts.length; i += 2) {
+    const server = SERVER_OF[parts[i]];
+    if (!server) continue;
+    for (let id of parts[i + 1].split(/[,;\n]/)) {
+      id = id.replace(/\(.*?\)/g, "").trim();
+      if (id.length < 3 || id.length > 30) continue;
+      out.push({ server, riotId: id.includes("#") ? id.replace(/\s*#\s*/, "#") : `${id}#${TAG[server]}` });
     }
-    people.push({ puuid: acc.puuid, server: p.server, who: p.riotId, label: p.label, kind: p.kind ?? "pro" });
   }
+  return out;
+}
+
+async function leaguepedia() {
+  const rows = [];
+  for (let offset = 0; offset < 3000; offset += 500) {
+    const q = new URLSearchParams({
+      action: "cargoquery",
+      format: "json",
+      tables: "Players",
+      fields: "ID,Team,Role,SoloqueueIds",
+      where: 'IsRetired="0" AND SoloqueueIds IS NOT NULL AND Team IS NOT NULL AND Team != ""',
+      limit: "500",
+      offset: String(offset),
+    });
+    try {
+      const res = await fetch(`https://lol.fandom.com/api.php?${q}`, { headers: { "User-Agent": "livelol.stats pro-builds (github.com/jaywonhann/lol-stats)" } });
+      const data = await res.json();
+      if (data.error) {
+        console.log(`::warning::Leaguepedia 오류: ${JSON.stringify(data.error).slice(0, 300)}`);
+        break;
+      }
+      const page = (data.cargoquery ?? []).map((r) => r.title);
+      rows.push(...page);
+      if (page.length < 500) break;
+      await sleep(1500);
+    } catch (e) {
+      console.log(`::warning::Leaguepedia 를 읽지 못했어요: ${e.message}`);
+      break;
+    }
+  }
+  if (rows.length) console.log(`::notice::Leaguepedia 현역 ${rows.length}명, 예: ${rows.slice(0, 3).map((r) => `${r.ID}=${r.SoloqueueIds}`).join(" / ").slice(0, 400)}`);
+  return rows.flatMap((r) =>
+    parseIds(r.SoloqueueIds)
+      .slice(0, 2)
+      .map((x) => ({ ...x, label: r.Team ? `${r.ID} (${r.Team})` : r.ID, kind: "pro" })),
+  );
+}
+
+const pros = [];
+try {
+  pros.push(...JSON.parse(readFileSync("data/pros.json", "utf8")).map((p) => ({ ...p, kind: p.kind ?? "pro" })));
 } catch {
   console.log("::warning::data/pros.json 을 읽지 못했어요");
 }
+for (const p of await leaguepedia())
+  if (!pros.some((x) => x.server === p.server && x.riotId.toLowerCase() === p.riotId.toLowerCase())) pros.push(p);
+
+const known = [];
+for (const p of pros) {
+  if (!SERVERS[p.server]) continue;
+  const puuid = await account(p.server, p.riotId);
+  if (puuid && !known.some((x) => x.puuid === puuid)) known.push({ puuid, server: p.server, who: p.riotId, label: p.label, kind: p.kind });
+}
+// 프로는 많아서 한 번에 다 보지 않고, 오래 확인 안 한 사람부터 ROTATE 명씩 돌아가며 봅니다
+const people = [...known].sort((a, b) => (db.checked[a.puuid] ?? 0) - (db.checked[b.puuid] ?? 0)).slice(0, ROTATE);
+console.log(`::notice::프로 계정 ${known.length}개 확인 (명단 ${pros.length}개, 이번에 새로 조회 ${lookups}번), 이번 회차 ${people.length}명`);
+
 for (const server of Object.keys(SERVERS)) {
   const league = await riot(`https://${server}.api.riotgames.com/lol/league/v4/challengerleagues/by-queue/RANKED_SOLO_5x5`);
   const top = (league?.entries ?? []).filter((e) => e.puuid).sort((a, b) => b.leaguePoints - a.leaguePoints).slice(0, TOP);
   for (const [i, e] of top.entries()) {
     if (people.some((p) => p.puuid === e.puuid)) continue;
+    // 챌린저가 프로 계정이면 프로 이름으로 보여줍니다
+    const pro = known.find((k) => k.puuid === e.puuid);
+    if (pro) {
+      people.push(pro);
+      continue;
+    }
     if (!db.names[e.puuid]) {
       const acc = await riot(`https://${SERVERS[server]}.api.riotgames.com/riot/account/v1/accounts/by-puuid/${e.puuid}`);
       if (acc?.gameName) db.names[e.puuid] = `${acc.gameName}#${acc.tagLine}`;
@@ -86,6 +172,7 @@ console.log(`${people.length}명 확인`);
 let added = 0;
 for (const p of people) {
   const region = SERVERS[p.server];
+  db.checked[p.puuid] = Date.now();
   const ids = (await riot(`https://${region}.api.riotgames.com/lol/match/v5/matches/by-puuid/${p.puuid}/ids?queue=420&count=${PER}`)) ?? [];
   for (const id of ids) {
     if (seen.has(id)) continue;
