@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Icon, Panel, Tabs, TierBadge, WinRate, pct } from "@/components/ui";
 import TrendChart from "@/components/TrendChart";
 import WinRateGrid from "@/components/WinRateGrid";
+import HiddenTips from "@/components/HiddenTips";
 import MultiLineChart from "@/components/MultiLineChart";
 import { buildSeries, dayLabel, loadDaily, WINDOW } from "@/lib/daily";
 import {
@@ -213,6 +214,17 @@ export default async function ChampionPage({ params, searchParams }: Props) {
             )}
           </p>
           <WinRateGrid wr={wr} version={version} lang={lang} />
+        </Panel>
+      )}
+
+      {wr && (
+        <Panel title={lang === "ko" ? "숨은 꿀팁" : "Hidden tips"}>
+          <p className="mb-3 text-xs text-muted">
+            {lang === "ko"
+              ? "덜 쓰이지만 승률이 확실히 높은 선택을 집계에서 골랐어요."
+              : "Less-used picks that win clearly more, taken from our data."}
+          </p>
+          <HiddenTips wr={wr} version={version} lang={lang} champName={champion.name} />
         </Panel>
       )}
 

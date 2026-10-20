@@ -5,7 +5,6 @@ import { ADSENSE_CLIENT as CLIENT } from "@/lib/ads";
 
 const SIZES = {
   banner: "h-[90px] w-full max-w-[728px]",
-  rail: "h-[600px] w-[160px]",
 } as const;
 
 // 광고 자리. NEXT_PUBLIC_ADSENSE_CLIENT(ca-pub-...)가 있으면 AdSense 광고, 없으면 자리 표시만.

@@ -75,12 +75,6 @@ export default async function RootLayout({
           <div className="mx-auto flex max-w-6xl justify-center px-4 pt-4">
             <AdSlot kind="banner" slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_TOP} />
           </div>
-          <aside className="absolute left-4 top-6 hidden 2xl:block">
-            <AdSlot kind="rail" slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_RAIL} />
-          </aside>
-          <aside className="absolute right-4 top-6 hidden 2xl:block">
-            <AdSlot kind="rail" slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_RAIL} />
-          </aside>
           <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
           <div className="mx-auto flex max-w-6xl justify-center px-4">
             <AdSlot kind="banner" slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_BOTTOM} />
