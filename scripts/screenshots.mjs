@@ -8,6 +8,8 @@ const shots = [
   { name: "2-summoner", path: "/summoner?id=Hide%20on%20bush%23KR1", wait: 4000 },
   { name: "3-champion", path: "/champions/Ahri?lane=mid", wait: 4000 },
   { name: "4-meta", path: "/meta?lane=jungle", wait: 4000 },
+  { name: "5-app", path: "/app?champ=103&lane=mid", wait: 4000 },
+  { name: "6-download", path: "/download", wait: 2000 },
 ];
 
 const browser = await chromium.launch();
