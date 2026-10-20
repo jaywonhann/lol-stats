@@ -9,13 +9,13 @@ type Reply =
   | ({ available: true } & Point)
   | { available: false; reason: string };
 
-const POLL_MS = 30_000; // 30초마다 확인 (서버 기록은 10분마다 새로 쌓임)
+const POLL_MS = 30_000; // 30초마다 확인 (서버 값은 1분마다 새로 잼)
 const KEEP_MS = 3 * 3_600_000; // 브라우저에 최근 3시간 기록을 남겨 두고 그래프로 보여줍니다
 
 function load(server: Server): Point[] {
   try {
     const raw = JSON.parse(
-      localStorage.getItem(`live2-${server}`) ?? "[]",
+      localStorage.getItem(`live-${server}`) ?? "[]",
     ) as Point[];
     return raw.filter((p) => Date.now() - new Date(p.at).getTime() < KEEP_MS);
   } catch {
@@ -23,7 +23,7 @@ function load(server: Server): Point[] {
   }
 }
 
-// 지금 게임 중인 전체 플레이어 수(추정)를 1분마다 받아와 늘고 주는 흐름을 그립니다
+// 지금 게임 중인 마스터+ 랭커 수(추정)를 1분마다 받아와 늘고 주는 흐름을 그립니다
 export default function LiveCounter({
   server,
   lang,
@@ -67,7 +67,7 @@ export default function LiveCounter({
             { at: r.at, estimate: r.estimate, total: r.total },
           ].filter((p) => Date.now() - new Date(p.at).getTime() < KEEP_MS);
           try {
-            localStorage.setItem(`live2-${server}`, JSON.stringify(next));
+            localStorage.setItem(`live-${server}`, JSON.stringify(next));
           } catch {}
           return next;
         });
@@ -216,7 +216,7 @@ export default function LiveCounter({
         )}
       </p>
       <p className="text-sm text-muted">
-        {t.liveCaption()}
+        {t.liveCaption(last.total.toLocaleString(nl))}
         {state === "off" && <> · {t.liveFromHistory}</>}
       </p>
       {state === "ok" && left !== null && (

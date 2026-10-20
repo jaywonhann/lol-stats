@@ -123,11 +123,12 @@ const en = {
   liveRange: (h: number) => `Last ${h}h`,
   liveNow: "now",
   liveFromHistory: "Showing the last recorded number.",
-  liveCaption: () => `All players in game now, every queue (estimate)`,
+  liveCaption: (total: string) =>
+    `Master+ players in game now (estimate, of ${total})`,
   liveAria: "Live player count trend",
   livePointTitle: (time: string, n: number) => `${time} ~${n} players`,
   liveFoot:
-    "Recorded every 10 min · estimated from how fast new games start (game IDs) × average game length. Riot publishes no exact count.",
+    "Live number updates every minute, graph recorded every 10 min · estimated from a sample of Master+ players",
   // 티어 리스트
   tierTitle: "Champion Tier List",
   soloGames: (n: string) => `${n} Ranked Solo games`,
@@ -520,11 +521,12 @@ const ko: Dict = {
   liveRange: (h) => `최근 ${h}시간`,
   liveNow: "지금",
   liveFromHistory: "마지막으로 기록된 인원이에요.",
-  liveCaption: () => `지금 게임 중인 전체 플레이어, 모든 큐 포함 (추정)`,
+  liveCaption: (total) =>
+    `지금 게임 중인 마스터 이상 랭커 (추정, 전체 ${total}명 중)`,
   liveAria: "실시간 인원 추이",
   livePointTitle: (time, n) => `${time} 약 ${n}명`,
   liveFoot:
-    "10분마다 기록 · 새 게임이 시작되는 속도(게임 ID) × 평균 게임 시간으로 추정. Riot은 정확한 접속자 수를 공개하지 않아요.",
+    "지금 숫자는 1분마다, 그래프는 10분마다 기록 · 마스터+ 랭커 표본 조사로 추정",
   tierTitle: "챔피언 티어 리스트",
   soloGames: (n) => `솔로랭크 ${n}게임`,
   trendsTitle: "패치 트렌드",
