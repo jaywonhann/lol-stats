@@ -7,6 +7,8 @@ import { dict } from "@/lib/i18n";
 import ServerSelect from "@/components/ServerSelect";
 import LangSelect from "@/components/LangSelect";
 import { LiveBadge } from "@/components/LivePanel";
+import AdSlot from "@/components/AdSlot";
+import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
@@ -67,7 +69,29 @@ export default async function RootLayout({
             {t.mockBanner}
           </div>
         )}
-        <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+        {process.env.NEXT_PUBLIC_ADSENSE_CLIENT && (
+          <Script
+            async
+            strategy="afterInteractive"
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_ADSENSE_CLIENT}`}
+            crossOrigin="anonymous"
+          />
+        )}
+        <div className="relative">
+          <div className="mx-auto flex max-w-6xl justify-center px-4 pt-4">
+            <AdSlot kind="banner" slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_TOP} />
+          </div>
+          <aside className="absolute left-4 top-6 hidden 2xl:block">
+            <AdSlot kind="rail" slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_RAIL} />
+          </aside>
+          <aside className="absolute right-4 top-6 hidden 2xl:block">
+            <AdSlot kind="rail" slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_RAIL} />
+          </aside>
+          <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+          <div className="mx-auto flex max-w-6xl justify-center px-4">
+            <AdSlot kind="banner" slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_BOTTOM} />
+          </div>
+        </div>
         <footer className="mt-12 border-t border-line px-4 py-6 text-center text-xs text-muted">
           <p className="mb-3 text-sm">
             <Link href="/faq" className="hover:text-text">FAQ</Link>
