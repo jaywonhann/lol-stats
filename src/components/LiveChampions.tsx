@@ -1,5 +1,5 @@
 import { img, type Champion } from "@/lib/ddragon";
-import { dict, numLocale, type Lang } from "@/lib/i18n";
+import { dict, numLocale, timeAgo, type Lang } from "@/lib/i18n";
 import type { Server } from "@/lib/lanes";
 import { liveChampions, liveHistory } from "@/lib/live-history";
 import LiveChampionsList from "./LiveChampionsList";
@@ -35,7 +35,12 @@ export default async function LiveChampions({
           <span className="live-dot h-2 w-2 rounded-full bg-red-500" aria-hidden />
           {t.liveChampsTitle}
         </h2>
-        {rows.length > 0 && <p className="mt-0.5 text-xs text-muted">{t.liveChampsNote(data.games, data.hours)}</p>}
+        {rows.length > 0 && (
+          <p className="mt-0.5 text-xs text-muted">
+            {t.liveChampsNote(data.games, data.hours)}
+            {data.updatedAt && ` · ${timeAgo(data.updatedAt, lang, { minutes: true })}`}
+          </p>
+        )}
       </div>
       {rows.length === 0 ? (
         <p className="mt-2 rounded-xl border border-line bg-panel p-4 text-sm text-muted">{t.liveChampsEmpty}</p>

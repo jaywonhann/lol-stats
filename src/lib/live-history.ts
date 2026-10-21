@@ -21,8 +21,13 @@ async function load(server: Server) {
 // GitHub Actions(live-history.yml)가 10분마다 live-data 브랜치에 남기는 기록 중 최근 24시간
 export async function liveHistory(server: Server): Promise<LivePoint[]> {
   const data = await load(server);
-  return (data?.points ?? [])
-    .filter((p) => Date.now() - new Date(p.at).getTime() < DAY)
+  // 실시간 수집이 멈춰 있으면 마지막 기록 기준 24시간을 보여줍니다 (최대 7일 전까지)
+  const all = data?.points ?? [];
+  const last = all.at(-1);
+  if (!last || Date.now() - new Date(last.at).getTime() > 7 * DAY) return [];
+  const end = new Date(last.at).getTime();
+  return all
+    .filter((p) => end - new Date(p.at).getTime() < DAY)
     .map(({ at, estimate, total }) => ({ at, estimate, total }));
 }
 
@@ -30,13 +35,15 @@ export async function liveHistory(server: Server): Promise<LivePoint[]> {
 export async function liveChampions(server: Server) {
   // 이미 쌓인 기록에 같은 게임이 두 번 들어가 있어도 한 번만 센다
   const games = [...new Map(((await load(server))?.games ?? []).map((g) => [g.id, g])).values()];
-  const within = (h: number) =>
-    games.filter((g) => Date.now() - new Date(g.at).getTime() < h * 3_600_000);
+  // 수집이 멈춰 있으면 마지막으로 기록된 게임을 기준으로 창을 잡아서 계속 보여줍니다
+  const anchor = games.reduce((m, g) => Math.max(m, new Date(g.at).getTime()), 0);
+  const within = (h: number) => games.filter((g) => anchor - new Date(g.at).getTime() < h * 3_600_000);
   let hours = 1;
   let pool = within(1);
-  if (pool.length < 5) {
-    hours = 2;
-    pool = within(2);
+  for (const h of [2, 6]) {
+    if (pool.length >= 5) break;
+    hours = h;
+    pool = within(h);
   }
   const counts = new Map<number, number>();
   for (const g of pool) for (const c of g.champs) counts.set(c, (counts.get(c) ?? 0) + 1);
@@ -51,8 +58,9 @@ export async function liveChampions(server: Server) {
 // 지금 이 챔피언을 쓰는 라이브 게임 표본에서 룬(핵심 룬·보조 계열)과 소환사 주문 사용 횟수 (최근 6시간)
 export async function liveChampionBuild(server: Server, champKey: string) {
   const games = [...new Map(((await load(server))?.games ?? []).map((g) => [g.id, g])).values()];
+  const anchor = games.reduce((m, g) => Math.max(m, new Date(g.at).getTime()), 0);
   const mine = games
-    .filter((g) => Date.now() - new Date(g.at).getTime() < 6 * 3_600_000)
+    .filter((g) => anchor - new Date(g.at).getTime() < 6 * 3_600_000)
     .flatMap((g) => (g.ps ?? []).filter((p) => String(p[0]) === champKey));
   const tally = (keyOf: (p: number[]) => string) => {
     const m = new Map<string, number>();

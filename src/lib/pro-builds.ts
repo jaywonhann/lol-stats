@@ -36,3 +36,28 @@ export async function proBuilds(champKey: string, lane?: string, n = 12): Promis
     return { list: [], updatedAt: null };
   }
 }
+
+// 최근 며칠 동안 프로·스트리머·챌린저가 한 게임 (선수당 가장 최근 1판). 지금 게임 중인 사람을 못 찾을 때도 보여줄 수 있어요.
+export async function recentProGames(days = 7, n = 30) {
+  try {
+    const res = await fetch("https://raw.githubusercontent.com/jaywonhann/lol-stats/pro-data/builds.json", {
+      next: { revalidate: 600 },
+    });
+    if (!res.ok) return [];
+    const data = (await res.json()) as { builds: ProBuild[] };
+    const since = Date.now() - days * 24 * 3_600_000;
+    const latest = new Map<string, ProBuild>();
+    for (const b of data.builds) {
+      if (b.at < since) continue;
+      const k = `${b.s}|${b.who}`;
+      const old = latest.get(k);
+      if (!old || b.at > old.at) latest.set(k, b);
+    }
+    // 프로·스트리머를 먼저, 그다음 챌린저, 각각 최신 순
+    return [...latest.values()]
+      .sort((a, b) => (a.kind === "challenger" ? 1 : 0) - (b.kind === "challenger" ? 1 : 0) || b.at - a.at)
+      .slice(0, n);
+  } catch {
+    return [];
+  }
+}
