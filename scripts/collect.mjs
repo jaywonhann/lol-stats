@@ -40,7 +40,7 @@ async function riot(url) {
       continue;
     }
     if (res.status === 401 || res.status === 403) {
-      console.error(`Riot API 키가 거부됐어요 (${res.status}). 개발용 키는 24시간마다 만료되니 새로 발급해서 시크릿을 바꿔 주세요.`);
+      console.error(`::error::Riot API 키 거부 ${res.status} (키 ${KEY.length}자, 앞 ${KEY.slice(0, 8)}…) ${url.split("?")[0].replace(/\/by-puuid.*/, "")}. Riot API 키가 거부됐어요 (${res.status}). 개발용 키는 24시간마다 만료되니 새로 발급해서 시크릿을 바꿔 주세요.`);
       process.exit(1);
     }
     if (res.status === 404) return null;
