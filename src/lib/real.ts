@@ -107,6 +107,15 @@ export function loadRealData(filter: Filter): Map<string, PatchData> {
   return out;
 }
 
+// 서버에 실제 수집 데이터가 하나라도 있는지만 가볍게 확인합니다 (JSON을 읽지 않아서 모든 페이지에서 써도 빨라요)
+export function hasRealData(server: Filter["server"]) {
+  const dir = path.join(ROOT, server);
+  if (!fs.existsSync(dir)) return false;
+  return fs
+    .readdirSync(dir, { withFileTypes: true })
+    .some((e) => e.isDirectory() && fs.readdirSync(path.join(dir, e.name)).some((f) => f.endsWith(".json")));
+}
+
 export function realChamp(
   data: PatchData,
   champ: Champion,

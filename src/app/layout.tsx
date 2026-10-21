@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getPatches } from "@/lib/ddragon";
-import { statsSource } from "@/lib/stats";
+import { hasRealData } from "@/lib/real";
 import { getLang, getServer } from "@/lib/server";
 import { dict } from "@/lib/i18n";
 import ServerSelect from "@/components/ServerSelect";
@@ -27,9 +26,7 @@ export default async function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   const [server, lang] = await Promise.all([getServer(), getLang()]);
   const t = dict(lang);
-  const source = await getPatches()
-    .then((p) => statsSource(p, { server, rank: "all" }).source)
-    .catch(() => "mock" as const);
+  const source = hasRealData(server) ? ("real" as const) : ("mock" as const);
   return (
     <html lang={lang}>
       <body className="min-h-screen antialiased">
