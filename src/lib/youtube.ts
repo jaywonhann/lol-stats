@@ -43,10 +43,10 @@ const BUILD_WORDS: Record<Lang, RegExp> = {
   en: /build|items?\b|runes?\b|guide|broken|\bop\b|meta|one ?shot/i,
 };
 
-async function get(url: string): Promise<string | null> {
+async function get(url: string, revalidate = REVALIDATE): Promise<string | null> {
   try {
     const res = await fetch(url, {
-      next: { revalidate: REVALIDATE },
+      next: { revalidate },
       headers: { "Accept-Language": "en-US,en;q=0.8" },
       signal: AbortSignal.timeout(8000),
     });
@@ -105,14 +105,18 @@ function parseFeed(xml: string): Video[] {
   });
 }
 
-async function pool(lang: Lang): Promise<Video[]> {
-  const ids = [
+async function channelIds(lang: Lang) {
+  return [
     ...new Set(
       (await Promise.all(SEEDS[lang].map((s) => channelOf(s.id)))).filter(
         (x): x is string => !!x,
       ),
     ),
   ];
+}
+
+async function pool(lang: Lang): Promise<Video[]> {
+  const ids = await channelIds(lang);
   const feeds = await Promise.all(
     ids.map((id) => get(`${BASE}/feeds/videos.xml?channel_id=${id}`)),
   );
@@ -139,4 +143,33 @@ export async function hotBuildVideos(lang: Lang, n = 4): Promise<Video[]> {
       out.push({ ...s, channel: "", views: null, published: null });
   }
   return out;
+}
+
+export type LiveStream = { id: string; title: string; channel: string };
+
+/** 지금 생방송 중인 롤 채널 (채널의 /live 페이지가 생방송 영상으로 이어지는지 확인, 5분 캐시) */
+export async function liveStreams(lang: Lang): Promise<LiveStream[]> {
+  const ids = await channelIds(lang);
+  const pages = await Promise.all(ids.map((id) => get(`${BASE}/channel/${id}/live`, 300)));
+  return pages.flatMap((html) => {
+    if (!html || !/"isLiveNow":true/.test(html)) return [];
+    const id = html.match(/<link rel="canonical" href="https:\/\/www\.youtube\.com\/watch\?v=([\w-]{11})"/)?.[1];
+    if (!id) return [];
+    const title = unescape(html.match(/<meta property="og:title" content="([^"]*)"/)?.[1] ?? "");
+    const channel = unescape(html.match(/"ownerChannelName":"([^"]*)"/)?.[1] ?? "");
+    return [{ id, title, channel }];
+  });
+}
+
+/** 롤 채널들의 최근 영상 (최근 14일, 쇼츠 제외, 최신 순) */
+export async function recentVideos(lang: Lang, n = 6): Promise<Video[]> {
+  const ids = await channelIds(lang);
+  const feeds = await Promise.all(ids.map((id) => get(`${BASE}/feeds/videos.xml?channel_id=${id}`)));
+  const cutoff = Date.now() - 14 * 86400_000;
+  return feeds
+    .flatMap((x) => (x ? parseFeed(x) : []))
+    .filter((v) => !/#shorts/i.test(v.title) && v.published && Date.parse(v.published) >= cutoff)
+    .sort((a, b) => Date.parse(b.published!) - Date.parse(a.published!))
+    .filter((v, i, all) => all.findIndex((x) => x.id === v.id) === i)
+    .slice(0, n);
 }
