@@ -161,7 +161,7 @@ export async function liveStreams(lang: Lang): Promise<LiveStream[]> {
   });
 }
 
-/** 롤 채널들의 최근 영상 (최근 14일, 쇼츠 제외, 최신 순) */
+/** 롤 채널들의 최근 영상 (최근 14일, 쇼츠 제외, 조회수 높은 순) */
 export async function recentVideos(lang: Lang, n = 6): Promise<Video[]> {
   const ids = await channelIds(lang);
   const feeds = await Promise.all(ids.map((id) => get(`${BASE}/feeds/videos.xml?channel_id=${id}`)));
@@ -169,7 +169,7 @@ export async function recentVideos(lang: Lang, n = 6): Promise<Video[]> {
   return feeds
     .flatMap((x) => (x ? parseFeed(x) : []))
     .filter((v) => !/#shorts/i.test(v.title) && v.published && Date.parse(v.published) >= cutoff)
-    .sort((a, b) => Date.parse(b.published!) - Date.parse(a.published!))
+    .sort((a, b) => (b.views ?? 0) - (a.views ?? 0))
     .filter((v, i, all) => all.findIndex((x) => x.id === v.id) === i)
     .slice(0, n);
 }
