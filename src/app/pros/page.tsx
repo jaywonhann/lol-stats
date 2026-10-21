@@ -11,7 +11,7 @@ import { getLang } from "@/lib/server";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getLang()) === "ko" ? "지금 프로 게임" : "Pros in game" };
+  return { title: (await getLang()) === "ko" ? "프로 핫한 클립" : "Hot pro clips" };
 }
 
 export default async function ProsPage() {
@@ -29,12 +29,28 @@ export default async function ProsPage() {
   );
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">{ko ? "지금 프로가 하는 게임" : "Pros in game right now"}</h1>
+      <h1 className="text-2xl font-bold">{ko ? "프로 핫한 클립" : "Hot pro clips"}</h1>
       <p className="text-sm text-muted">
         {ko
-          ? "프로 선수와 스트리머, 챌린저 계정 중 지금 게임 중인 사람이에요. 이름을 누르면 최근 전적을 볼 수 있어요."
-          : "Pro players, streamers and Challengers who are in a game now. Tap a name to see recent games."}
+          ? "요즘 조회수 높은 롤 영상과 지금 하는 유튜브 라이브, 그리고 프로·스트리머의 최근 전적을 모았어요."
+          : "Popular League videos, live YouTube streams, and recent games from pros and streamers."}
       </p>
+
+      {videos.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-lg font-bold">{ko ? "요즘 핫한 클립" : "Hot clips"}</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {videos.map((v) => (
+              <VideoCard
+                key={v.id}
+                id={v.id}
+                title={v.title}
+                meta={[v.channel, v.views !== null ? `${v.views.toLocaleString()} ${ko ? "회" : "views"}` : ""].filter(Boolean).join(" · ")}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="space-y-2">
         <h2 className="flex items-center gap-2 text-lg font-bold">
@@ -62,21 +78,6 @@ export default async function ProsPage() {
         </a>
       </section>
 
-      {videos.length > 0 && (
-        <section className="space-y-2">
-          <h2 className="text-lg font-bold">{ko ? "최근 올라온 영상" : "Latest videos"}</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {videos.map((v) => (
-              <VideoCard
-                key={v.id}
-                id={v.id}
-                title={v.title}
-                meta={[v.channel, v.views !== null ? `${v.views.toLocaleString()} ${ko ? "회" : "views"}` : ""].filter(Boolean).join(" · ")}
-              />
-            ))}
-          </div>
-        </section>
-      )}
 
       <h2 className="text-lg font-bold">{ko ? "지금 게임 중인 프로" : "Pros in a game now"}</h2>
       <ProsLive champs={champs} ko={ko} />
