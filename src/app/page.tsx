@@ -4,9 +4,11 @@ import LiveChampions from "@/components/LiveChampions";
 import VideoCard from "@/components/VideoCard";
 import ChampionSearch from "@/components/ChampionSearch";
 import SummonerSearch from "@/components/SummonerSearch";
-import { Icon, Panel, TierBadge, WinRate } from "@/components/ui";
+import { Icon, Panel, TierBadge, WinRate, pct } from "@/components/ui";
 import { Sparkline } from "@/components/charts";
-import { getChampions, getPatches, img } from "@/lib/ddragon";
+import { getChampions, getItems, getPatches, getRuneTrees, getSummonerSpells, img } from "@/lib/ddragon";
+import BuildIcons from "@/components/BuildIcons";
+import { quickBuild, realChamp } from "@/lib/real";
 import { ddLocale, dict, numLocale, type Lang } from "@/lib/i18n";
 import { LANES, laneLabel, serverLabel } from "@/lib/lanes";
 import { boards, movers } from "@/lib/stats";
@@ -34,7 +36,7 @@ export default async function Home() {
   const altName = new Map(altChampions.map((c) => [c.id, c.name]));
   const filter = { server, rank: "all" as const };
   // 새 패치에 아직 게임이 모자라면, 데이터가 있는 가장 최근 패치를 표시
-  const shown = boards(champions, "mid", filter, patches).patches;
+  const { patches: shown, real: realData } = boards(champions, "mid", filter, patches);
   const patch = shown[shown.length - 1] ?? patches[patches.length - 1];
   const top5 = (lane: (typeof LANES)[number]["id"]) => {
     const b = boards(champions, lane, filter, patches).boards;
@@ -58,6 +60,23 @@ export default async function Home() {
     .filter((p) => p.rows.length > 0)
     .map((p) => ({ lane: p.lane, s: p.rows[0] }))
     .sort((a, b) => b.s.winRate - a.s.winRate)[0];
+  // "지금 뜨는 빌드": 라인별 상위 픽 중 메타 점수가 높은 챔피언과 그 챔피언의 대표 룬·스펠·코어템
+  const [items, trees, spells] = await Promise.all([
+    getItems(version, ddLocale(lang)),
+    getRuneTrees(version, ddLocale(lang)),
+    getSummonerSpells(version, ddLocale(lang)),
+  ]).catch(() => [null, null, null] as const);
+  const hotData = realData.get(patch);
+  const hot = hotData && items && trees && spells
+    ? picks
+        .flatMap((p) => p.rows.slice(0, 2).map((s) => ({ lane: p.lane, s })))
+        .sort((a, b) => b.s.score - a.s.score)
+        .flatMap(({ lane, s }) => {
+          const c = realChamp(hotData, s.champion, lane);
+          return c ? [{ lane, s, qb: quickBuild(c, items, trees, spells) }] : [];
+        })
+        .slice(0, 8)
+    : [];
   const quick = [
     { href: "/tier", label: t.nav.tier },
     { href: "/meta", label: t.nav.meta },
@@ -123,6 +142,42 @@ export default async function Home() {
       <div className="fade-up" style={{ animationDelay: "120ms" }}>
         <LiveChampions server={server} lang={lang} champions={champions} version={version} />
       </div>
+
+      {hot.length > 0 && (
+        <section className="fade-up" style={{ animationDelay: "140ms" }}>
+          <SectionTitle
+            title={lang === "ko" ? `지금 뜨는 빌드 · 패치 ${patch}` : `Hot builds right now · patch ${patch}`}
+            note={lang === "ko" ? "라인별 상위 챔피언이 지금 가장 많이 가는 룬, 스펠, 코어템이에요." : "The runes, spells and core items the top champions in each lane are running."}
+            href="/tier"
+            link={t.viewAll}
+          />
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {hot.map(({ lane, s, qb }) => (
+              <Link
+                key={`${lane}-${s.champion.id}`}
+                href={`/champions/${s.champion.id}?lane=${lane}`}
+                className="lift block rounded-xl border border-line bg-panel p-3"
+              >
+                <div className="flex items-center gap-2">
+                  <Icon src={img.champion(version, s.champion.image.full)} alt={s.champion.name} size={36} />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-semibold">{s.champion.name}</div>
+                    <div className="text-xs text-muted">{laneLabel(lane, lang)}</div>
+                  </div>
+                  <TierBadge tier={s.tier} lang={lang} />
+                </div>
+                <div className="mt-2 flex items-center justify-between text-xs">
+                  <span className="text-muted">{t.winRate} <WinRate value={s.winRate} /></span>
+                  <span className="text-muted">{t.pickRate} {pct(s.pickRate)}</span>
+                </div>
+                <div className="mt-2">
+                  <BuildIcons qb={qb} version={version} size={24} />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="fade-up" style={{ animationDelay: "160ms" }}>
         <SectionTitle title={t.bestPicksTitle} href="/tier" link={t.viewAll} />

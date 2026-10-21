@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Icon, Tabs, TierBadge, WinRate, pct } from "@/components/ui";
-import { getChampions, getPatches, img } from "@/lib/ddragon";
+import { getChampions, getItems, getPatches, getRuneTrees, getSummonerSpells, img } from "@/lib/ddragon";
+import BuildIcons from "@/components/BuildIcons";
+import { quickBuild, realChamp } from "@/lib/real";
 import {
   LANES,
   RANKS,
@@ -47,6 +49,22 @@ export default async function TierPage({ searchParams }: Props) {
   const patch =
     params.patch && patches.includes(params.patch) ? params.patch : latest;
   const rows = bs[patches.indexOf(patch)];
+  // 표 오른쪽에 "지금 이 챔피언이 가는 룬·스펠·코어템"을 같이 보여줍니다 (lol.ps처럼 한 줄에 다 보이게)
+  const [items, trees, spells] =
+    source === "real"
+      ? await Promise.all([
+          getItems(version, ddLocale(lang)),
+          getRuneTrees(version, ddLocale(lang)),
+          getSummonerSpells(version, ddLocale(lang)),
+        ]).catch(() => [null, null, null] as const)
+      : ([null, null, null] as const);
+  const quick = new Map(
+    rows.flatMap((s) => {
+      const d = real.get(patch);
+      const c = d && items && trees && spells ? realChamp(d, s.champion, lane) : null;
+      return c && items && trees && spells ? [[s.champion.id, quickBuild(c, items, trees, spells)] as const] : [];
+    }),
+  );
   const q = (o: { lane?: string; rank?: string; patch?: string }) =>
     `/tier?lane=${o.lane ?? lane}&rank=${o.rank ?? rank}${(o.patch ?? patch) !== latest ? `&patch=${o.patch ?? patch}` : ""}`;
 
@@ -102,12 +120,13 @@ export default async function TierPage({ searchParams }: Props) {
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-line bg-panel">
-        <table className="w-full min-w-[640px] text-sm">
+        <table className="w-full min-w-[900px] text-sm">
           <thead className="border-b border-line text-xs text-muted">
             <tr>
               <th className="px-3 py-2 text-left">{t.rank}</th>
               <th className="px-3 py-2 text-left">{t.champion}</th>
               <th className="px-3 py-2">{t.tierCol}</th>
+              <th className="px-3 py-2 text-left">{lang === "ko" ? "룬 · 스펠 · 코어템" : "Runes · Spells · Core items"}</th>
               <th className="px-3 py-2 text-right">{t.metaScore}</th>
               <th className="px-3 py-2 text-right">{t.winRate}</th>
               <th className="px-3 py-2 text-right">{t.pickRate}</th>
@@ -139,6 +158,9 @@ export default async function TierPage({ searchParams }: Props) {
                 </td>
                 <td className="px-3 py-2 text-center">
                   <TierBadge tier={s.tier} lang={lang} />
+                </td>
+                <td className="px-3 py-2">
+                  {quick.get(s.champion.id) && <BuildIcons qb={quick.get(s.champion.id)!} version={version} size={26} />}
                 </td>
                 <td className="px-3 py-2 text-right font-semibold">
                   {s.score.toFixed(1)}

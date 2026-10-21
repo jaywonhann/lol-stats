@@ -355,3 +355,13 @@ export function realShards(c: ChampAgg): number[] | null {
   const ids = top[0].split(",").map(Number);
   return ids.length === 3 && ids.every(Number.isFinite) ? ids : null;
 }
+
+// 표나 카드에서 한눈에 보여줄 요약 빌드: 대표 핵심 룬, 보조 룬 계열, 스펠, 코어템 3개
+export function quickBuild(c: ChampAgg, items: Item[], trees: RuneTree[], spells: SummonerSpell[]) {
+  const b = realBuild(c, items, trees, spells);
+  const page = b.runes[0]?.value;
+  const keystone = page ? page.primary.slots[0]?.runes.find((r) => r.id === page.keystone) : undefined;
+  const core = (realCorePath(c, items).builds[0]?.value ?? b.core[0]?.value ?? []).slice(0, 3);
+  return { keystone, secondary: page?.secondary, spells: b.spells[0]?.value ?? [], core };
+}
+export type QuickBuild = ReturnType<typeof quickBuild>;
