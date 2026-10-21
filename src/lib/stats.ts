@@ -16,8 +16,8 @@ export type Source = "real" | "mock";
 export function statsSource(patches: string[], filter: Filter) {
   const real = loadRealData(filter);
   const realPatches = patches.filter((p) => real.has(p));
-  const latest = patches[patches.length - 1];
-  if (real.has(latest))
+  // 새 패치가 막 시작돼 아직 게임이 모자라면, 데이터가 있는 가장 최근 패치를 그대로 보여줍니다 (가짜 데이터로 바꾸지 않음)
+  if (realPatches.length > 0)
     return { source: "real" as const, patches: realPatches, real };
   return { source: "mock" as const, patches, real };
 }

@@ -33,7 +33,9 @@ export default async function Home() {
   const nf = new Intl.NumberFormat(numLocale(lang), { notation: "compact" });
   const altName = new Map(altChampions.map((c) => [c.id, c.name]));
   const filter = { server, rank: "all" as const };
-  const patch = patches[patches.length - 1];
+  // 새 패치에 아직 게임이 모자라면, 데이터가 있는 가장 최근 패치를 표시
+  const shown = boards(champions, "mid", filter, patches).patches;
+  const patch = shown[shown.length - 1] ?? patches[patches.length - 1];
   const top5 = (lane: (typeof LANES)[number]["id"]) => {
     const b = boards(champions, lane, filter, patches).boards;
     return b[b.length - 1].slice(0, 5);
