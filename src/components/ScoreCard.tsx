@@ -20,6 +20,11 @@ const T = {
     recent: (n: number) => `최근 ${n}게임 · 최신이 왼쪽`,
     note: "딜량·킬관여·생존·시야·성장을 그 판 10명과 비교해 계산한 자체 지표예요 (공식 지표 아님). 서포터·정글은 역할에 맞게 가중치를 달리합니다.",
     axes: { dmg: "딜량", kp: "킬관여", survive: "생존", vision: "시야", growth: "성장" } as Record<Axis, string>,
+    realTitle: "실제 수치 (Riot 기록 평균)",
+    dmgShare: "팀 내 딜량 비중", goldShare: "팀 내 골드 비중", kp: "킬관여율", kda: "KDA",
+    vis: "분당 시야점수", cs: "분당 CS",
+    cs10: "10분 CS 차이 (상대 라이너 대비)", g15: "15분 골드 차이 (상대 라이너 대비)",
+    tlNote: (n: number) => `라인전 수치는 타임라인이 있는 최근 ${n}게임 기준`,
     win: "승",
     loss: "패",
   },
@@ -39,6 +44,11 @@ const T = {
     recent: (n: number) => `Last ${n} games · newest on the left`,
     note: "Our own metric: damage, kill participation, survival, vision and growth compared with the other 9 players in each game (not an official stat). Support and jungle use different weights.",
     axes: { dmg: "Damage", kp: "Kill part.", survive: "Survival", vision: "Vision", growth: "Growth" } as Record<Axis, string>,
+    realTitle: "Real numbers (average from Riot records)",
+    dmgShare: "Team damage share", goldShare: "Team gold share", kp: "Kill participation", kda: "KDA",
+    vis: "Vision score / min", cs: "CS / min",
+    cs10: "CS diff @10 vs lane opponent", g15: "Gold diff @15 vs lane opponent",
+    tlNote: (n: number) => `Laning numbers use the last ${n} games with timelines`,
     win: "W",
     loss: "L",
   },
@@ -78,7 +88,7 @@ export default function ScoreCard({ report, lang }: { report: ScoreReport; lang:
   const t = lang === "ko" ? T.ko : T.en;
   const luckText = report.luck >= 55 ? t.luckGood : report.luck <= 45 ? t.luckBad : t.luckMid;
   return (
-    <Panel title={`${t.title}`}>
+    <Panel title={t.title}>
       <div className="grid gap-6 md:grid-cols-[1fr_1fr]">
         <div className="space-y-4">
           <div className="grid grid-cols-3 gap-3 text-center">
@@ -111,6 +121,20 @@ export default function ScoreCard({ report, lang }: { report: ScoreReport; lang:
         </div>
         <Radar values={report.radar} labels={t.axes} />
       </div>
+      <div className="mt-5">
+        <div className="mb-2 text-sm font-semibold">{t.realTitle}</div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <Real label={t.dmgShare} value={`${report.real.dmgShare.toFixed(1)}%`} />
+          <Real label={t.goldShare} value={`${report.real.goldShare.toFixed(1)}%`} />
+          <Real label={t.kp} value={`${report.real.kp.toFixed(0)}%`} />
+          <Real label={t.kda} value={report.real.kda.toFixed(2)} />
+          <Real label={t.vis} value={report.real.visionPerMin.toFixed(2)} />
+          <Real label={t.cs} value={report.real.csPerMin.toFixed(1)} />
+          {report.real.csDiff10 !== null && <Real label={t.cs10} value={signed(report.real.csDiff10, 1)} tone />}
+          {report.real.goldDiff15 !== null && <Real label={t.g15} value={signed(report.real.goldDiff15, 0)} tone />}
+        </div>
+        {report.real.timelineGames > 0 && <p className="mt-2 text-xs text-muted">{t.tlNote(report.real.timelineGames)}</p>}
+      </div>
       <p className="mt-4 text-xs text-muted">
         {t.own} · {t.note}
       </p>
@@ -124,6 +148,18 @@ function Stat({ label, value, sub }: { label: string; value: string; sub: string
       <div className="text-xs text-muted">{label}</div>
       <div className="text-2xl font-bold">{value}</div>
       <div className="text-[11px] leading-tight text-muted">{sub}</div>
+    </div>
+  );
+}
+
+const signed = (v: number, d: number) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(d)}`;
+
+function Real({ label, value, tone }: { label: string; value: string; tone?: boolean }) {
+  const color = tone ? (value.startsWith("+") ? "var(--chart-up)" : "var(--chart-down)") : undefined;
+  return (
+    <div className="rounded-lg border border-line p-2">
+      <div className="text-[11px] leading-tight text-muted">{label}</div>
+      <div className="text-lg font-bold" style={{ color }}>{value}</div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 // 인분 점수 · 팀운 · 캐리력 (자체 계산식, 외부 호출 없음)
 // 한 판의 10명을 같은 기준으로 비교해 "평균 선수 = 1.0인분"으로 환산합니다.
-import type { Match, Participant } from "./riot";
+import type { Match, Participant, Timeline } from "./riot";
 
 export const AXES = ["dmg", "kp", "survive", "vision", "growth"] as const;
 export type Axis = (typeof AXES)[number];
@@ -53,7 +53,22 @@ export type GameScore = {
   luck: number; // 아군 평균 인분 - 상대 평균 인분
 };
 
+// Riot이 준 값을 그대로 계산한 실제 수치 (최근 게임 평균)
+export type RealStats = {
+  dmgShare: number; // 팀 내 딜량 비중 %
+  goldShare: number; // 팀 내 골드 비중 %
+  kp: number; // 킬관여 %
+  kda: number;
+  visionPerMin: number;
+  csPerMin: number;
+  // 같은 포지션 상대와의 차이 (타임라인이 있는 게임만)
+  csDiff10: number | null;
+  goldDiff15: number | null;
+  timelineGames: number;
+};
+
 export type ScoreReport = {
+  real: RealStats;
   games: GameScore[];
   avgInbun: number;
   luck: number; // 0~100, 50 = 평균 팀운
@@ -64,7 +79,18 @@ export type ScoreReport = {
   weakWins: number; // 이겼지만 0.8인분 미만 (버스 탄 판)
 };
 
-export function scoreReport(matches: Match[], puuid: string): ScoreReport | null {
+function frameAt(tl: Timeline, puuid: string, minute: number) {
+  const id = tl.info.participants.find((p) => p.puuid === puuid)?.participantId;
+  const f = tl.info.frames[minute]?.participantFrames[String(id)];
+  return f ? { gold: f.totalGold, cs: f.minionsKilled + f.jungleMinionsKilled } : null;
+}
+
+export function scoreReport(
+  matches: Match[],
+  puuid: string,
+  timelines: Record<string, Timeline> = {},
+): ScoreReport | null {
+  const real = { dmg: [] as number[], gold: [] as number[], kp: [] as number[], kda: [] as number[], vis: [] as number[], cs: [] as number[], cs10: [] as number[], g15: [] as number[] };
   const games: GameScore[] = [];
   const radarSum = Object.fromEntries(AXES.map((a) => [a, [] as number[]])) as Record<Axis, number[]>;
   for (const m of matches) {
@@ -84,6 +110,27 @@ export function scoreReport(matches: Match[], puuid: string): ScoreReport | null
       luck: mean(mates.map((r) => r.inbun)) - mean(foes.map((r) => r.inbun)),
     });
     for (const a of AXES) radarSum[a].push(me.axes[a]);
+    const ps = m.info.participants;
+    const mp = ps.find((p) => p.puuid === puuid)!;
+    const team = ps.filter((p) => p.teamId === mp.teamId);
+    const sum = (f: (p: Participant) => number) => team.reduce((s, p) => s + f(p), 0);
+    const min = m.info.gameDuration / 60;
+    real.dmg.push((mp.totalDamageDealtToChampions / (sum((p) => p.totalDamageDealtToChampions) || 1)) * 100);
+    real.gold.push((mp.goldEarned / (sum((p) => p.goldEarned) || 1)) * 100);
+    real.kp.push(((mp.kills + mp.assists) / (sum((p) => p.kills) || 1)) * 100);
+    real.kda.push((mp.kills + mp.assists) / Math.max(1, mp.deaths));
+    real.vis.push(mp.visionScore / min);
+    real.cs.push((mp.totalMinionsKilled + mp.neutralMinionsKilled) / min);
+    const tl = timelines[m.metadata.matchId];
+    const opp = mp.teamPosition
+      ? ps.find((p) => p.teamId !== mp.teamId && p.teamPosition === mp.teamPosition)
+      : undefined;
+    if (tl && opp) {
+      const a10 = frameAt(tl, puuid, 10), b10 = frameAt(tl, opp.puuid, 10);
+      const a15 = frameAt(tl, puuid, 15), b15 = frameAt(tl, opp.puuid, 15);
+      if (a10 && b10) real.cs10.push(a10.cs - b10.cs);
+      if (a15 && b15) real.g15.push(a15.gold - b15.gold);
+    }
   }
   if (!games.length) return null;
   const avgInbun = mean(games.map((g) => g.inbun));
@@ -93,6 +140,17 @@ export function scoreReport(matches: Match[], puuid: string): ScoreReport | null
   // 캐리력: 평균 인분을 0~100으로 환산 (1.0인분 = 50점)
   const carry = Math.round(clamp(50 + (avgInbun - 1) * 100, 5, 100));
   return {
+    real: {
+      dmgShare: mean(real.dmg),
+      goldShare: mean(real.gold),
+      kp: mean(real.kp),
+      kda: mean(real.kda),
+      visionPerMin: mean(real.vis),
+      csPerMin: mean(real.cs),
+      csDiff10: real.cs10.length ? mean(real.cs10) : null,
+      goldDiff15: real.g15.length ? mean(real.g15) : null,
+      timelineGames: Math.max(real.cs10.length, real.g15.length),
+    },
     games,
     avgInbun,
     luckRaw,

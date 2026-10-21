@@ -207,7 +207,7 @@ function Analysis({
   const lanes = laneDiffs(games);
   const sw = strengthsWeaknesses(lanes.diffs);
   const f = form(games);
-  const score = scoreReport(result.matches, account.puuid);
+  const score = scoreReport(result.matches, account.puuid, result.timelines);
   const mainLane = roleList[0]?.lane ?? null;
   const laneName = (l: Lane) => laneLabel(l, lang);
   const total = games.length;

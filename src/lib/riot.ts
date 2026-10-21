@@ -105,7 +105,17 @@ export type Match = {
   };
 };
 
+export type Timeline = {
+  info: {
+    participants: { participantId: number; puuid: string }[];
+    frames: {
+      participantFrames: Record<string, { totalGold: number; minionsKilled: number; jungleMinionsKilled: number }>;
+    }[];
+  };
+};
+
 export type Lookup = {
+  timelines: Record<string, Timeline>; // 최근 일부 게임만 (실패하면 비어 있음)
   account: Account;
   profile: SummonerProfile | null;
   solo: LeagueEntry | null;
@@ -161,7 +171,17 @@ export async function lookupSummoner(
   const matches = await pool(ids.slice(0, count), 5, (id) =>
     get<Match>(region, `/lol/match/v5/matches/${encodeURIComponent(id)}`, LONG).catch(() => null),
   );
+  // 라인전 수치용 타임라인은 최근 10게임만 (호출 수를 아끼려고), 실패해도 무시
+  const recent = matches.filter((m): m is Match => m !== null).slice(0, 10);
+  const tl = await pool(recent, 5, (m) =>
+    get<Timeline>(region, `/lol/match/v5/matches/${encodeURIComponent(m.metadata.matchId)}/timeline`, LONG).catch(() => null),
+  );
+  const timelines: Record<string, Timeline> = {};
+  recent.forEach((m, i) => {
+    if (tl[i]) timelines[m.metadata.matchId] = tl[i]!;
+  });
   return {
+    timelines,
     account,
     profile,
     solo: entries?.find((e) => e.queueType === "RANKED_SOLO_5x5") ?? null,
