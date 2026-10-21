@@ -5,6 +5,8 @@ import { DivergingBars } from "@/components/charts";
 import TierEmblem from "@/components/TierEmblem";
 import UpdateButton from "@/components/UpdateButton";
 import FormChart from "@/components/FormChart";
+import ScoreCard from "@/components/ScoreCard";
+import { scoreReport } from "@/lib/score";
 import SummonerSearch from "@/components/SummonerSearch";
 import { getChampions, getPatches, getVersion, img, type Champion } from "@/lib/ddragon";
 import { ddLocale, dict, numLocale, timeAgo, type Lang } from "@/lib/i18n";
@@ -205,6 +207,7 @@ function Analysis({
   const lanes = laneDiffs(games);
   const sw = strengthsWeaknesses(lanes.diffs);
   const f = form(games);
+  const score = scoreReport(result.matches, account.puuid);
   const mainLane = roleList[0]?.lane ?? null;
   const laneName = (l: Lane) => laneLabel(l, lang);
   const total = games.length;
@@ -496,6 +499,8 @@ function Analysis({
           </ul>
         </Panel>
       </div>
+
+      {score && <ScoreCard report={score} lang={lang} />}
 
       <Panel title={t.laneVs}>
         {lanes.games === 0 ? (
