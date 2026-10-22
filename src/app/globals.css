@@ -100,3 +100,15 @@ body {
   .nav-link, .nav-link::after, .nav-logo { transition: none; }
   .nav-link:hover, .nav-logo:hover { transform: none; }
 }
+
+@keyframes hex-grow {
+  from { transform: scale(0.15); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.hex-grow {
+  transform-origin: 110px 110px;
+  animation: hex-grow 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hex-grow { animation: none; }
+}

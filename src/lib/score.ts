@@ -50,6 +50,7 @@ export type GameScore = {
   win: boolean;
   championName: string;
   inbun: number; // 1.0 = 평균
+  axes: Record<Axis, number>; // 1.0 = 평균
   luck: number; // 아군 평균 인분 - 상대 평균 인분
 };
 
@@ -107,6 +108,7 @@ export function scoreReport(
       win,
       championName: champ,
       inbun: me.inbun,
+      axes: me.axes,
       luck: mean(mates.map((r) => r.inbun)) - mean(foes.map((r) => r.inbun)),
     });
     for (const a of AXES) radarSum[a].push(me.axes[a]);

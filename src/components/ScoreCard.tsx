@@ -1,6 +1,6 @@
 // 인분 · 팀운 · 캐리력 패널 (서버 렌더, 자체 계산식)
 import { Panel } from "@/components/ui";
-import { AXES, type Axis, type ScoreReport } from "@/lib/score";
+import type { Axis, ScoreReport } from "@/lib/score";
 import type { Lang } from "@/lib/i18n";
 
 const T = {
@@ -54,42 +54,12 @@ const T = {
   },
 };
 
-function Radar({ values, labels }: { values: Record<Axis, number>; labels: Record<Axis, string> }) {
-  const c = 110;
-  const r = 78;
-  const pt = (i: number, v: number) => {
-    const a = (-90 + (360 / AXES.length) * i) * (Math.PI / 180);
-    return [c + Math.cos(a) * r * (v / 100), c + Math.sin(a) * r * (v / 100)];
-  };
-  const ring = (v: number) => AXES.map((_, i) => pt(i, v).join(",")).join(" ");
-  const poly = AXES.map((a, i) => pt(i, values[a]).join(",")).join(" ");
-  return (
-    <svg viewBox="0 0 220 220" className="mx-auto w-full max-w-[240px]" role="img" aria-label="radar">
-      {[25, 50, 75, 100].map((v) => (
-        <polygon key={v} points={ring(v)} fill="none" stroke="var(--color-line)" strokeWidth={v === 50 ? 1.5 : 1} />
-      ))}
-      {AXES.map((_, i) => (
-        <line key={i} x1={c} y1={c} x2={pt(i, 100)[0]} y2={pt(i, 100)[1]} stroke="var(--color-line)" />
-      ))}
-      <polygon points={poly} fill="var(--color-accent)" fillOpacity={0.25} stroke="var(--color-accent)" strokeWidth={2} />
-      {AXES.map((a, i) => {
-        const [x, y] = pt(i, 122);
-        return (
-          <text key={a} x={x} y={y} textAnchor="middle" dominantBaseline="middle" fontSize="11" fill="var(--color-text)">
-            {labels[a]} {values[a]}
-          </text>
-        );
-      })}
-    </svg>
-  );
-}
-
 export default function ScoreCard({ report, lang }: { report: ScoreReport; lang: Lang }) {
   const t = lang === "ko" ? T.ko : T.en;
   const luckText = report.luck >= 55 ? t.luckGood : report.luck <= 45 ? t.luckBad : t.luckMid;
   return (
     <Panel title={t.title}>
-      <div className="grid gap-6 md:grid-cols-[1fr_1fr]">
+      <div>
         <div className="space-y-4">
           <div className="grid grid-cols-3 gap-3 text-center">
             <Stat label={t.inbun} value={report.avgInbun.toFixed(2)} sub={t.inbunSub} />
@@ -119,7 +89,6 @@ export default function ScoreCard({ report, lang }: { report: ScoreReport; lang:
             </div>
           </div>
         </div>
-        <Radar values={report.radar} labels={t.axes} />
       </div>
       <div className="mt-5">
         <div className="mb-2 text-sm font-semibold">{t.realTitle}</div>

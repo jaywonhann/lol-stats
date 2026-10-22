@@ -6,6 +6,8 @@ import TierEmblem from "@/components/TierEmblem";
 import UpdateButton from "@/components/UpdateButton";
 import FormChart from "@/components/FormChart";
 import ScoreCard from "@/components/ScoreCard";
+import GrowthCard from "@/components/GrowthCard";
+import { growth } from "@/lib/growth";
 import { scoreReport } from "@/lib/score";
 import SummonerSearch from "@/components/SummonerSearch";
 import { getChampions, getPatches, getVersion, img, type Champion } from "@/lib/ddragon";
@@ -365,6 +367,8 @@ function Analysis({
         <p>{t.analyzed(total, result.matchIds)}</p>
         {tagNote}
       </div>
+
+      {score && <GrowthCard g={growth(score)} lang={lang} />}
 
       <div className="grid gap-4 md:grid-cols-2">
         <Panel title={t.summary}>
