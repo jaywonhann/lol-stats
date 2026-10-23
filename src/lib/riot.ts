@@ -123,7 +123,10 @@ export type Timeline = {
   };
 };
 
+export type Mastery = { championId: number; championLevel: number; championPoints: number; lastPlayTime?: number };
+
 export type Lookup = {
+  mastery: Mastery[];
   timelines: Record<string, Timeline>; // 최근 일부 게임만 (실패하면 비어 있음)
   account: Account;
   profile: SummonerProfile | null;
@@ -172,10 +175,11 @@ export async function lookupSummoner(
       if (e instanceof RiotError && e.kind !== "not-found" && e.kind !== "error") throw e;
       return null;
     });
-  const [entries, profile, ids] = await Promise.all([
+  const [entries, profile, ids, mastery] = await Promise.all([
     soft(get<LeagueEntry[]>(server, `/lol/league/v4/entries/by-puuid/${puuid}`, SHORT, tags)),
     soft(get<SummonerProfile>(server, `/lol/summoner/v4/summoners/by-puuid/${puuid}`, SHORT, tags)),
     get<string[]>(region, `/lol/match/v5/matches/by-puuid/${puuid}/ids?queue=420&start=0&count=${count}`, SHORT, tags),
+    soft(get<Mastery[]>(server, `/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}/top?count=5`, SHORT, tags)),
   ]);
   const matches = await pool(ids.slice(0, count), 5, (id) =>
     get<Match>(region, `/lol/match/v5/matches/${encodeURIComponent(id)}`, LONG).catch(() => null),
@@ -190,6 +194,7 @@ export async function lookupSummoner(
     if (tl[i]) timelines[m.metadata.matchId] = tl[i]!;
   });
   return {
+    mastery: mastery ?? [],
     timelines,
     account,
     profile,

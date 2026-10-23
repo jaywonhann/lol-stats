@@ -413,6 +413,28 @@ function Analysis({
         </Panel>
       </div>
 
+      {result.mastery.length > 0 && (
+        <Panel title={lang === "ko" ? "챔피언 숙련도 TOP 5" : "Top 5 champion mastery"}>
+          <ul className="grid gap-2 sm:grid-cols-5">
+            {result.mastery.map((m) => {
+              const c = champions.find((x) => x.key === String(m.championId));
+              return (
+                <li key={m.championId} className="flex items-center gap-3 rounded-lg border border-line bg-panel-2 p-3 sm:flex-col sm:text-center">
+                  {version && c && <Icon src={img.champion(version, c.image.full)} alt={c.name} size={44} className="rounded-lg" />}
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">{c?.name ?? m.championId}</p>
+                    <p className="text-xs text-muted">
+                      {lang === "ko" ? `숙련도 ${m.championLevel}레벨` : `Mastery ${m.championLevel}`}
+                    </p>
+                    <p className="text-sm font-bold text-accent">{m.championPoints.toLocaleString(nl)}</p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </Panel>
+      )}
+
       <MatchList matches={result.matches} puuid={account.puuid} version={version} champions={champions} lang={lang} />
 
       <Panel title={t.form}>
