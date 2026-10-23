@@ -91,6 +91,15 @@ export type Participant = {
   totalDamageDealtToChampions: number;
   visionScore: number;
   gameEndedInEarlySurrender?: boolean;
+  riotIdGameName?: string;
+  riotIdTagline?: string;
+  item0?: number;
+  item1?: number;
+  item2?: number;
+  item3?: number;
+  item4?: number;
+  item5?: number;
+  item6?: number;
 };
 
 export type Match = {

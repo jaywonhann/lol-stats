@@ -8,6 +8,7 @@ import FormChart from "@/components/FormChart";
 import ScoreCard from "@/components/ScoreCard";
 import GrowthCard from "@/components/GrowthCard";
 import ProMatch from "@/components/ProMatch";
+import MatchList from "@/components/MatchList";
 import { growth } from "@/lib/growth";
 import { scoreReport } from "@/lib/score";
 import SummonerSearch from "@/components/SummonerSearch";
@@ -411,6 +412,8 @@ function Analysis({
           </ol>
         </Panel>
       </div>
+
+      <MatchList matches={result.matches} puuid={account.puuid} version={version} champions={champions} lang={lang} />
 
       <Panel title={t.form}>
         <div className="mb-4 grid grid-cols-3 gap-2 text-center">
