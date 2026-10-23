@@ -35,6 +35,7 @@ export default async function RootLayout({
         <header className="z-30 sm:sticky sm:top-0 border-b border-line bg-panel/85 backdrop-blur">
           <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 whitespace-nowrap px-4 py-3 sm:gap-x-6">
             <Link href="/" className="nav-logo text-xl font-extrabold tracking-tight">
+              <img src="/icon-192.png" alt="" width={28} height={28} className="mr-2 inline-block h-7 w-7 align-[-6px]" />
               live<span className="text-accent">lol</span>.stats
             </Link>
             <LiveBadge />
