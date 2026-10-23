@@ -214,6 +214,21 @@ for (const server of Object.keys(SERVERS)) {
 }
 console.log(`${people.length}명 확인`);
 
+// 플레이 스타일(분당 수치) — 사이트에서 "어떤 프로와 닮았는지" 비교할 때 쓰는 값
+function style(match, me) {
+  const min = match.info.gameDuration / 60;
+  const tk = match.info.participants.filter((x) => x.teamId === me.teamId).reduce((a, x) => a + x.kills, 0);
+  const r = (n) => Math.round(n * 1000) / 1000;
+  return {
+    cs: r((me.totalMinionsKilled + me.neutralMinionsKilled) / min),
+    gold: r(me.goldEarned / min),
+    dmg: r(me.totalDamageDealtToChampions / min),
+    vision: r(me.visionScore / min),
+    kp: r(tk ? (me.kills + me.assists) / tk : 0),
+    deaths: me.deaths,
+  };
+}
+
 let added = 0;
 for (const p of people) {
   const region = SERVERS[p.server];
@@ -252,6 +267,7 @@ for (const p of people) {
       lane: LANE[me.teamPosition] ?? null,
       win: me.win,
       kda: [me.kills, me.deaths, me.assists],
+      st: style(match, me),
       at: match.info.gameEndTimestamp ?? match.info.gameCreation,
       dur: match.info.gameDuration,
       core,

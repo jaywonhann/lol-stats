@@ -7,6 +7,7 @@ import UpdateButton from "@/components/UpdateButton";
 import FormChart from "@/components/FormChart";
 import ScoreCard from "@/components/ScoreCard";
 import GrowthCard from "@/components/GrowthCard";
+import ProMatch from "@/components/ProMatch";
 import { growth } from "@/lib/growth";
 import { scoreReport } from "@/lib/score";
 import SummonerSearch from "@/components/SummonerSearch";
@@ -34,6 +35,7 @@ import {
   strengthsWeaknesses,
   toGames,
   type ChampSummary,
+  type Game,
   type Metric,
 } from "@/lib/summoner";
 
@@ -370,6 +372,16 @@ function Analysis({
 
       {score && <GrowthCard g={growth(score)} lang={lang} />}
 
+      {mainLane && (
+        <ProMatch
+          me={avgStyle(games.filter((g) => g.lane === mainLane))}
+          lane={mainLane}
+          laneName={laneName(mainLane)}
+          who={`${account.gameName}#${account.tagLine}`}
+          lang={lang}
+        />
+      )}
+
       <div className="grid gap-4 md:grid-cols-2">
         <Panel title={t.summary}>
           <ul className="list-disc space-y-2 pl-5 text-sm leading-relaxed marker:text-accent">
@@ -667,4 +679,10 @@ function SwList({
       )}
     </div>
   );
+}
+
+// 라인 게임들의 평균 스타일 (프로 비교용; deaths 는 판당)
+function avgStyle(gs: Game[]) {
+  const mean = (k: Metric) => gs.reduce((a, g) => a + g.me[k], 0) / (gs.length || 1);
+  return { cs: mean("cs"), gold: mean("gold"), dmg: mean("dmg"), vision: mean("vision"), kp: mean("kp"), deaths: mean("deaths") };
 }
