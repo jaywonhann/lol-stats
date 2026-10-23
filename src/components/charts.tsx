@@ -11,7 +11,7 @@ export function Sparkline({ values, width = 96, height = 28 }: { values: (number
   const last = pts[pts.length - 1];
   const color = "var(--color-muted)";
   return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden className="shrink-0">
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden className="line-reveal shrink-0">
       <path d={pts.map((p, k) => `${k ? "L" : "M"}${x(p.i)},${y(p.v)}`).join("")} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
       <circle cx={x(last.i)} cy={y(last.v)} r={3} fill={color} />
     </svg>
@@ -43,14 +43,14 @@ export function DivergingBars({ bars, title, format, wide = false }: { bars: Bar
                 {!up && (
                   <>
                     {label}
-                    <span className="h-3.5 rounded-l-[4px]" style={{ width: pctW, background: "var(--chart-down)" }} />
+                    <span className="bar-grow bar-grow-l h-3.5 rounded-l-[4px]" style={{ width: pctW, background: "var(--chart-down)" }} />
                   </>
                 )}
               </div>
               <div className="flex h-6 items-center gap-2 pl-px">
                 {up && (
                   <>
-                    <span className="h-3.5 rounded-r-[4px]" style={{ width: pctW, background: "var(--chart-up)" }} />
+                    <span className="bar-grow h-3.5 rounded-r-[4px]" style={{ width: pctW, background: "var(--chart-up)" }} />
                     {label}
                   </>
                 )}
@@ -98,10 +98,10 @@ export function WinRateBars({ rows, title, lang }: { rows: WinRateBar[]; title: 
             >
               <span className="flex min-w-0 items-center gap-1 pr-2">{r.label}</span>
               <div className="flex h-8 items-center justify-end border-r border-muted pr-px">
-                {!up && <span className="h-3.5 rounded-l-[4px]" style={{ width: w, background: "var(--chart-down)" }} />}
+                {!up && <span className="bar-grow bar-grow-l h-3.5 rounded-l-[4px]" style={{ width: w, background: "var(--chart-down)" }} />}
               </div>
               <div className="flex h-8 items-center pl-px">
-                {up && <span className="h-3.5 rounded-r-[4px]" style={{ width: w, background: "var(--chart-up)" }} />}
+                {up && <span className="bar-grow h-3.5 rounded-r-[4px]" style={{ width: w, background: "var(--chart-up)" }} />}
               </div>
               <span className="text-right text-xs leading-tight">
                 <span className="text-text">{r.winRate.toFixed(1)}%</span>
@@ -126,7 +126,7 @@ export function StockLine({ values, up, width = 240, height = 56 }: { values: nu
   const line = values.map((v, i) => `${i ? "L" : "M"}${x(i)},${y(v)}`).join("");
   const area = `${line}L${x(values.length - 1)},${height}L${x(0)},${height}Z`;
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="h-14 w-full" preserveAspectRatio="none" aria-hidden>
+    <svg viewBox={`0 0 ${width} ${height}`} className="line-reveal h-14 w-full" preserveAspectRatio="none" aria-hidden>
       <path d={area} fill={color} opacity={0.12} />
       <path d={line} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
     </svg>

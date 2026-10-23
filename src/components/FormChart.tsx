@@ -42,7 +42,7 @@ export default function FormChart({
           <span className="absolute bottom-0 right-0 translate-y-1/2">{fmt(lo + 1)}</span>
         </div>
         <div className="relative h-36">
-          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full overflow-visible" aria-hidden>
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="line-reveal absolute inset-0 h-full w-full overflow-visible" aria-hidden>
             {[hi - 1, lo + 1].map((v) => (
               <line key={v} x1={0} x2={100} y1={((hi - v) / (hi - lo)) * 100} y2={((hi - v) / (hi - lo)) * 100} stroke="var(--chart-grid)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
             ))}

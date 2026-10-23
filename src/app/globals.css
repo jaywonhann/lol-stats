@@ -119,3 +119,26 @@ body {
     display: none;
   }
 }
+
+/* 그래프 등장 애니메이션: 막대는 중앙에서 바깥으로 차오르고, 선은 왼쪽에서 오른쪽으로 그려져요 */
+@keyframes bar-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.bar-grow {
+  transform-origin: left center;
+  animation: bar-grow 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.bar-grow-l {
+  transform-origin: right center;
+}
+@keyframes line-reveal {
+  from { clip-path: inset(-10% 100% -10% 0); }
+  to { clip-path: inset(-10% -2% -10% 0); }
+}
+.line-reveal {
+  animation: line-reveal 0.9s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bar-grow, .line-reveal { animation: none; }
+}
