@@ -112,3 +112,10 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .hex-grow { animation: none; }
 }
+
+/* 폰에서는 상단 메뉴 링크를 숨기고 하단 탭 메뉴(BottomNav)를 씁니다 */
+@media (max-width: 639px) {
+  .nav-link {
+    display: none;
+  }
+}

@@ -9,6 +9,7 @@ import { LiveBadge } from "@/components/LivePanel";
 import { ADSENSE_CLIENT } from "@/lib/ads";
 import AdSlot from "@/components/AdSlot";
 import Script from "next/script";
+import BottomNav from "@/components/BottomNav";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
@@ -95,7 +96,7 @@ export default async function RootLayout({
             <AdSlot kind="banner" slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_BOTTOM} />
           </div>
         </div>
-        <footer className="mt-12 border-t border-line px-4 py-6 text-center text-xs text-muted">
+        <footer className="mt-12 border-t border-line px-4 pb-24 pt-6 sm:pb-6 text-center text-xs text-muted">
           <p className="mb-3 text-sm">
             <Link href="/faq" className="hover:text-text">FAQ</Link>
             {" · "}
@@ -114,6 +115,7 @@ export default async function RootLayout({
           Games, Inc.
         </footer>
         <Analytics />
+        <BottomNav lang={lang} />
       </body>
     </html>
   );
