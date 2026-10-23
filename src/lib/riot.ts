@@ -203,3 +203,21 @@ export function parseRiotId(raw: string, server: Server) {
     defaultedTag: !tag,
   };
 }
+
+export type LadderEntry = { puuid?: string; leaguePoints: number; wins: number; losses: number; hotStreak?: boolean };
+export type LadderTier = "challenger" | "grandmaster" | "master";
+
+// 상위 래더(챌린저/그랜드마스터/마스터). 목록은 10분, 이름(계정)은 하루 캐시
+export async function ladder(server: Server, tier: LadderTier, top = 30) {
+  const data = await get<{ entries: LadderEntry[] }>(server, `/lol/league/v4/${tier}leagues/by-queue/RANKED_SOLO_5x5`);
+  const sorted = [...data.entries].sort((a, b) => b.leaguePoints - a.leaguePoints);
+  const names = await pool(sorted.slice(0, top), 4, (e) =>
+    e.puuid
+      ? get<Account>(REGION[server], `/riot/account/v1/accounts/by-puuid/${encodeURIComponent(e.puuid)}`, 24 * 60 * MINUTE).catch(() => null)
+      : Promise.resolve(null),
+  );
+  return {
+    total: sorted.length,
+    rows: sorted.slice(0, top).map((e, i) => ({ ...e, rank: i + 1, account: names[i] })),
+  };
+}

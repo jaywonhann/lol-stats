@@ -51,6 +51,9 @@ export default async function RootLayout({
             <Link href="/summoner" className="nav-link">
               {t.nav.summoner}
             </Link>
+            <Link href="/ranking" className="nav-link">
+              {lang === "ko" ? "랭킹" : "Ladder"}
+            </Link>
             <Link href="/pros" className="nav-link">
               {lang === "ko" ? "프로 핫 클립" : "Hot pro clips"}
             </Link>
