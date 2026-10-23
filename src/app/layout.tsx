@@ -17,6 +17,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { default: t.siteTitle, template: "%s - livelol.stats" },
     description: t.siteDescription,
+    manifest: "/manifest.webmanifest",
+    icons: { apple: "/apple-touch-icon.png" },
     other: { "google-adsense-account": ADSENSE_CLIENT },
   };
 }
