@@ -115,6 +115,22 @@ export default async function RootLayout({
           Games, Inc.
         </footer>
         <Analytics />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: "livelol.stats",
+              url: "https://lollive.vercel.app",
+              potentialAction: {
+                "@type": "SearchAction",
+                target: "https://lollive.vercel.app/summoner?id={search_term_string}",
+                "query-input": "required name=search_term_string",
+              },
+            }),
+          }}
+        />
         <BottomNav lang={lang} />
       </body>
     </html>
