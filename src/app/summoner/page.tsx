@@ -48,10 +48,11 @@ const rawId = (v: string | string[] | undefined) =>
   (Array.isArray(v) ? v[0] : v ?? "").slice(0, 60);
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
-  const [sp, lang] = await Promise.all([searchParams, getLang()]);
+  const [sp, lang, server] = await Promise.all([searchParams, getLang(), getServer()]);
   const t = dict(lang).summoner;
   const id = rawId(sp.id).trim();
-  return { title: id ? t.metaTitle(id) : t.title };
+  const card = id ? [{ url: `/api/card?id=${encodeURIComponent(id)}&s=${server}`, width: 1200, height: 630 }] : undefined;
+  return { title: id ? t.metaTitle(id) : t.title, ...(card && { openGraph: { images: card }, twitter: { card: "summary_large_image" as const, images: card } }) };
 }
 
 export default async function SummonerPage({ searchParams }: Props) {
