@@ -155,6 +155,9 @@ export default function LiveCounter({
     ? Math.round(hourAgo.reduce((s, p) => s + p.estimate, 0) / hourAgo.length)
     : null;
   const diff = prev === null ? null : now - prev;
+  // 마지막 기록이 30분 넘게 지났으면 숫자 옆에 "집계 대기 중"을 보여줍니다 (clock은 클라이언트에서만 채워져요)
+  const agoMin = clock ? Math.max(0, Math.round((clock - lastT) / 60_000)) : 0;
+  const stale = state === "off" && agoMin >= 30;
 
   const W = 320,
     H = 56;
@@ -217,8 +220,13 @@ export default function LiveCounter({
       </p>
       <p className="text-sm text-muted">
         {t.liveCaption(last.total.toLocaleString(nl))}
-        {state === "off" && <> · {t.liveFromHistory}</>}
+        {state === "off" && !stale && <> · {t.liveFromHistory}</>}
       </p>
+      {stale && (
+        <p className="text-xs font-semibold text-[var(--chart-down)]">
+          {t.liveStale(agoMin >= 120 ? t.liveAgoHour(Math.round(agoMin / 60)) : t.liveAgoMin(agoMin))}
+        </p>
+      )}
       {state === "ok" && left !== null && (
         <div className="mt-2 flex items-center gap-2 text-[11px] text-muted">
           <span className="live-dot h-1.5 w-1.5 rounded-full bg-red-500" aria-hidden />

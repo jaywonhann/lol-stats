@@ -125,6 +125,9 @@ const en = {
   liveRange: (h: number) => `Last ${h}h`,
   liveNow: "now",
   liveFromHistory: "Showing the last recorded number.",
+  liveStale: (ago: string) => `Waiting for a fresh count · last recorded ${ago} ago`,
+  liveAgoMin: (m: number) => `${m} min`,
+  liveAgoHour: (h: number) => `${h}h`,
   liveCaption: (total: string) =>
     `Master+ players in game now (estimate, of ${total})`,
   liveAria: "Live player count trend",
@@ -525,6 +528,9 @@ const ko: Dict = {
   liveRange: (h) => `최근 ${h}시간`,
   liveNow: "지금",
   liveFromHistory: "마지막으로 기록된 인원이에요.",
+  liveStale: (ago) => `집계 대기 중 · 마지막 기록 ${ago} 전`,
+  liveAgoMin: (m) => `${m}분`,
+  liveAgoHour: (h) => `${h}시간`,
   liveCaption: (total) =>
     `지금 게임 중인 마스터 이상 랭커 (추정, 전체 ${total}명 중)`,
   liveAria: "실시간 인원 추이",
