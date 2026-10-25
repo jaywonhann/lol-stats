@@ -1,4 +1,4 @@
-import { Icon } from "@/components/ui";
+import { Icon, Panel } from "@/components/ui";
 import { img } from "@/lib/ddragon";
 import type { Lang } from "@/lib/i18n";
 import type { realWinRates } from "@/lib/real";
@@ -68,24 +68,22 @@ export default function HiddenTips({
   }
 
   const q = encodeURIComponent(ko ? `${champName} 꿀팁 쇼츠` : `${champName} tips shorts`);
+  if (tips.length === 0) return null;
   return (
-    <div>
-      {tips.length > 0 ? (
-        <ul className="space-y-3">
-          {tips.map((tip) => (
-            <li key={tip.key} className="flex items-center gap-3 text-sm">
-              <span className="flex shrink-0 items-center gap-1">{tip.icon}</span>
-              <span>{tip.text}</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-sm text-muted">
-          {ko
-            ? "지금은 가장 많이 쓰는 선택이 승률도 가장 높아요. 따로 숨은 조합이 없어요."
-            : "Right now the most common choices are also the best. No hidden picks stand out."}
-        </p>
-      )}
+    <Panel title={ko ? "숨은 꿀팁" : "Hidden tips"}>
+      <p className="mb-3 text-xs text-muted">
+        {ko
+          ? "덜 쓰이지만 승률이 확실히 높은 선택을 집계에서 골랐어요."
+          : "Less-used picks that win clearly more, taken from our data."}
+      </p>
+      <ul className="space-y-3">
+        {tips.map((tip) => (
+          <li key={tip.key} className="flex items-center gap-3 text-sm">
+            <span className="flex shrink-0 items-center gap-1">{tip.icon}</span>
+            <span>{tip.text}</span>
+          </li>
+        ))}
+      </ul>
       <a
         href={`https://www.youtube.com/results?search_query=${q}`}
         target="_blank"
@@ -94,6 +92,6 @@ export default function HiddenTips({
       >
         ▶ {ko ? `${champName} 꿀팁 쇼츠 보기` : `Watch ${champName} tips shorts`}
       </a>
-    </div>
+    </Panel>
   );
 }
