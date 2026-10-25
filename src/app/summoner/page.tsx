@@ -468,7 +468,7 @@ function Analysis({
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Panel title={t.mostPlayed} className="lg:col-span-2">
-          <div className="mb-1 hidden grid-cols-[2rem_minmax(0,1fr)_3.5rem_3.5rem_3.5rem_3.5rem_6rem] gap-x-3 text-[11px] text-muted sm:grid">
+          <div className="mb-1 hidden grid-cols-[2rem_minmax(0,1fr)_3.5rem_3.5rem_3.5rem_3.5rem_6rem] gap-x-3 text-xs text-muted sm:grid">
             <span />
             <span />
             <span className="text-right">{t.games}</span>
@@ -504,7 +504,7 @@ function Analysis({
                   <Cell label={t.kda} value={fix(c.kda, 2)} />
                   <Cell label={t.csMin} value={fix(c.csPerMin)} />
                   <div className="text-right leading-tight">
-                    <span className="block text-[10px] text-muted sm:hidden">{t.siteAvg}</span>
+                    <span className="block text-xs text-muted sm:hidden">{t.siteAvg}</span>
                     {c.siteWinRate === null ? (
                       <span className="text-muted">-</span>
                     ) : (
@@ -636,14 +636,14 @@ function RankBox({ solo, lang }: { solo: LeagueEntry | null; lang: Lang }) {
 function Stat({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: "up" | "down" }) {
   return (
     <div className="rounded-md bg-panel-2 px-2 py-2">
-      <p className="text-[11px] text-muted">{label}</p>
+      <p className="text-xs text-muted">{label}</p>
       <p
         className="text-lg font-bold"
         style={tone ? { color: tone === "up" ? "var(--chart-up)" : "var(--chart-down)" } : undefined}
       >
         {value}
       </p>
-      {sub && <p className="text-[11px] text-muted">{sub}</p>}
+      {sub && <p className="text-xs text-muted">{sub}</p>}
     </div>
   );
 }
@@ -651,7 +651,7 @@ function Stat({ label, value, sub, tone }: { label: string; value: string; sub?:
 function Cell({ label, value, className = "" }: { label: string; value: string; className?: string }) {
   return (
     <div className="text-right leading-tight">
-      <span className="block text-[10px] text-muted sm:hidden">{label}</span>
+      <span className="block text-xs text-muted sm:hidden">{label}</span>
       <span className={className}>{value}</span>
     </div>
   );

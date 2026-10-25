@@ -74,7 +74,7 @@ export function WinRateBars({ rows, title, lang }: { rows: WinRateBar[]; title: 
   return (
     <figure>
       <figcaption className="mb-2 text-xs text-muted">{title}</figcaption>
-      <div className={`mb-1 grid grid-cols-[minmax(0,7rem)_1fr_4.5rem] ${rows.length ? "" : "hidden"} text-[10px] text-muted sm:grid-cols-[minmax(0,9rem)_1fr_5rem]`}>
+      <div className={`mb-1 grid grid-cols-[minmax(0,7rem)_1fr_4.5rem] ${rows.length ? "" : "hidden"} text-xs text-muted sm:grid-cols-[minmax(0,9rem)_1fr_5rem]`}>
         <span />
         <span className="relative flex justify-between">
           <span>{(50 - maxAbs).toFixed(0)}%</span>
@@ -105,7 +105,7 @@ export function WinRateBars({ rows, title, lang }: { rows: WinRateBar[]; title: 
               </div>
               <span className="text-right text-xs leading-tight">
                 <span className="text-text">{r.winRate.toFixed(1)}%</span>
-                <span className="block text-[10px] text-muted">{t.games(r.games.toLocaleString(nl))}</span>
+                <span className="block text-xs text-muted">{t.games(r.games.toLocaleString(nl))}</span>
               </span>
             </div>
           );

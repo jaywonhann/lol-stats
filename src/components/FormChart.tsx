@@ -34,7 +34,7 @@ export default function FormChart({
   return (
     <figure role="img" aria-label={aria}>
       <div className="grid grid-cols-[2rem_1fr] gap-x-2">
-        <div className="relative h-36 text-right text-[10px] text-muted">
+        <div className="relative h-36 text-right text-xs text-muted">
           <span className="absolute right-0 top-0 -translate-y-1/2">{fmt(hi - 1)}</span>
           <span className="absolute right-0 -translate-y-1/2" style={{ top: `${zeroY}%` }}>
             0
@@ -77,7 +77,7 @@ export default function FormChart({
               </li>
             ))}
           </ol>
-          <div className="mt-1 flex justify-between text-[10px] text-muted">
+          <div className="mt-1 flex justify-between text-xs text-muted">
             <span>← {oldest}</span>
             <span>{latest} →</span>
           </div>

@@ -66,7 +66,7 @@ export default function TrendChart({
         {ticks.map((t) => (
           <g key={t}>
             <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="var(--chart-grid)" strokeWidth={1} />
-            <text x={L - 6} y={y(t)} dy="0.32em" textAnchor="end" className="fill-muted text-[11px]">
+            <text x={L - 6} y={y(t)} dy="0.32em" textAnchor="end" className="fill-muted text-xs">
               {t.toFixed(invert ? 0 : 1)}
             </text>
           </g>
@@ -75,7 +75,7 @@ export default function TrendChart({
           <line x1={L} x2={W - R} y1={y(baseline)} y2={y(baseline)} stroke="var(--color-muted)" strokeDasharray="4 4" strokeWidth={1} />
         )}
         {points.map((p, i) => (
-          <text key={p.label} x={x(i)} y={H - 8} textAnchor="middle" className={`text-[11px] ${i === active ? "fill-text" : "fill-muted"}`}>
+          <text key={p.label} x={x(i)} y={H - 8} textAnchor="middle" className={`text-xs ${i === active ? "fill-text" : "fill-muted"}`}>
             {p.label}
           </text>
         ))}

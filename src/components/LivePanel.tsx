@@ -89,7 +89,7 @@ export default async function LivePanel({
                 />
               ))}
             </div>
-            <div className="mt-1 flex justify-between text-[10px] text-muted">
+            <div className="mt-1 flex justify-between text-xs text-muted">
               <span>{t.hourLabel(kstHour(a.hours[0].at))}</span>
               <span>{t.gamesByHourKst}</span>
               <span>{t.hourLabel(kstHour(a.hours[23].at))}</span>

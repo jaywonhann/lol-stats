@@ -538,7 +538,7 @@ function SlotRow({ o, version, lang }: { o: SlotOption; version: string; lang: L
   return (
     <li className="flex items-center gap-2" title={`${o.item.name} · ${t.winRate} ${o.winRate.toFixed(1)}% · ${o.games}`}>
       <Icon src={img.item(version, o.item.id)} alt={o.item.name} size={32} />
-      <div className="min-w-0 text-[11px] leading-tight">
+      <div className="min-w-0 text-xs leading-tight">
         <WinRate value={o.winRate} />
         <span className="block text-muted">
           {t.pickShort} {o.pickRate.toFixed(0)}%

@@ -245,7 +245,7 @@ function ProRow({
       </span>
       <div className="w-32 min-w-0">
         <p className={`truncate text-sm font-semibold ${p.kind === "challenger" ? "" : "text-accent"}`}>{p.label}</p>
-        <p className="truncate text-[11px] text-muted">
+        <p className="truncate text-xs text-muted">
           {p.kind === "pro" ? (
             <a
               href={`https://lol.fandom.com/wiki/${encodeURIComponent(name.replace(/ /g, "_"))}`}
@@ -286,7 +286,7 @@ function ProRow({
         })}
         {p.boots && <Icon src={img.item(version, p.boots)} alt={itemById.get(p.boots)?.name ?? ""} size={28} className="ml-2 opacity-90" />}
       </div>
-      <span className="text-right text-[11px] text-muted">
+      <span className="text-right text-xs text-muted">
         {compared.length > 0 && <span className="block font-semibold text-text">{t.app.hlSame(same, compared.length)}</span>}
         {timeAgo(new Date(p.at).toISOString(), lang)}
       </span>

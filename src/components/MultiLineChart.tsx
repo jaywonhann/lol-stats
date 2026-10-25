@@ -72,7 +72,7 @@ export default function MultiLineChart({
         {ticks.map((t) => (
           <g key={t}>
             <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="var(--chart-grid)" strokeWidth={1} />
-            <text x={L - 6} y={y(t)} dy="0.32em" textAnchor="end" className="fill-muted text-[11px]">
+            <text x={L - 6} y={y(t)} dy="0.32em" textAnchor="end" className="fill-muted text-xs">
               {t.toFixed(1)}
             </text>
           </g>
@@ -82,7 +82,7 @@ export default function MultiLineChart({
         )}
         {labels.map((l, i) =>
           i % every === 0 || i === n - 1 ? (
-            <text key={l} x={x(i)} y={H - 8} textAnchor="middle" className={`text-[11px] ${i === active ? "fill-text" : "fill-muted"}`}>
+            <text key={l} x={x(i)} y={H - 8} textAnchor="middle" className={`text-xs ${i === active ? "fill-text" : "fill-muted"}`}>
               {l}
             </text>
           ) : null,

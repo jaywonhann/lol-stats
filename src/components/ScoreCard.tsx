@@ -116,7 +116,7 @@ function Stat({ label, value, sub }: { label: string; value: string; sub: string
     <div className="rounded-lg border border-line p-3">
       <div className="text-xs text-muted">{label}</div>
       <div className="text-2xl font-bold">{value}</div>
-      <div className="text-[11px] leading-tight text-muted">{sub}</div>
+      <div className="text-xs leading-tight text-muted">{sub}</div>
     </div>
   );
 }
@@ -127,7 +127,7 @@ function Real({ label, value, tone }: { label: string; value: string; tone?: boo
   const color = tone ? (value.startsWith("+") ? "var(--chart-up)" : "var(--chart-down)") : undefined;
   return (
     <div className="rounded-lg border border-line p-2">
-      <div className="text-[11px] leading-tight text-muted">{label}</div>
+      <div className="text-xs leading-tight text-muted">{label}</div>
       <div className="text-lg font-bold" style={{ color }}>{value}</div>
     </div>
   );

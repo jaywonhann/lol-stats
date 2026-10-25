@@ -228,7 +228,7 @@ export default function LiveCounter({
         </p>
       )}
       {state === "ok" && left !== null && (
-        <div className="mt-2 flex items-center gap-2 text-[11px] text-muted">
+        <div className="mt-2 flex items-center gap-2 text-xs text-muted">
           <span className="live-dot h-1.5 w-1.5 rounded-full bg-red-500" aria-hidden />
           <span className="tabular-nums">{t.liveNext(left)}</span>
           <span className="h-0.5 w-16 overflow-hidden rounded bg-line">
@@ -240,7 +240,7 @@ export default function LiveCounter({
         </div>
       )}
       {points.length > 1 && (
-        <div className="mt-3 flex justify-between text-[11px] text-muted">
+        <div className="mt-3 flex justify-between text-xs text-muted">
           <span>{t.liveRange(hours)}</span>
           <span className="tabular-nums">
             {min.toLocaleString(nl)} ~ {max.toLocaleString(nl)}
@@ -280,12 +280,12 @@ export default function LiveCounter({
         ))}
       </svg>
       {points.length > 1 && (
-        <div className="flex justify-between text-[10px] tabular-nums text-muted">
+        <div className="flex justify-between text-xs tabular-nums text-muted">
           <span>{fmt(points[0].at)}</span>
           <span>{t.liveNow}</span>
         </div>
       )}
-      <p className="mt-1 text-[10px] text-muted">{t.liveFoot}</p>
+      <p className="mt-1 text-xs text-muted">{t.liveFoot}</p>
     </div>
   );
 }

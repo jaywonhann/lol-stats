@@ -142,3 +142,14 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .bar-grow, .line-reveal { animation: none; }
 }
+
+/* 키보드로 이동할 때 어디에 있는지 보이도록 모든 링크·버튼에 포커스 링 */
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}

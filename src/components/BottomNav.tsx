@@ -19,7 +19,7 @@ export default function BottomNav({ lang }: { lang: "ko" | "en" }) {
   const path = usePathname();
   const t = T[lang];
   const on = (h: string) => (h === "/" ? path === "/" : path.startsWith(h));
-  const cls = (a: boolean) => `flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] ${a ? "font-bold text-accent" : "text-muted"}`;
+  const cls = (a: boolean) => `flex flex-1 flex-col items-center gap-0.5 py-2 text-xs ${a ? "font-bold text-accent" : "text-muted"}`;
   return (
     <nav
       aria-label="menu"
