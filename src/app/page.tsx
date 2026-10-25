@@ -239,7 +239,7 @@ export default async function Home() {
                         </span>
                       </span>
                       <Sparkline values={spark} />
-                      <ScoreDelta value={stat.scoreChange!} />
+                      <ScoreDelta value={stat.scoreChange!} lang={lang} />
                     </Link>
                   </li>
                 ))}
@@ -307,14 +307,16 @@ function SectionTitle({ title, note, href, link }: { title: string; note?: strin
   );
 }
 
-function ScoreDelta({ value }: { value: number }) {
+function ScoreDelta({ value, lang }: { value: number; lang: string }) {
   const up = value >= 0;
   return (
     <span
-      className={`w-14 text-right text-xs font-semibold ${up ? "text-[var(--chart-up)]" : "text-[var(--chart-down)]"}`}
+      title={lang === "ko" ? "지난 패치 대비 메타 점수 변화" : "Meta score change vs previous patch"}
+      className={`w-16 text-right text-xs font-semibold ${up ? "text-[var(--chart-up)]" : "text-[var(--chart-down)]"}`}
     >
       {up ? "▲" : "▼"}
       {Math.abs(value).toFixed(1)}
+      <span className="font-normal text-muted">{lang === "ko" ? "점" : "pt"}</span>
     </span>
   );
 }
