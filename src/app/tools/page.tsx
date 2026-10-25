@@ -7,7 +7,11 @@ import { getLang } from "@/lib/server";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getLang()) === "ko" ? "게임 도구" : "Game tools" };
+  const ko = (await getLang()) === "ko";
+  return {
+    title: ko ? "게임 도구" : "Game tools",
+    description: ko ? "상대 스펠 쿨타임과 오브젝트 리스폰 타이머를 한 화면에서 확인해요." : "Enemy summoner spell cooldowns and objective respawn timers in one place.",
+  };
 }
 
 export default async function ToolsPage() {

@@ -19,7 +19,11 @@ import { getLang, getServer } from "@/lib/server";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: dict(await getLang()).trendsTitle };
+  const ko = (await getLang()) === "ko";
+  return {
+    title: dict(await getLang()).trendsTitle,
+    description: ko ? "패치별 승률과 메타 점수가 가장 많이 바뀐 챔피언을 모아봤어요." : "Champions whose win rate and meta score changed most between patches.",
+  };
 }
 
 type Props = { searchParams: Promise<{ lane?: string; rank?: string }> };

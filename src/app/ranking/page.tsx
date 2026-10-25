@@ -10,7 +10,11 @@ export const dynamic = "force-dynamic";
 const TIERS: LadderTier[] = ["challenger", "grandmaster", "master"];
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getLang()) === "ko" ? "랭킹" : "Ladder" };
+  const ko = (await getLang()) === "ko";
+  return {
+    title: ko ? "랭킹" : "Ladder",
+    description: ko ? "서버별 챌린저, 그랜드마스터, 마스터 상위 랭커 목록이에요." : "Top Challenger, Grandmaster and Master players by server.",
+  };
 }
 
 export default async function RankingPage({ searchParams }: { searchParams: Promise<{ tier?: string }> }) {

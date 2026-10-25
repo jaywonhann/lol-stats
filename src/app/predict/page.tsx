@@ -12,7 +12,11 @@ export const dynamic = "force-dynamic";
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getLang()) === "ko" ? "승률 예측" : "Win predictor" };
+  const ko = (await getLang()) === "ko";
+  return {
+    title: ko ? "승률 예측" : "Win predictor",
+    description: ko ? "챔피언 조합과 상성으로 이번 판의 승률을 미리 예측해요." : "Predict your win chance from champion picks and matchups.",
+  };
 }
 
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";

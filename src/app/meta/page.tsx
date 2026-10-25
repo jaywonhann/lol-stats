@@ -12,7 +12,11 @@ import { getLang, getServer } from "@/lib/server";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: dict(await getLang()).metaTitle };
+  const ko = (await getLang()) === "ko";
+  return {
+    title: dict(await getLang()).metaTitle,
+    description: ko ? "라인별로 최근 3일 픽률이 오르고 내린 챔피언을 주식 시세처럼 보여줘요." : "Champions whose pick rate is rising or falling by lane over the last 3 days.",
+  };
 }
 
 type Props = { searchParams: Promise<{ lane?: string }> };

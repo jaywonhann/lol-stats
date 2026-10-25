@@ -21,7 +21,11 @@ import { boards } from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: dict(await getLang()).tierTitle };
+  const ko = (await getLang()) === "ko";
+  return {
+    title: dict(await getLang()).tierTitle,
+    description: ko ? "라인별 챔피언 티어표. 승률, 픽률, 밴률을 이번 패치 기준으로 보여줘요." : "Champion tier list by lane with win, pick and ban rates for the current patch.",
+  };
 }
 
 type Props = {
