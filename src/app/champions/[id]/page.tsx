@@ -52,7 +52,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const lang = await getLang();
   const t = dict(lang);
   const data = await getChampion(id, ddLocale(lang));
-  return { title: data ? t.champMetaTitle(data.champion.name) : t.champion };
+  if (!data) return { title: t.champion };
+  const n = data.champion.name;
+  return {
+    title: t.champMetaTitle(n),
+    description:
+      lang === "ko"
+        ? `${n} 승률, 추천 룬·아이템 빌드, 스킬 순서, 쉬운/어려운 상대를 이번 패치 기준으로 정리했어요.`
+        : `${n} win rate, best runes and item builds, skill order and easy/hard matchups for the current patch.`,
+  };
 }
 
 export default async function ChampionPage({ params, searchParams }: Props) {
