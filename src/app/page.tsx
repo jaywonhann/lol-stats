@@ -82,6 +82,8 @@ export default async function Home() {
     { href: "/meta", label: t.nav.meta },
     { href: "/trends", label: t.nav.trends },
     { href: "/summoner", label: t.nav.summoner },
+    { href: "/predict", label: lang === "ko" ? "승률 예측" : "Win predictor", hot: true },
+    { href: "/ranking", label: lang === "ko" ? "랭킹" : "Ranking" },
   ];
 
   return (
@@ -116,7 +118,9 @@ export default async function Home() {
               <Link
                 key={q.href}
                 href={q.href}
-                className="rounded-full border border-line bg-panel-2/70 px-3 py-1 text-xs text-muted transition-colors hover:border-accent hover:text-text"
+                className={`rounded-full border px-3 py-1 text-xs transition-colors hover:border-accent hover:text-text ${
+                  "hot" in q ? "border-accent text-accent" : "border-line bg-panel-2/70 text-muted"
+                }`}
               >
                 {q.label}
               </Link>
