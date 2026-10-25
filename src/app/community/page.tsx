@@ -8,7 +8,10 @@ import { timeAgo } from "@/lib/i18n";
 import { getLang } from "@/lib/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "커뮤니티 · livelol.stats" };
+export const metadata: Metadata = {
+  title: "커뮤니티 · livelol.stats",
+  description: "롤 유저들이 챔피언 팁과 빌드를 나누는 곳이에요. 의견을 남기고 다른 소환사의 이야기를 읽어보세요.",
+};
 
 export default async function CommunityPage({ searchParams }: { searchParams: Promise<{ c?: string }> }) {
   const lang = await getLang();
