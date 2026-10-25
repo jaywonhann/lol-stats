@@ -170,7 +170,8 @@ export default async function TierPage({ searchParams }: Props) {
                 </td>
                 <td className="px-3 py-2 text-right">{pct(s.pickRate)}</td>
                 <td className="px-3 py-2 text-right">{pct(s.banRate)}</td>
-                <td className="px-3 py-2 text-right text-muted">
+                <td className={`px-3 py-2 text-right ${s.games < 30 ? "text-amber-400" : "text-muted"}`} title={s.games < 30 ? t.lowSampleTip : undefined}>
+                  {s.games < 30 && "⚠ "}
                   {s.games.toLocaleString(numLocale(lang))}
                 </td>
               </tr>

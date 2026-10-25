@@ -229,7 +229,7 @@ export function movers(
 
 export type Matchup = { champion: Champion; winRate: number; games: number };
 
-export type BuildOption<T> = { value: T; winRate: number; pickRate: number };
+export type BuildOption<T> = { value: T; winRate: number; pickRate: number; games?: number };
 
 export type RunePage = {
   primary: RuneTree;

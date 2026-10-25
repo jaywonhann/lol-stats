@@ -8,7 +8,6 @@ import LangSelect from "@/components/LangSelect";
 import { LiveBadge } from "@/components/LivePanel";
 import { ADSENSE_CLIENT } from "@/lib/ads";
 import AdSlot from "@/components/AdSlot";
-import Script from "next/script";
 import BottomNav from "@/components/BottomNav";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
@@ -16,6 +15,8 @@ import "./globals.css";
 export async function generateMetadata(): Promise<Metadata> {
   const t = dict(await getLang());
   return {
+    metadataBase: new URL("https://lollive.vercel.app"),
+    alternates: { canonical: "./" },
     title: { default: t.siteTitle, template: "%s - livelol.stats" },
     description: t.siteDescription,
     manifest: "/manifest.webmanifest",
@@ -55,21 +56,28 @@ export default async function RootLayout({
             <Link href="/ranking" className="nav-link">
               {lang === "ko" ? "랭킹" : "Ladder"}
             </Link>
-            <Link href="/pros" className="nav-link">
-              {lang === "ko" ? "프로 핫 클립" : "Hot pro clips"}
-            </Link>
             <Link href="/predict" className="nav-link">
               {lang === "ko" ? "승률 예측" : "Predict"}
             </Link>
             <Link href="/tools" className="nav-link">
               {lang === "ko" ? "도구" : "Tools"}
             </Link>
-            <Link href="/community" className="nav-link">
-              {lang === "ko" ? "커뮤니티" : "Community"}
-            </Link>
-            <Link href="/faq" className="nav-link">
-              {t.nav.faq}
-            </Link>
+            <details className="nav-more relative hidden sm:block">
+              <summary className="nav-link cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                {lang === "ko" ? "더보기 ▾" : "More ▾"}
+              </summary>
+              <div className="absolute left-0 top-full z-40 mt-2 flex w-44 flex-col rounded-lg border border-line bg-panel p-1 shadow-lg">
+                <Link href="/pros" className="rounded px-3 py-2 text-sm hover:bg-panel-2">
+                  {lang === "ko" ? "프로 핫 클립" : "Hot pro clips"}
+                </Link>
+                <Link href="/community" className="rounded px-3 py-2 text-sm hover:bg-panel-2">
+                  {lang === "ko" ? "커뮤니티" : "Community"}
+                </Link>
+                <Link href="/faq" className="rounded px-3 py-2 text-sm hover:bg-panel-2">
+                  {t.nav.faq}
+                </Link>
+              </div>
+            </details>
             <div className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-2">
               <ServerSelect value={server} lang={lang} />
               <LangSelect value={lang} />
@@ -81,9 +89,8 @@ export default async function RootLayout({
             {t.mockBanner}
           </div>
         )}
-        <Script
+        <script
           async
-          strategy="afterInteractive"
           src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
           crossOrigin="anonymous"
         />

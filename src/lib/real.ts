@@ -147,8 +147,9 @@ function top<T>(
       value: map(key),
       winRate: (w / g) * 100,
       pickRate: (g / total) * 100,
+      games: g,
     }))
-    .filter((o): o is BuildOption<T> => o.value !== null)
+    .filter((o): o is typeof o & { value: T } => o.value !== null)
     .slice(0, n);
 }
 

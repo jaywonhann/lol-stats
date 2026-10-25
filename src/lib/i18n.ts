@@ -65,6 +65,8 @@ const en = {
   champion: "Champion",
   tierCol: "Tier",
   gamesCol: "Games",
+  gamesN: (n: number) => `${n.toLocaleString("en-US")} games`,
+  lowSampleTip: "Under 30 games, so this number can swing a lot. Treat it as a hint.",
   sampleData: "Sample data",
   notEnoughSample: "Not enough games yet.",
   // 상대 시간
@@ -467,6 +469,8 @@ const ko: Dict = {
   champion: "챔피언",
   tierCol: "티어",
   gamesCol: "표본수",
+  gamesN: (n: number) => `${n.toLocaleString("ko-KR")}게임`,
+  lowSampleTip: "30게임 미만이라 숫자가 크게 흔들릴 수 있어요. 참고용으로만 봐 주세요.",
   sampleData: "예시 데이터",
   notEnoughSample: "아직 표본이 부족해요.",
   minutesAgo: (n) => `${n}분 전`,

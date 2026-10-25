@@ -272,7 +272,7 @@ export default async function ChampionPage({ params, searchParams }: Props) {
               <div className="space-y-4">
                 {b.runes.length === 0 && <Empty lang={lang} />}
                 {b.runes.map((o, i) => (
-                  <OptionRow lang={lang} key={i} winRate={o.winRate} pickRate={o.pickRate}>
+                  <OptionRow lang={lang} key={i} winRate={o.winRate} pickRate={o.pickRate} games={o.games}>
                     <RunePageView page={o.value} trees={trees} big={i === 0} />
                   </OptionRow>
                 ))}
@@ -301,7 +301,7 @@ export default async function ChampionPage({ params, searchParams }: Props) {
                   <p className="mb-2 mt-4 text-xs font-semibold text-muted">{t.fullBuilds}</p>
                   <div className="space-y-2">
                     {cp.builds.map((o, i) => (
-                      <OptionRow lang={lang} key={i} winRate={o.winRate} pickRate={o.pickRate}>
+                      <OptionRow lang={lang} key={i} winRate={o.winRate} pickRate={o.pickRate} games={o.games}>
                         <div className="flex flex-wrap items-center gap-1">
                           {o.value.map((item, j) => (
                             <span key={item.id} className="flex items-center gap-1">
@@ -367,7 +367,7 @@ export default async function ChampionPage({ params, searchParams }: Props) {
               <div className="space-y-2">
                 {b.spells.length === 0 && <Empty lang={lang} />}
                 {b.spells.map((o, i) => (
-                  <OptionRow lang={lang} key={i} winRate={o.winRate} pickRate={o.pickRate}>
+                  <OptionRow lang={lang} key={i} winRate={o.winRate} pickRate={o.pickRate} games={o.games}>
                     <div className="flex gap-1">
                       {o.value.map((s) => (
                         <Icon
@@ -386,7 +386,7 @@ export default async function ChampionPage({ params, searchParams }: Props) {
               <div className="space-y-2">
                 {b.skillOrder.length === 0 && <Empty lang={lang} />}
                 {b.skillOrder.map((o, i) => (
-                  <OptionRow lang={lang} key={i} winRate={o.winRate} pickRate={o.pickRate}>
+                  <OptionRow lang={lang} key={i} winRate={o.winRate} pickRate={o.pickRate} games={o.games}>
                     <div className="flex items-center gap-1">
                       {o.value.map((k, j) => {
                         const spell = champion.spells["QWE".indexOf(k)];
@@ -452,12 +452,14 @@ function OptionRow({
   children,
   winRate,
   pickRate,
+  games,
   lang,
 }: {
   lang: Lang;
   children: React.ReactNode;
   winRate: number;
   pickRate: number;
+  games?: number;
 }) {
   const t = dict(lang);
   return (
@@ -468,6 +470,12 @@ function OptionRow({
           {t.winRate} <WinRate value={winRate} />
         </div>
         <div className="text-muted">{t.pickRate} {pct(pickRate)}</div>
+        {games !== undefined && (
+          <div className={games < 30 ? "text-amber-400" : "text-muted"} title={games < 30 ? t.lowSampleTip : undefined}>
+            {games < 30 && "⚠ "}
+            {t.gamesN(games)}
+          </div>
+        )}
       </div>
     </div>
   );

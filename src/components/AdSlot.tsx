@@ -35,12 +35,6 @@ export default function AdSlot({
       </div>
     );
   }
-  return (
-    <div
-      className={`ad-slot ${SIZES[kind]} flex items-center justify-center rounded-md border border-dashed border-line text-[11px] text-muted ${className}`}
-      aria-hidden
-    >
-      AD
-    </div>
-  );
+  // 광고 단위 ID가 생기기 전에는 빈 점선 박스 대신 아무것도 보여주지 않아요
+  return null;
 }
