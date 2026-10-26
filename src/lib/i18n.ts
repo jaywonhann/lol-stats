@@ -216,7 +216,8 @@ const en = {
     notFound: (id: string, server: string) =>
       `We couldn't find ${id} on ${server}. Check the spelling and the tag after #, or switch server at the top right.`,
     rateLimited: "Too many lookups right now. Please try again in a minute.",
-    unavailable: "Summoner search isn't available right now.",
+    unavailable:
+      "Summoner search is paused for a short while while our Riot data access is renewed. Tier lists, champion builds and the meta page still work. Please try again in a few hours.",
     error:
       "We couldn't reach Riot's servers just now. Please try again shortly.",
     noGames: "No recent Ranked Solo games found for this player.",
@@ -610,7 +611,8 @@ const ko: Dict = {
     notFound: (id, server) =>
       `${server} 서버에서 ${id}을(를) 찾지 못했어요. 철자와 # 뒤 태그를 확인하거나 오른쪽 위에서 서버를 바꿔 보세요.`,
     rateLimited: "지금 검색이 너무 많아요. 1분 뒤에 다시 시도해 주세요.",
-    unavailable: "지금은 소환사 검색을 이용할 수 없어요.",
+    unavailable:
+      "Riot 데이터 연결을 갱신하는 동안 소환사 검색이 잠시 멈춰 있어요. 티어표·챔피언 빌드·메타 페이지는 그대로 쓸 수 있어요. 몇 시간 뒤에 다시 시도해 주세요.",
     error: "Riot 서버와 연결이 잘 안 되고 있어요. 잠시 뒤 다시 시도해 주세요.",
     noGames: "최근 솔로랭크 게임 기록이 없어요.",
     level: (n) => `레벨 ${n}`,
