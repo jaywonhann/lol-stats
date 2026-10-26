@@ -72,7 +72,7 @@ export default function GrowthCard({ g, lang }: { g: Growth; lang: Lang }) {
           <p className="rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-sm font-semibold">🎯 {tip}</p>
         </div>
         <div>
-          <svg viewBox="0 0 220 220" className="mx-auto w-full max-w-[260px]" role="img" aria-label="hexagon">
+          <svg viewBox="-50 0 320 220" className="mx-auto w-full max-w-[360px]" role="img" aria-label="hexagon">
             {[25, 50, 75, 100].map((v) => (
               <polygon key={v} points={ring(v)} fill="none" stroke="var(--color-line)" strokeWidth={v === 50 ? 1.5 : 1} />
             ))}
