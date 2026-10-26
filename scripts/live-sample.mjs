@@ -2,7 +2,7 @@
 // GitHub Actions(live-history.yml)에서 10분마다 실행되고, 결과는 live-data 브랜치에 올라가요.
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 
-const KEY = (process.env.RIOT_API_KEY ?? "").match(/RGAPI-[0-9a-f-]{36}/i)?.[0] ?? process.env.RIOT_API_KEY?.trim();
+const KEY = (process.env.RIOT_API_KEY ?? "").match(/RGAPI-[0-9a-f-]{36}/gi)?.at(-1) ?? process.env.RIOT_API_KEY?.trim();
 const OUT = process.env.OUT ?? "live-data";
 const SAMPLE = Number(process.env.SAMPLE ?? 80);
 const GAMES_KEEP_MS = 6 * 3_600_000; // 지금 많이 쓰는 챔피언·룬·스펠용: 최근 6시간 게임만 보관

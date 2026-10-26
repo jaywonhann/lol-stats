@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 const SAMPLE = 20;
 const key = () =>
-  process.env.RIOT_API_KEY?.match(/RGAPI-[0-9a-f-]{36}/i)?.[0] ?? process.env.RIOT_API_KEY?.trim();
+  process.env.RIOT_API_KEY?.match(/RGAPI-[0-9a-f-]{36}/gi)?.at(-1) ?? process.env.RIOT_API_KEY?.trim();
 
 const ladders = new Map<Server, { at: number; puuids: string[] }>();
 

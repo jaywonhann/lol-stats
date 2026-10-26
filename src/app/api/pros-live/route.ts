@@ -11,7 +11,7 @@ type Seen = { at: number; live: null | { champ: number; start: number; queue: nu
 const BATCH = 30;
 const FRESH_MS = 10 * 60_000;
 const key = () =>
-  process.env.RIOT_API_KEY?.match(/RGAPI-[0-9a-f-]{36}/i)?.[0] ?? process.env.RIOT_API_KEY?.trim();
+  process.env.RIOT_API_KEY?.match(/RGAPI-[0-9a-f-]{36}/gi)?.at(-1) ?? process.env.RIOT_API_KEY?.trim();
 
 let accounts: { at: number; list: Acc[] } | null = null;
 const seen = new Map<string, Seen>();

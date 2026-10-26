@@ -3,7 +3,7 @@
 // 윈도우 앱과 사이트의 /app 화면이 이 파일을 읽어요.
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 
-const KEY = (process.env.RIOT_API_KEY ?? "").match(/RGAPI-[0-9a-f-]{36}/i)?.[0] ?? process.env.RIOT_API_KEY?.trim();
+const KEY = (process.env.RIOT_API_KEY ?? "").match(/RGAPI-[0-9a-f-]{36}/gi)?.at(-1) ?? process.env.RIOT_API_KEY?.trim();
 const OUT = process.env.OUT ?? "pro-data";
 const TOP = Number(process.env.TOP ?? 10); // 서버별 챌린저 상위 몇 명
 const PER = Number(process.env.PER ?? 4); // 한 사람당 최근 몇 게임

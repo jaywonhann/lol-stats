@@ -43,7 +43,7 @@ jobs:
             echo "::warning::VERCEL_TOKEN 시크릿이 없어서 건너뜁니다."
             exit 0
           fi
-          KEY=$(printf '%s' "$RIOT_API_KEY" | grep -oiE 'RGAPI-[0-9a-f-]{36}' | head -1 || true)
+          KEY=$(printf '%s' "$RIOT_API_KEY" | grep -oiE 'RGAPI-[0-9a-f-]{36}' | tail -1 || true)
           [ -n "$KEY" ] || KEY=$(printf '%s' "$RIOT_API_KEY" | tr -d '[:space:]')
           [ -n "$KEY" ] || { echo "::error::RIOT_API_KEY 시크릿이 비어 있어요."; exit 1; }
           API=https://api.vercel.com

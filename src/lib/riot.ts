@@ -28,7 +28,7 @@ export class RiotError extends Error {
 }
 
 const key = () =>
-  process.env.RIOT_API_KEY?.match(/RGAPI-[0-9a-f-]{36}/i)?.[0] ??
+  process.env.RIOT_API_KEY?.match(/RGAPI-[0-9a-f-]{36}/gi)?.at(-1) ??
   (process.env.RIOT_API_KEY?.trim() || undefined);
 
 const url = (host: Server | Region, path: string) => {
