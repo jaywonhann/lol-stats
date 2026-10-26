@@ -35,6 +35,12 @@ export default async function RootLayout({
   return (
     <html lang={lang}>
       <body className="min-h-screen antialiased">
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-accent focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:text-bg"
+        >
+          {lang === "ko" ? "본문으로 건너뛰기" : "Skip to content"}
+        </a>
         <header className="z-30 sm:sticky sm:top-0 border-b border-line bg-panel/85 backdrop-blur">
           <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 whitespace-nowrap px-4 py-3 sm:gap-x-6">
             <Link href="/" className="nav-logo text-xl font-extrabold tracking-tight">
@@ -99,7 +105,7 @@ export default async function RootLayout({
           <div className="mx-auto flex max-w-6xl justify-center px-4 pt-4">
             <AdSlot kind="banner" slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_TOP} />
           </div>
-          <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+          <main id="main" className="mx-auto max-w-6xl px-4 py-6">{children}</main>
           <div className="mx-auto flex max-w-6xl justify-center px-4">
             <AdSlot kind="banner" slot={process.env.NEXT_PUBLIC_ADSENSE_SLOT_BOTTOM} />
           </div>
