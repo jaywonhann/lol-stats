@@ -13,6 +13,8 @@ export default function ServerSelect({ value, lang }: { value: Server; lang: Lan
         value={value}
         onChange={(e) => {
           document.cookie = `server=${e.target.value}; path=/; max-age=31536000; samesite=lax`;
+          // 한국 서버는 한국어, 북미·유럽 서버는 영어로 바꿔요 (언어는 옆 메뉴에서 다시 바꿀 수 있어요)
+          document.cookie = `lang=${e.target.value === "kr" ? "ko" : "en"}; path=/; max-age=31536000; samesite=lax`;
           router.refresh();
         }}
         className="rounded-md border border-line bg-panel-2 px-2 py-1 text-text"
