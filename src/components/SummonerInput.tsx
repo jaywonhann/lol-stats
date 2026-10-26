@@ -136,7 +136,7 @@ export default function SummonerInput({
                   <span className="ml-auto shrink-0 text-xs text-muted">{recentLabel}</span>
                 ) : (
                   <span className="ml-auto shrink-0 truncate text-xs text-muted">
-                    {it.label} · {it.server?.toUpperCase()}
+                    {it.label ? `${it.label} · ` : ""}{it.server?.toUpperCase()}
                   </span>
                 )}
               </button>

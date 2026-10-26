@@ -94,6 +94,11 @@ async function main() {
   const dailyFile = path.join(dir, "daily.json");
   const daily = read(dailyFile, { days: {} });
 
+  // 검색창 자동완성용: 수집한 게임에서 본 Riot ID (최근 4000개)
+  const namesFile = path.join(dir, "names.json");
+  const names = read(namesFile, []);
+  const nameSet = new Set(names);
+
   // 1) 구간별 랭커 목록
   const seeds = { emerald: [], diamond: [], master: [] };
   for (const league of ["challengerleagues", "grandmasterleagues", "masterleagues"]) {
@@ -138,6 +143,13 @@ async function main() {
     if (!match || patchOf(match.info.gameVersion) !== patch || match.info.gameDuration < 900) continue;
     const timeline = await riot(`${REGION}/lol/match/v5/matches/${id}/timeline`);
     if (!timeline) continue;
+    for (const p of match.info.participants) {
+      const n = p.riotIdGameName && p.riotIdTagline ? `${p.riotIdGameName}#${p.riotIdTagline}` : "";
+      if (n && !nameSet.has(n)) {
+        nameSet.add(n);
+        names.push(n);
+      }
+    }
     const picks = addMatch(dbs[tier], match, timeline, { isBoots, isCore, isTrinket });
     const day = new Date(match.info.gameStartTimestamp + 9 * 3600_000).toISOString().slice(0, 10);
     const d = (daily.days[day] ??= { matches: 0, champs: {} });
@@ -168,6 +180,8 @@ async function main() {
     fs.mkdirSync(path.dirname(fileOf(t)), { recursive: true });
     fs.writeFileSync(fileOf(t), JSON.stringify(db));
   }
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(namesFile, JSON.stringify(names.slice(-4000)));
   fs.writeFileSync(seenFile, JSON.stringify([...seen].slice(-30000)));
   // 활동량은 최근 14일만 보관
   const cutoff = new Date(Date.now() - 14 * 24 * 3600_000).toISOString().slice(0, 13);
