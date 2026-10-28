@@ -198,3 +198,40 @@ export function form(games: Game[]) {
     streak: games.length ? { win: games[0].win, count: streak } : null,
   };
 }
+
+// 멘탈(틸트) 지수: 연패, 최근 데스 증가, 10데스 이상 판, 패배 직후 바로 다시 큐 잡기로 0~100점을 냅니다.
+// 순수 규칙 기반이고 모든 입력이 실제 전적입니다.
+export function tilt(games: Game[]) {
+  const g = games.slice(0, 10);
+  if (g.length < 3) return null;
+  let lossRun = 0;
+  for (const x of g) {
+    if (x.win) break;
+    lossRun++;
+  }
+  const last5 = g.slice(0, 5);
+  const avgAll = g.reduce((s, x) => s + x.deaths, 0) / g.length;
+  const avg5 = last5.reduce((s, x) => s + x.deaths, 0) / last5.length;
+  const feeds = last5.filter((x) => x.deaths >= 10).length;
+  let quick = 0;
+  for (let i = 0; i < Math.min(5, g.length - 1); i++) {
+    const gap = g[i].endedAt - g[i].minutes * 60000 - g[i + 1].endedAt;
+    if (!g[i + 1].win && gap >= 0 && gap < 180000) quick++;
+  }
+  let score =
+    Math.min(45, lossRun * 15) + Math.min(25, Math.max(0, (avg5 - avgAll) * 6)) + Math.min(18, feeds * 6) + Math.min(12, quick * 4);
+  if (g[0].win) score *= 0.6;
+  score = Math.round(Math.min(100, Math.max(0, score)));
+  // 직전 게임 결과별 다음 게임 승률 (표본이 적으면 null)
+  const after = (prevWin: boolean) => {
+    let n = 0;
+    let w = 0;
+    for (let i = 0; i < games.length - 1; i++)
+      if (games[i + 1].win === prevWin) {
+        n++;
+        if (games[i].win) w++;
+      }
+    return n >= 4 ? { n, rate: (w / n) * 100 } : null;
+  };
+  return { score, lossRun, avg5, avgAll, feeds, quick, afterLoss: after(false), afterWin: after(true) };
+}

@@ -355,6 +355,15 @@ const en = {
     updatedAgo: (ago: string) => `Updated ${ago}`,
     updateWait: (sec: number) => `Try again in ${sec}s`,
     updateFailed: "Couldn't update. Try again in a moment.",
+    // 멘탈 지수
+    tiltTitle: "Mind meter",
+    tiltLevels: ["Zen master", "Chill", "Warming up", "Tilting", "Full tilt"],
+    tiltMsg: ["Clear head. Queue up!", "Steady hands. Nothing to worry about.", "A little heated. Take a sip of water.", "Tilt alert. Maybe 15 minutes away from the rift?", "Full tilt! Mute the chat and take a real break."],
+    tiltWhy: (loss: number, d5: string, dAll: string, feeds: number, quick: number) =>
+      [loss >= 2 && `${loss} losses in a row`, Number(d5) > Number(dAll) && `deaths up (${d5}/game vs ${dAll})`, feeds > 0 && `${feeds} game(s) with 10+ deaths`, quick > 0 && `re-queued fast after ${quick} loss(es)`].filter(Boolean).join(" · "),
+    tiltAfterLoss: (rate: string, n: number) => `Win rate right after a loss: ${rate}% (${n} games)`,
+    tiltAfterWin: (rate: string, n: number) => `Right after a win: ${rate}% (${n} games)`,
+    tiltNote: "Fun estimate from your last 10 ranked games. Not medical advice.",
     // 지금 흐름 · 이번 게임 추천
     nowTitle: "Your form & next game",
     flowLabel: "Right now",
@@ -739,6 +748,15 @@ const ko: Dict = {
     updatedAgo: (ago) => `${ago} 업데이트`,
     updateWait: (sec) => `${sec}초 뒤에 다시 할 수 있어요`,
     updateFailed: "업데이트하지 못했어요. 잠시 후 다시 눌러 주세요.",
+    // 멘탈 지수
+    tiltTitle: "멘탈 지수",
+    tiltLevels: ["멘탈 부처", "평온", "슬슬 열 받음", "틸트 주의", "풀 틸트"],
+    tiltMsg: ["머리가 맑아요. 바로 큐 잡아도 좋아요!", "손이 안정적이에요. 걱정 없어요.", "살짝 달아올랐어요. 물 한 잔 마시고 오세요.", "틸트 경고예요. 15분만 협곡에서 벗어나 볼까요?", "풀 틸트예요! 채팅 끄고 제대로 쉬세요."],
+    tiltWhy: (loss: number, d5: string, dAll: string, feeds: number, quick: number) =>
+      [loss >= 2 && `${loss}연패 중`, Number(d5) > Number(dAll) && `최근 데스 증가 (판당 ${d5} vs 평균 ${dAll})`, feeds > 0 && `10데스 이상 ${feeds}판`, quick > 0 && `패배 직후 바로 재큐 ${quick}번`].filter(Boolean).join(" · "),
+    tiltAfterLoss: (rate: string, n: number) => `패배 직후 다음 판 승률: ${rate}% (${n}판)`,
+    tiltAfterWin: (rate: string, n: number) => `승리 직후 다음 판 승률: ${rate}% (${n}판)`,
+    tiltNote: "최근 랭크 10판으로 계산한 재미용 추정치예요. 의학적 조언이 아니에요.",
     nowTitle: "지금 흐름 · 이번 게임 추천",
     flowLabel: "지금 흐름",
     flowWinStreak: (n) => `${n}연승 중이에요. 흐름이 아주 좋아요!`,

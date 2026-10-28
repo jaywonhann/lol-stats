@@ -30,6 +30,7 @@ import {
 import {
   champSummaries,
   form,
+  tilt,
   laneDiffs,
   roles,
   siteAverages,
@@ -213,6 +214,7 @@ function Analysis({
   const lanes = laneDiffs(games);
   const sw = strengthsWeaknesses(lanes.diffs);
   const f = form(games);
+  const tl = tilt(games);
   const score = scoreReport(result.matches, account.puuid, result.timelines);
   const mainLane = roleList[0]?.lane ?? null;
   const laneName = (l: Lane) => laneLabel(l, lang);
@@ -299,6 +301,35 @@ function Analysis({
   const goalRaw = (w0 ? t.tipPractice[w0.metric] : t.tipKeepGoing).replace(/^[^:：]+[:：]\s*/, "");
   const goalBody = goalRaw.replace(/^[^.]+\.\s*/, "");
   const goal = goalBody || goalRaw.charAt(0).toUpperCase() + goalRaw.slice(1);
+  const tiltLevel = tl ? (tl.score < 15 ? 0 : tl.score < 35 ? 1 : tl.score < 55 ? 2 : tl.score < 75 ? 3 : 4) : 0;
+  const tiltPanel = tl && (
+    <Panel>
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-accent">{t.tiltTitle}</h2>
+      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+        <p className="text-4xl font-bold tabular-nums" style={{ color: tl.score >= 55 ? "var(--chart-down)" : tl.score < 35 ? "var(--chart-up)" : undefined }}>
+          {tl.score}
+          <span className="text-base font-normal text-muted"> / 100</span>
+        </p>
+        <div className="min-w-0 flex-1">
+          <p className="text-lg font-bold">{t.tiltLevels[tiltLevel]}</p>
+          <p className="text-sm text-muted">{t.tiltMsg[tiltLevel]}</p>
+        </div>
+      </div>
+      <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-panel-2" role="img" aria-label={`${t.tiltTitle} ${tl.score}/100`}>
+        <div className="h-full rounded-full" style={{ width: `${Math.max(3, tl.score)}%`, background: tl.score >= 55 ? "var(--chart-down)" : "var(--chart-up)" }} />
+      </div>
+      {t.tiltWhy(tl.lossRun, fix(tl.avg5), fix(tl.avgAll), tl.feeds, tl.quick) && (
+        <p className="mt-3 text-sm">{t.tiltWhy(tl.lossRun, fix(tl.avg5), fix(tl.avgAll), tl.feeds, tl.quick)}</p>
+      )}
+      {(tl.afterLoss || tl.afterWin) && (
+        <ul className="mt-3 space-y-1 text-sm text-muted">
+          {tl.afterLoss && <li>{t.tiltAfterLoss(fix(tl.afterLoss.rate, 0), tl.afterLoss.n)}</li>}
+          {tl.afterWin && <li>{t.tiltAfterWin(fix(tl.afterWin.rate, 0), tl.afterWin.n)}</li>}
+        </ul>
+      )}
+      <p className="mt-3 text-xs text-muted">{t.tiltNote}</p>
+    </Panel>
+  );
   const nowPanel = (
     <section className="rounded-xl border border-accent/40 bg-panel p-5 shadow-[0_0_40px_-16px_var(--color-accent)] md:p-6">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-accent">{t.nowTitle}</h2>
@@ -367,6 +398,7 @@ function Analysis({
     <>
       {profileHeader}
       {nowPanel}
+      {tiltPanel}
       <div className="space-y-1 text-xs text-muted">
         <p>{t.analyzed(total, result.matchIds)}</p>
         {tagNote}
