@@ -1,0 +1,39 @@
+# 홍보 영상 제작용: 챔피언 스플래시 아트를 Data Dragon에서 받아 promo-assets 브랜치에 올립니다 (사이트 배포와 무관한 브랜치).
+name: 홍보 영상용 챔피언 이미지 받기
+
+on:
+  workflow_dispatch:
+    inputs:
+      champs:
+        description: "챔피언 ID 목록 (쉼표로 구분)"
+        default: "Ahri,Jinx,LeeSin,Yasuo,Zed,Lux,Ezreal,Akali,Kaisa,Thresh,Viego,Sylas,Yone,Jhin,Vayne,Katarina"
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 이미지 내려받기
+        run: |
+          set -euo pipefail
+          mkdir art && cd art
+          for c in $(echo "${{ github.event.inputs.champs }}" | tr ',' ' '); do
+            curl -fsSL "https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${c}_0.jpg" -o "${c}.jpg" || echo "::warning::$c 실패"
+          done
+          VER=$(curl -fsS https://ddragon.leagueoflegends.com/api/versions.json | jq -r '.[0]')
+          for c in $(echo "${{ github.event.inputs.champs }}" | tr ',' ' '); do
+            curl -fsSL "https://ddragon.leagueoflegends.com/cdn/${VER}/img/champion/${c}.png" -o "${c}_icon.png" || true
+          done
+          ls -la
+      - name: promo-assets 브랜치에 올리기
+        run: |
+          cd art
+          git init -q -b promo-assets
+          printf '{"git":{"deploymentEnabled":false}}' > vercel.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A && git commit -qm "promo art"
+          git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          git push -f origin promo-assets
