@@ -279,7 +279,7 @@ export default async function Home() {
       )}
 
       <section>
-        <SectionTitle title={t.championSearch} />
+        <SectionTitle title={t.championSearch} href="/champions" link={lang === "ko" ? "전체 보기" : "View all"} />
         <Panel>
         <ChampionSearch
           lang={lang}
