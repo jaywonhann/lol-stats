@@ -108,7 +108,7 @@ const en = {
   liveUnavailable: "Live player count isn't available yet.",
   liveChecking: "Checking how many players are in game…",
   playersUnit: "players",
-  liveHeroTitle: "Players in game right now",
+  liveHeroTitle: "Master+ players in game right now (estimate)",
   liveVsHour: "vs 1 hour ago",
   liveChampsTitle: "Most played right now",
   liveChampsNote: (games: number, h: number) =>
@@ -135,6 +135,8 @@ const en = {
   liveFoot:
     "Live number updates every minute, graph recorded every 10 min · estimated from a sample of Master+ players",
   // 티어 리스트
+  liveFootStale:
+    "Waiting for a fresh count. Showing the last collected result · graph recorded every 10 min from a sample of Master+ players",
   tierTitle: "Champion Tier List",
   soloGames: (n: string) => `${n} Ranked Solo games`,
   // 패치 트렌드
@@ -513,7 +515,7 @@ const ko: Dict = {
   liveUnavailable: "실시간 인원은 아직 준비 중이에요.",
   liveChecking: "지금 게임 중인 인원을 확인하는 중…",
   playersUnit: "명",
-  liveHeroTitle: "지금 게임 중인 플레이어",
+  liveHeroTitle: "지금 게임 중인 마스터 이상 플레이어 (추정)",
   liveVsHour: "1시간 전보다",
   liveChampsTitle: "지금 가장 많이 플레이 중인 챔피언",
   liveChampsNote: (games, h) => `최근 ${h}시간 진행 중 랭크 게임 ${games}판의 픽 비율로 나눈 추정치`,
@@ -538,6 +540,8 @@ const ko: Dict = {
   livePointTitle: (time, n) => `${time} 약 ${n}명`,
   liveFoot:
     "지금 숫자는 1분마다, 그래프는 10분마다 기록 · 마스터+ 랭커 표본 조사로 추정",
+  liveFootStale:
+    "새 집계를 기다리는 중이에요. 마지막으로 수집된 결과를 보여줘요 · 그래프는 10분마다 마스터+ 랭커 표본으로 기록",
   tierTitle: "챔피언 티어 리스트",
   soloGames: (n) => `솔로랭크 ${n}게임`,
   trendsTitle: "패치 트렌드",

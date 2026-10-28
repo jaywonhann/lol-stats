@@ -285,7 +285,7 @@ export default function LiveCounter({
           <span>{t.liveNow}</span>
         </div>
       )}
-      <p className="mt-1 text-xs text-muted">{t.liveFoot}</p>
+      <p className="mt-1 text-xs text-muted">{state === "ok" ? t.liveFoot : t.liveFootStale}</p>
     </div>
   );
 }

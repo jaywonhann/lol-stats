@@ -173,6 +173,7 @@ export default async function Home() {
                 <div className="mt-2 flex items-center justify-between text-xs">
                   <span className="text-muted">{t.winRate} <WinRate value={s.winRate} /></span>
                   <span className="text-muted">{t.pickRate} {pct(s.pickRate)}</span>
+                  <span className="text-muted">{t.gamesN(s.games)}</span>
                 </div>
                 <div className="mt-2">
                   <BuildIcons qb={qb} version={version} size={24} />
@@ -205,7 +206,7 @@ export default async function Home() {
                       <Icon src={img.champion(version, s.champion.image.full)} alt={s.champion.name} size={30} />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm">{s.champion.name}</span>
-                        <span className="block text-xs tabular-nums"><WinRate value={s.winRate} /></span>
+                        <span className="block text-xs tabular-nums"><WinRate value={s.winRate} /> <span className="text-muted">· {t.gamesN(s.games)}</span></span>
                       </span>
                       <TierBadge tier={s.tier} lang={lang} />
                     </Link>
