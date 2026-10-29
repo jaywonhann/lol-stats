@@ -28,7 +28,8 @@ export default async function ChampionsIndex() {
       <Panel>
         <ChampionSearch
           lang={lang}
-          champions={champions.map((c) => ({ id: c.id, name: c.name, alt: altName.get(c.id), icon: img.champion(version, c.image.full) }))}
+          filters
+          champions={champions.map((c) => ({ id: c.id, name: c.name, alt: altName.get(c.id), icon: img.champion(version, c.image.full), tags: c.tags }))}
         />
       </Panel>
     </div>

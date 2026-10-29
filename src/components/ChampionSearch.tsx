@@ -5,22 +5,33 @@ import { useMemo, useState } from "react";
 import { dict, type Lang } from "@/lib/i18n";
 
 // alt: 다른 언어의 챔피언 이름 (한국어/영어 어느 쪽으로도 검색되게)
-type Entry = { id: string; name: string; alt?: string; icon: string };
+type Entry = { id: string; name: string; alt?: string; icon: string; tags?: string[] };
+
+const TAGS: [string, string, string][] = [
+  ["Fighter", "Fighter", "전사"],
+  ["Tank", "Tank", "탱커"],
+  ["Mage", "Mage", "마법사"],
+  ["Assassin", "Assassin", "암살자"],
+  ["Marksman", "Marksman", "원거리 딜러"],
+  ["Support", "Support", "서포터"],
+];
 
 // base: 챔피언 링크 앞부분 (윈도우 앱 화면은 "/app?champ=")
-export default function ChampionSearch({ champions, lang, base = "/champions/" }: { champions: Entry[]; lang: Lang; base?: string }) {
+export default function ChampionSearch({ champions, lang, base = "/champions/", filters = false }: { champions: Entry[]; lang: Lang; base?: string; filters?: boolean }) {
   const t = dict(lang);
   const [q, setQ] = useState("");
+  const [tag, setTag] = useState<string | null>(null);
   const results = useMemo(() => {
     const term = q.trim().toLowerCase();
-    if (!term) return champions;
-    return champions.filter(
+    const pool = tag ? champions.filter((c) => c.tags?.includes(tag)) : champions;
+    if (!term) return pool;
+    return pool.filter(
       (c) =>
         c.name.toLowerCase().includes(term) ||
         c.id.toLowerCase().includes(term) ||
         (c.alt?.toLowerCase().includes(term) ?? false),
     );
-  }, [q, champions]);
+  }, [q, tag, champions]);
 
   return (
     <div>
@@ -30,6 +41,21 @@ export default function ChampionSearch({ champions, lang, base = "/champions/" }
         placeholder={t.searchPlaceholder}
         className="w-full rounded-lg border border-line bg-panel-2 px-4 py-3 text-base outline-none focus:border-accent"
       />
+      {filters && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {TAGS.map(([id, en, ko]) => (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={tag === id}
+              onClick={() => setTag(tag === id ? null : id)}
+              className={`rounded-full border px-3 py-1.5 text-sm ${tag === id ? "border-accent bg-accent/15 text-text" : "border-line text-muted hover:text-text"}`}
+            >
+              {lang === "ko" ? ko : en}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="mt-4 grid grid-cols-5 gap-2 sm:grid-cols-8 md:grid-cols-10">
         {results.map((c) => (
           <Link key={c.id} href={`${base}${c.id}`} className="group flex flex-col items-center gap-1 text-center">
