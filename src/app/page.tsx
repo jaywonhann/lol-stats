@@ -55,6 +55,27 @@ export default async function Home() {
     .slice(0, 5);
 
   const picks = LANES.map((lane) => ({ lane: lane.id, rows: top5(lane.id) }));
+  // 패치 어워드: 실제 데이터일 때만, 라인별 전체 표에서 재미있는 기록을 뽑아요
+  const all = LANES.flatMap((l) => {
+    const b = boards(champions, l.id, filter, patches);
+    return b.source === "real" ? (b.boards[b.boards.length - 1] ?? []).map((s) => ({ lane: l.id, s })) : [];
+  });
+  const byPick = [...all].sort((a, b) => b.s.pickRate - a.s.pickRate);
+  const popular = byPick.slice(0, Math.max(5, Math.ceil(byPick.length / 4)));
+  const niche = byPick.slice(Math.ceil(byPick.length / 2));
+  const awards = all.length >= 10
+    ? [
+        { key: "hidden", pick: [...niche].sort((a, b) => b.s.winRate - a.s.winRate)[0], value: (s: (typeof all)[number]["s"]) => `${t.winRate} ${s.winRate.toFixed(1)}%` },
+        { key: "people", pick: byPick[0], value: (s: (typeof all)[number]["s"]) => `${t.pickRate} ${pct(s.pickRate)}` },
+        { key: "sad", pick: [...popular].sort((a, b) => a.s.winRate - b.s.winRate)[0], value: (s: (typeof all)[number]["s"]) => `${t.winRate} ${s.winRate.toFixed(1)}%` },
+        { key: "rocket", pick: moves
+          .flatMap((m, i) => m.rising.map((r) => ({ lane: LANES[i].id, s: r.stat })))
+          .sort((a, b) => b.s.scoreChange! - a.s.scoreChange!)[0], value: (s: (typeof all)[number]["s"]) => `${t.winRate} ${s.winRate.toFixed(1)}%` },
+      ].filter((a, i, arr) => a.pick && arr.findIndex((b) => b.pick?.s.champion.id === a.pick!.s.champion.id) === i)
+    : [];
+  const AW = lang === "ko"
+    ? { title: `패치 ${patch} 어워드`, note: "실제 랭크 게임 기록으로 뽑은, 이번 패치의 재미있는 챔피언들이에요.", hidden: ["숨은 OP상", "아무도 안 하는데 제일 잘 이겨요"], people: ["국민 픽상", "어딜 가나 이 챔피언"], sad: ["억울한 인기상", "다들 하는데 자꾸 져요"], rocket: ["로켓 상승상", "최근 며칠 사이 가장 많이 뜬 챔피언"] }
+    : { title: `Patch ${patch} awards`, note: "This patch's most interesting champions, picked from real ranked games.", hidden: ["Hidden OP", "Nobody plays it, and it wins the most"], people: ["People's pick", "It's in every game"], sad: ["Popular but sad", "Everyone picks it, everyone loses"], rocket: ["Rocket riser", "Climbed the most in the last few days"] };
   // 히어로 배경: 라인별 1위 중 승률이 가장 높은 챔피언
   const featured = picks
     .filter((p) => p.rows.length > 0)
@@ -81,7 +102,7 @@ export default async function Home() {
     { href: "/tier", label: t.nav.tier },
     { href: "/meta", label: t.nav.meta },
     { href: "/trends", label: t.nav.trends },
-    { href: "/summoner", label: t.nav.summoner },
+    { href: "/summoner", label: lang === "ko" ? "내 멘탈 지수 테스트" : "Test my mind meter", hot: true },
     { href: "/predict", label: lang === "ko" ? "승률 예측" : "Win predictor", hot: true },
     { href: "/ranking", label: lang === "ko" ? "랭킹" : "Ranking" },
   ];
@@ -138,6 +159,30 @@ export default async function Home() {
           )}
         </div>
       </section>
+
+      {awards.length > 0 && (
+        <section className="fade-up" style={{ animationDelay: "60ms" }}>
+          <SectionTitle title={AW.title} note={AW.note} />
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {awards.map(({ key, pick, value }) => {
+              const [name, line] = AW[key as "hidden" | "people" | "sad" | "rocket"];
+              return (
+                <Link
+                  key={key}
+                  href={`/champions/${pick!.s.champion.id}?lane=${pick!.lane}`}
+                  className="lift flex flex-col items-center rounded-xl border border-line bg-panel p-4 text-center"
+                >
+                  <span className="rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-bold text-accent">{name}</span>
+                  <Icon src={img.champion(version, pick!.s.champion.image.full)} alt={pick!.s.champion.name} size={56} className="mt-3 rounded-full" />
+                  <span className="mt-2 text-sm font-semibold">{pick!.s.champion.name}</span>
+                  <span className="text-xs text-muted">{laneLabel(pick!.lane, lang)} · {value(pick!.s)}</span>
+                  <span className="mt-2 text-xs leading-snug text-muted">{line}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <div className="fade-up" style={{ animationDelay: "80ms" }}>
         <LivePanel server={server} lang={lang} hero />

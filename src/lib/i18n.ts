@@ -81,7 +81,7 @@ const en = {
   homeSubtitle: (server: string, patch: string) =>
     `${server} · Champion tiers, builds, runes and counters for patch ${patch}`,
   bestPicks: (lane: string) => `Best ${lane} picks`,
-  heroTagline: "See what's winning right now.",
+  heroTagline: "LoL stats, but actually fun.",
   heroFeatured: (name: string, lane: string) => `Top pick right now · ${name} ${lane}`,
   bestPicksTitle: "Best picks by lane",
   viewAll: "View all",
@@ -511,7 +511,7 @@ const ko: Dict = {
   homeSubtitle: (server, patch) =>
     `${server} 서버 · 패치 ${patch} 기준 챔피언 티어, 빌드, 룬, 카운터`,
   bestPicks: (lane) => `${lane} 추천 챔피언`,
-  heroTagline: "지금 이기는 픽을 가장 빠르게.",
+  heroTagline: "롤 통계, 근데 재밌게.",
   heroFeatured: (name, lane) => `지금 가장 좋은 픽 · ${name} ${lane}`,
   bestPicksTitle: "라인별 추천 챔피언",
   viewAll: "전체 보기",
