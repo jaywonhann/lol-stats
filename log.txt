@@ -1,0 +1,10 @@
+[youtube] Extracting URL: https://www.youtube.com/watch?v=QD6wiP0uoPQ
+[youtube] QD6wiP0uoPQ: Downloading webpage
+[youtube] QD6wiP0uoPQ: Downloading visionos player API JSON
+ERROR: [youtube] QD6wiP0uoPQ: Sign in to confirm you’re not a bot. This helps protect our community. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  for tips on effectively exporting YouTube cookies
+failed QD6wiP0uoPQ
+[youtube] Extracting URL: https://www.youtube.com/watch?v=hIyuZg_xVj4
+[youtube] hIyuZg_xVj4: Downloading webpage
+[youtube] hIyuZg_xVj4: Downloading visionos player API JSON
+ERROR: [youtube] hIyuZg_xVj4: Sign in to confirm you’re not a bot. This helps protect our community. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  for tips on effectively exporting YouTube cookies
+failed hIyuZg_xVj4
