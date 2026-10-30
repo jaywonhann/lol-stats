@@ -1,3 +1,4 @@
+import TrendTabs from "@/components/TrendTabs";
 import type { Metadata } from "next";
 import Link from "next/link";
 import AutoRefresh from "@/components/AutoRefresh";
@@ -33,6 +34,7 @@ export default async function MetaPage({ searchParams }: Props) {
 
   return (
     <div className="space-y-4">
+      <TrendTabs active="meta" lang={lang} />
       <AutoRefresh />
       <div className="flex flex-wrap items-end justify-between gap-2">
         <h1 className="flex items-center gap-3 text-2xl font-bold">

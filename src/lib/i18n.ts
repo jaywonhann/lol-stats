@@ -370,6 +370,8 @@ const en = {
     titlesNote: "Fun titles from your recent games. Only shown when the numbers back them up.",
     // 멘탈 지수
     tiltTitle: "Mind meter",
+    queueAsk: "Should I queue now?",
+    queueVerdict: ["Yes. You're in a good headspace, go for it.", "One more is fine. If you lose it, take a break.", "Not yet. Players who queue right after a losing streak win the least. Take 15 minutes."],
     tiltLevels: ["Zen master", "Chill", "Warming up", "Tilting", "Full tilt"],
     tiltMsg: ["Clear head. Queue up!", "Steady hands. Nothing to worry about.", "A little heated. Take a sip of water.", "Tilt alert. Maybe 15 minutes away from the rift?", "Full tilt! Mute the chat and take a real break."],
     tiltWhy: (loss: number, d5: string, dAll: string, feeds: number, quick: number) =>
@@ -776,6 +778,8 @@ const ko: Dict = {
     titlesNote: "최근 게임 기록으로 붙인 재미용 칭호예요. 수치가 뒷받침될 때만 보여줘요.",
     // 멘탈 지수
     tiltTitle: "멘탈 지수",
+    queueAsk: "지금 큐 돌려도 될까?",
+    queueVerdict: ["돌려도 좋아요. 지금 멘탈이 안정적이에요.", "한 판만 더 해요. 지면 그때는 쉬어요.", "아직이에요. 연패 직후 바로 큐를 돌리면 승률이 가장 낮아요. 15분만 쉬고 와요."],
     tiltLevels: ["멘탈 부처", "평온", "슬슬 열 받음", "틸트 주의", "풀 틸트"],
     tiltMsg: ["머리가 맑아요. 바로 큐 잡아도 좋아요!", "손이 안정적이에요. 걱정 없어요.", "살짝 달아올랐어요. 물 한 잔 마시고 오세요.", "틸트 경고예요. 15분만 협곡에서 벗어나 볼까요?", "풀 틸트예요! 채팅 끄고 제대로 쉬세요."],
     tiltWhy: (loss: number, d5: string, dAll: string, feeds: number, quick: number) =>

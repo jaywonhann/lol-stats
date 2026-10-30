@@ -1,3 +1,4 @@
+import TrendTabs from "@/components/TrendTabs";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { DivergingBars, Sparkline } from "@/components/charts";
@@ -59,6 +60,7 @@ export default async function TrendsPage({ searchParams }: Props) {
 
   return (
     <div className="space-y-4">
+      <TrendTabs active="trends" lang={lang} />
       <div className="flex flex-wrap items-end justify-between gap-2">
         <h1 className="text-2xl font-bold">{t.trendsTitle}</h1>
         <span className="text-sm text-muted">

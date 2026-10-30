@@ -325,8 +325,19 @@ function Analysis({
     </Panel>
   );
   const tiltLevel = tl ? (tl.score < 15 ? 0 : tl.score < 35 ? 1 : tl.score < 55 ? 2 : tl.score < 75 ? 3 : 4) : 0;
+  // 지금 큐 판정: 연패 중이거나 멘탈 지수가 높으면 쉬라고 해요
+  const queueLevel = tl ? (tl.lossRun >= 2 || tl.score >= 55 ? 2 : tl.score >= 35 || tl.lossRun === 1 ? 1 : 0) : 0;
   const tiltPanel = tl && (
     <Panel>
+      <div
+        className="mb-4 rounded-lg border px-4 py-3"
+        style={{ borderColor: queueLevel === 2 ? "var(--chart-down)" : queueLevel === 0 ? "var(--chart-up)" : "var(--color-line)" }}
+      >
+        <p className="text-xs font-medium text-muted">{t.queueAsk}</p>
+        <p className="mt-1 text-lg font-bold" style={{ color: queueLevel === 2 ? "var(--chart-down)" : queueLevel === 0 ? "var(--chart-up)" : undefined }}>
+          {t.queueVerdict[queueLevel]}
+        </p>
+      </div>
       <h2 className="text-sm font-semibold uppercase tracking-wide text-accent">{t.tiltTitle}</h2>
       <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
         <p className="text-4xl font-bold tabular-nums" style={{ color: tl.score >= 55 ? "var(--chart-down)" : tl.score < 35 ? "var(--chart-up)" : undefined }}>
@@ -420,8 +431,8 @@ function Analysis({
   return (
     <>
       {profileHeader}
-      {nowPanel}
       {tiltPanel}
+      {nowPanel}
       {titlesPanel}
       <div className="space-y-1 text-xs text-muted">
         <p>{t.analyzed(total, result.matchIds)}</p>

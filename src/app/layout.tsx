@@ -54,20 +54,11 @@ export default async function RootLayout({
             <Link href="/trends" className="nav-link">
               {t.nav.trends}
             </Link>
-            <Link href="/meta" className="nav-link">
-              {t.nav.meta}
-            </Link>
             <Link href="/summoner" className="nav-link">
               {t.nav.summoner}
             </Link>
             <Link href="/ranking" className="nav-link">
               {lang === "ko" ? "랭킹" : "Ladder"}
-            </Link>
-            <Link href="/predict" className="nav-link">
-              {lang === "ko" ? "승률 예측" : "Predict"}
-            </Link>
-            <Link href="/tools" className="nav-link">
-              {lang === "ko" ? "도구" : "Tools"}
             </Link>
             <details className="nav-more relative hidden sm:block">
               <summary className="nav-link cursor-pointer list-none [&::-webkit-details-marker]:hidden">
@@ -82,9 +73,6 @@ export default async function RootLayout({
                 </Link>
                 <Link href="/items" className="rounded px-3 py-2 text-sm hover:bg-panel-2">
                   {lang === "ko" ? "아이템 통계" : "Item stats"}
-                </Link>
-                <Link href="/pros" className="rounded px-3 py-2 text-sm hover:bg-panel-2">
-                  {lang === "ko" ? "프로 핫 클립" : "Hot pro clips"}
                 </Link>
                 <Link href="/community" className="rounded px-3 py-2 text-sm hover:bg-panel-2">
                   {lang === "ko" ? "커뮤니티" : "Community"}
