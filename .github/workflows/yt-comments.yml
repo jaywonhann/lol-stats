@@ -19,7 +19,7 @@ jobs:
           for id in ${{ inputs.ids }}; do
             yt-dlp --skip-download --write-comments --no-warnings \
               --extractor-args "youtube:max_comments=300,300,0,0;comment_sort=top" \
-              -o "out/$id.%(ext)s" "https://www.youtube.com/watch?v=$id" || echo "failed $id"
+              -o "out/$id.%(ext)s" "https://www.youtube.com/watch?v=$id" >> log.txt 2>&1 || echo "failed $id" >> log.txt
           done
           python3 - <<'PY'
           import json, glob
@@ -34,6 +34,6 @@ jobs:
       # 아티팩트는 컨테이너에서 못 받아서 research 브랜치(배포 꺼짐)에 올려요
       - run: |
           mkdir pub && cd pub && git init -q -b research
-          cp ../comments.json . && echo '{"git":{"deploymentEnabled":false}}' > vercel.json
+          cp ../comments.json ../log.txt . && echo '{"git":{"deploymentEnabled":false}}' > vercel.json
           git -c user.name=bot -c user.email=bot@users.noreply.github.com commit -qam research 2>/dev/null || { git add . && git -c user.name=bot -c user.email=bot@users.noreply.github.com commit -qm research; }
           git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" research
