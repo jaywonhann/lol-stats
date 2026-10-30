@@ -40,6 +40,15 @@ export default async function ChampionsIndex() {
     }
     return g >= MIN_CHAMP_GAMES ? (w / g) * 100 : undefined;
   };
+  // 가장 많이 플레이된 라인: 목록에서 눌렀을 때 바로 그 라인 페이지로 가요
+  const mainLane = (key: string) => {
+    let best: { id: string; g: number } | undefined;
+    for (const l of LANES) {
+      const g = latest?.champs[`${key}:${l.id}`]?.games ?? 0;
+      if (g >= MIN_CHAMP_GAMES && (!best || g > best.g)) best = { id: l.id, g };
+    }
+    return best?.id;
+  };
   const altName = new Map(alt.map((c) => [c.id, c.name]));
   return (
     <div className="space-y-4">
@@ -48,7 +57,7 @@ export default async function ChampionsIndex() {
         <ChampionSearch
           lang={lang}
           filters
-          champions={champions.map((c) => ({ id: c.id, name: c.name, alt: altName.get(c.id), icon: img.champion(version, c.image.full), tags: c.tags, wr: winOf(c.key) }))}
+          champions={champions.map((c) => ({ id: c.id, name: c.name, alt: altName.get(c.id), icon: img.champion(version, c.image.full), tags: c.tags, wr: winOf(c.key), lane: mainLane(c.key) }))}
         />
       </Panel>
     </div>
