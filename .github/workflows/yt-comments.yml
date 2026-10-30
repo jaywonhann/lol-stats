@@ -6,6 +6,8 @@ on:
       ids:
         description: "space-separated video ids"
         required: true
+permissions:
+  contents: write
 jobs:
   fetch:
     runs-on: ubuntu-latest
@@ -29,8 +31,9 @@ jobs:
           json.dump(rows, open("comments.json", "w"), ensure_ascii=False)
           print(len(rows), "comments")
           PY
-      - uses: actions/upload-artifact@v4
-        with:
-          name: comments
-          path: comments.json
-          retention-days: 3
+      # 아티팩트는 컨테이너에서 못 받아서 research 브랜치(배포 꺼짐)에 올려요
+      - run: |
+          mkdir pub && cd pub && git init -q -b research
+          cp ../comments.json . && echo '{"git":{"deploymentEnabled":false}}' > vercel.json
+          git -c user.name=bot -c user.email=bot@users.noreply.github.com commit -qam research 2>/dev/null || { git add . && git -c user.name=bot -c user.email=bot@users.noreply.github.com commit -qm research; }
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" research
