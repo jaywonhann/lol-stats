@@ -235,3 +235,22 @@ export function tilt(games: Game[]) {
   };
   return { score, lossRun, avg5, avgAll, feeds, quick, afterLoss: after(false), afterWin: after(true) };
 }
+
+// 재미용 칭호: 최근 게임의 실제 평균 수치가 기준을 넘을 때만 붙입니다 (id만 돌려주고 문구는 i18n에서).
+export function titles(games: Game[]) {
+  if (games.length < 5) return [] as string[];
+  const n = games.length;
+  const avg = (f: (g: Game) => number) => games.reduce((s, g) => s + f(g), 0) / n;
+  const deaths = avg((g) => g.deaths);
+  const kp = avg((g) => g.me.kp);
+  const vision = avg((g) => g.me.vision);
+  const cs = avg((g) => g.csPerMin);
+  const out: string[] = [];
+  if (deaths >= 7) out.push("deathCollector");
+  if (deaths <= 3.5) out.push("survivor");
+  if (kp >= 0.65) out.push("teamfighter");
+  if (kp <= 0.4) out.push("soloist");
+  if (vision >= 1.2) out.push("wardMaster");
+  if (cs >= 8) out.push("csMachine");
+  return out;
+}

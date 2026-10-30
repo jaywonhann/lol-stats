@@ -31,6 +31,7 @@ import {
   champSummaries,
   form,
   tilt,
+  titles,
   laneDiffs,
   roles,
   siteAverages,
@@ -301,6 +302,21 @@ function Analysis({
   const goalRaw = (w0 ? t.tipPractice[w0.metric] : t.tipKeepGoing).replace(/^[^:：]+[:：]\s*/, "");
   const goalBody = goalRaw.replace(/^[^.]+\.\s*/, "");
   const goal = goalBody || goalRaw.charAt(0).toUpperCase() + goalRaw.slice(1);
+  const myTitles = titles(games);
+  const titlesPanel = myTitles.length > 0 && (
+    <Panel>
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-accent">{t.titlesTitle}</h2>
+      <ul className="mt-3 flex flex-wrap gap-2">
+        {myTitles.map((id) => (
+          <li key={id} className="rounded-xl border border-line bg-panel-2 px-3 py-2">
+            <p className="font-bold">{t.titleNames[id][0]}</p>
+            <p className="text-xs text-muted">{t.titleNames[id][1]}</p>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 text-xs text-muted">{t.titlesNote}</p>
+    </Panel>
+  );
   const tiltLevel = tl ? (tl.score < 15 ? 0 : tl.score < 35 ? 1 : tl.score < 55 ? 2 : tl.score < 75 ? 3 : 4) : 0;
   const tiltPanel = tl && (
     <Panel>
@@ -399,6 +415,7 @@ function Analysis({
       {profileHeader}
       {nowPanel}
       {tiltPanel}
+      {titlesPanel}
       <div className="space-y-1 text-xs text-muted">
         <p>{t.analyzed(total, result.matchIds)}</p>
         {tagNote}

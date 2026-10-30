@@ -355,6 +355,17 @@ const en = {
     updatedAgo: (ago: string) => `Updated ${ago}`,
     updateWait: (sec: number) => `Try again in ${sec}s`,
     updateFailed: "Couldn't update. Try again in a moment.",
+    // 칭호
+    titlesTitle: "Your titles",
+    titleNames: {
+      deathCollector: ["Death collector", "7+ deaths per game"],
+      survivor: ["Survivor", "3.5 or fewer deaths per game"],
+      teamfighter: ["Always in the fight", "65%+ kill participation"],
+      soloist: ["Lone wolf", "40% or lower kill participation"],
+      wardMaster: ["Ward master", "1.2+ vision score per minute"],
+      csMachine: ["CS machine", "8+ CS per minute"],
+    } as Record<string, [string, string]>,
+    titlesNote: "Fun titles from your recent games. Only shown when the numbers back them up.",
     // 멘탈 지수
     tiltTitle: "Mind meter",
     tiltLevels: ["Zen master", "Chill", "Warming up", "Tilting", "Full tilt"],
@@ -748,6 +759,17 @@ const ko: Dict = {
     updatedAgo: (ago) => `${ago} 업데이트`,
     updateWait: (sec) => `${sec}초 뒤에 다시 할 수 있어요`,
     updateFailed: "업데이트하지 못했어요. 잠시 후 다시 눌러 주세요.",
+    // 칭호
+    titlesTitle: "내 칭호",
+    titleNames: {
+      deathCollector: ["데스 수집가", "판당 평균 7데스 이상"],
+      survivor: ["생존 달인", "판당 평균 3.5데스 이하"],
+      teamfighter: ["한타 개근상", "킬 관여율 65% 이상"],
+      soloist: ["외로운 늑대", "킬 관여율 40% 이하"],
+      wardMaster: ["와드 장인", "분당 시야 점수 1.2 이상"],
+      csMachine: ["CS 기계", "분당 CS 8 이상"],
+    } as Record<string, [string, string]>,
+    titlesNote: "최근 게임 기록으로 붙인 재미용 칭호예요. 수치가 뒷받침될 때만 보여줘요.",
     // 멘탈 지수
     tiltTitle: "멘탈 지수",
     tiltLevels: ["멘탈 부처", "평온", "슬슬 열 받음", "틸트 주의", "풀 틸트"],
