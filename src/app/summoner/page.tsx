@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import ShareButton from "@/components/ShareButton";
 import { Icon, Panel } from "@/components/ui";
 import { DivergingBars } from "@/components/charts";
 import TierEmblem from "@/components/TierEmblem";
@@ -16,7 +17,7 @@ import { getChampions, getPatches, getVersion, img, type Champion } from "@/lib/
 import { ddLocale, dict, numLocale, timeAgo, type Lang } from "@/lib/i18n";
 import { boards } from "@/lib/stats";
 import { fetchedAt } from "@/lib/summoner-cache";
-import { laneLabel, serverLabel, type Lane, type Server } from "@/lib/lanes";
+import { laneLabel, parseServer, serverLabel, type Lane, type Server } from "@/lib/lanes";
 import { getLang, getServer } from "@/lib/server";
 import {
   lookupSummoner,
@@ -44,13 +45,14 @@ import {
 
 export const dynamic = "force-dynamic";
 
-type Props = { searchParams: Promise<{ id?: string | string[] }> };
+type Props = { searchParams: Promise<{ id?: string | string[]; s?: string }> };
 
 const rawId = (v: string | string[] | undefined) =>
   (Array.isArray(v) ? v[0] : v ?? "").slice(0, 60);
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
-  const [sp, lang, server] = await Promise.all([searchParams, getLang(), getServer()]);
+  const [sp, lang, cookieServer] = await Promise.all([searchParams, getLang(), getServer()]);
+  const server = sp.s ? parseServer(sp.s) : cookieServer;
   const t = dict(lang).summoner;
   const id = rawId(sp.id).trim();
   const card = id ? [{ url: `/api/card?id=${encodeURIComponent(id)}&s=${server}`, width: 1200, height: 630 }] : undefined;
@@ -58,7 +60,9 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 }
 
 export default async function SummonerPage({ searchParams }: Props) {
-  const [sp, lang, server] = await Promise.all([searchParams, getLang(), getServer()]);
+  const [sp, lang, cookieServer] = await Promise.all([searchParams, getLang(), getServer()]);
+  // 공유된 링크는 서버(?s=)를 같이 담고 있어요
+  const server = sp.s ? parseServer(sp.s) : cookieServer;
   const t = dict(lang).summoner;
   const raw = rawId(sp.id);
   const parsed = raw ? parseRiotId(raw, server) : null;
@@ -194,7 +198,10 @@ function Analysis({
         </div>
         <RankBox solo={solo} lang={lang} />
       </div>
-      <div className="mt-3 flex justify-end border-t border-line pt-3">{update}</div>
+      <div className="mt-3 flex flex-wrap justify-end gap-2 border-t border-line pt-3">
+        <ShareButton url={`/summoner?id=${encodeURIComponent(`${account.gameName}#${account.tagLine}`)}&s=${server}`} title={t.metaTitle(`${account.gameName}#${account.tagLine}`)} label={t.shareLabel} copied={t.shareCopied} />
+        {update}
+      </div>
     </Panel>
   );
 

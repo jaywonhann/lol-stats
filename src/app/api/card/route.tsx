@@ -2,6 +2,8 @@ import { ImageResponse } from "next/og";
 import { growth, HEX } from "@/lib/growth";
 import { parseRiotId, lookupSummoner } from "@/lib/riot";
 import { scoreReport } from "@/lib/score";
+import { tilt, titles, toGames } from "@/lib/summoner";
+import { dict } from "@/lib/i18n";
 import { parseServer } from "@/lib/lanes";
 
 // 소환사 공유 카드(링크 미리보기용 이미지). 글꼴 문제로 영문만 씁니다.
@@ -28,6 +30,11 @@ export async function GET(req: Request) {
     const weakIdx = HEX.indexOf(g.weakest);
     const wins = r.matches.filter((m) => m.info.participants.find((p) => p.puuid === r.account.puuid)?.win).length;
     const total = r.matches.length;
+    const games = toGames(r.matches, r.account.puuid);
+    const tl = tilt(games);
+    const en = dict("en").summoner;
+    const lvl = tl ? (tl.score < 15 ? 0 : tl.score < 35 ? 1 : tl.score < 55 ? 2 : tl.score < 75 ? 3 : 4) : 0;
+    const myTitles = titles(games).slice(0, 3).map((id) => en.titleNames[id][0]);
     const rank = r.solo ? `${r.solo.tier} ${r.solo.rank} · ${r.solo.leaguePoints} LP` : "Unranked";
     return new ImageResponse(
       (
@@ -43,6 +50,20 @@ export async function GET(req: Request) {
               {wins}W {total - wins}L in the last {total} games
             </div>
             <div style={{ display: "flex", marginTop: 22, fontSize: 28, color: "#ff5d6c" }}>One fix: {LABEL[g.weakest]}</div>
+            {tl && (
+              <div style={{ display: "flex", marginTop: 22, fontSize: 30, fontWeight: 800, color: tl.score >= 55 ? "#ff5d6c" : "#9ff7e8" }}>
+                Mind meter {tl.score}/100 · {en.tiltLevels[lvl]}
+              </div>
+            )}
+            {myTitles.length > 0 && (
+              <div style={{ display: "flex", marginTop: 16, gap: 10 }}>
+                {myTitles.map((n) => (
+                  <div key={n} style={{ display: "flex", fontSize: 22, fontWeight: 700, padding: "6px 14px", borderRadius: 999, border: "2px solid #5b6b8c", color: "#e6e9f0" }}>
+                    {n}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <svg width="420" height="420" viewBox="0 0 400 400">
             {[0.33, 0.66, 1].map((v) => (
