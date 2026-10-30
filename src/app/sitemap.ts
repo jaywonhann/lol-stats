@@ -4,7 +4,7 @@ import { getChampions } from "@/lib/ddragon";
 export const revalidate = 86400;
 
 const SITE = "https://lollive.vercel.app";
-const PAGES = ["", "/tier", "/trends", "/meta", "/champions", "/matchup", "/summoner", "/ranking", "/pros", "/predict", "/tools", "/community", "/faq"];
+const PAGES = ["", "/tier", "/trends", "/meta", "/champions", "/matchup", "/items", "/summoner", "/ranking", "/pros", "/predict", "/tools", "/community", "/faq"];
 
 // 검색엔진용: 주요 페이지 + 모든 챔피언 페이지
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
