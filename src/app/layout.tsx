@@ -74,6 +74,9 @@ export default async function RootLayout({
                 {lang === "ko" ? "더보기 ▾" : "More ▾"}
               </summary>
               <div className="absolute left-0 top-full z-40 mt-2 flex w-44 flex-col rounded-lg border border-line bg-panel p-1 shadow-lg">
+                <Link href="/champions" className="rounded px-3 py-2 text-sm hover:bg-panel-2">
+                  {lang === "ko" ? "챔피언 목록" : "All champions"}
+                </Link>
                 <Link href="/pros" className="rounded px-3 py-2 text-sm hover:bg-panel-2">
                   {lang === "ko" ? "프로 핫 클립" : "Hot pro clips"}
                 </Link>
