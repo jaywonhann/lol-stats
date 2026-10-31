@@ -21,7 +21,10 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     const B = champions.find((c) => c.id === sp.b);
     if (A && B) {
       const ln = laneLabel(parseLane(sp.lane), lang);
+      const card = `/api/matchup-card?a=${A.id}&b=${B.id}&lane=${parseLane(sp.lane)}`;
       return {
+        openGraph: { images: card },
+        twitter: { card: "summary_large_image", images: card },
         title: ko ? `${A.name} vs ${B.name} 상성 승률 (${ln})` : `${A.name} vs ${B.name} matchup win rate (${ln})`,
         description: ko
           ? `${ln}에서 ${A.name}와 ${B.name}가 붙은 실제 랭크 게임 승률과, ${B.name} 상대로 잘 이기는 챔피언을 보여줘요.`
