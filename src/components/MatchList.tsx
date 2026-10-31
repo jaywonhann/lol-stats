@@ -91,7 +91,7 @@ export default function MatchList({
             <li key={m.metadata.matchId}>
               <details className="group rounded-lg border border-line bg-panel">
                 <summary
-                  className={`flex cursor-pointer list-none flex-wrap [&::-webkit-details-marker]:hidden items-center gap-x-3 gap-y-1 border-l-4 px-3 py-2 ${win ? "border-l-[var(--chart-up)]" : "border-l-[var(--chart-down)]"}`}
+                  className={`flex cursor-pointer list-none flex-wrap [&::-webkit-details-marker]:hidden items-center gap-x-3 gap-y-1 rounded-lg px-3 py-2 ${win ? "bg-[color-mix(in_srgb,var(--chart-up)_12%,transparent)]" : "bg-[color-mix(in_srgb,var(--chart-down)_12%,transparent)]"}`}
                 >
                   {champIcon(me, 40)}
                   <span className={`w-6 text-sm font-bold ${win ? "text-[var(--chart-up)]" : "text-[var(--chart-down)]"}`}>{win ? t.win : t.loss}</span>

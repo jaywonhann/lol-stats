@@ -13,12 +13,12 @@ export default async function Og({ params }: { params: Promise<{ id: string }> }
   const title = data?.champion.title ?? "";
   return new ImageResponse(
     (
-      <div style={{ width: "100%", height: "100%", display: "flex", position: "relative", background: "#0e1117", color: "white" }}>
+      <div style={{ width: "100%", height: "100%", display: "flex", position: "relative", background: "#070d17", color: "white" }}>
         <img src={img.splash(id)} alt="" width={1200} height={630} style={{ position: "absolute", inset: 0, width: 1200, height: 630, objectFit: "cover", opacity: 0.55 }} />
-        <div style={{ position: "absolute", inset: 0, display: "flex", background: "linear-gradient(90deg,#0e1117 10%,rgba(14,17,23,0.2))" }} />
+        <div style={{ position: "absolute", inset: 0, display: "flex", background: "linear-gradient(90deg,#070d17 10%,rgba(14,17,23,0.2))" }} />
         <div style={{ position: "relative", display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 80px" }}>
           <div style={{ display: "flex", fontSize: 40, fontWeight: 900 }}>
-            live<span style={{ color: "#2dd4bf" }}>lol</span>.stats
+            live<span style={{ color: "#c8aa6e" }}>lol</span>.stats
           </div>
           <div style={{ display: "flex", marginTop: 40, fontSize: 112, fontWeight: 900, lineHeight: 1 }}>{name}</div>
           <div style={{ display: "flex", marginTop: 12, fontSize: 36, color: "#c3cbdc", textTransform: "capitalize" }}>{title}</div>

@@ -41,17 +41,17 @@ export async function GET(req: Request) {
         <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 70px", color: "white", background: "linear-gradient(135deg,#0b1020,#120a2a 60%,#07090f)" }}>
           <div style={{ display: "flex", flexDirection: "column" }}>
             <div style={{ display: "flex", fontSize: 34, fontWeight: 800 }}>
-              live<span style={{ color: "#2dd4bf" }}>lol</span>.stats
+              live<span style={{ color: "#c8aa6e" }}>lol</span>.stats
             </div>
             <div style={{ display: "flex", marginTop: 34, fontSize: 64, fontWeight: 900 }}>{r.account.gameName}</div>
-            <div style={{ display: "flex", fontSize: 28, color: "#8b94a7" }}>#{r.account.tagLine}</div>
+            <div style={{ display: "flex", fontSize: 28, color: "#a09b8c" }}>#{r.account.tagLine}</div>
             <div style={{ display: "flex", marginTop: 26, fontSize: 36, fontWeight: 800, color: "#ffe14d" }}>{rank}</div>
             <div style={{ display: "flex", marginTop: 14, fontSize: 30, color: "#5df2a0" }}>
               {wins}W {total - wins}L in the last {total} games
             </div>
             <div style={{ display: "flex", marginTop: 22, fontSize: 28, color: "#ff5d6c" }}>One fix: {LABEL[g.weakest]}</div>
             {tl && (
-              <div style={{ display: "flex", marginTop: 22, fontSize: 30, fontWeight: 800, color: tl.score >= 55 ? "#ff5d6c" : "#9ff7e8" }}>
+              <div style={{ display: "flex", marginTop: 22, fontSize: 30, fontWeight: 800, color: tl.score >= 55 ? "#ff5d6c" : "#f0e6d2" }}>
                 Mind meter {tl.score}/100 · {en.tiltLevels[lvl]}
               </div>
             )}
@@ -69,10 +69,10 @@ export async function GET(req: Request) {
             {[0.33, 0.66, 1].map((v) => (
               <polygon key={v} points={poly(HEX.map((_, i) => pt(i, v)))} fill="none" stroke="#5b6b8c" strokeWidth="2" />
             ))}
-            <polygon points={poly(val)} fill="rgba(45,212,191,0.4)" stroke="#9ff7e8" strokeWidth="6" strokeLinejoin="round" />
+            <polygon points={poly(val)} fill="rgba(200,170,110,0.4)" stroke="#f0e6d2" strokeWidth="6" strokeLinejoin="round" />
             <circle cx={val[weakIdx][0]} cy={val[weakIdx][1]} r="12" fill="#ff4d5e" stroke="#fff" strokeWidth="3" />
             {outer.map((p, i) => (
-              <text key={i} x={pt(i, 1.2)[0]} y={pt(i, 1.2)[1] + 6} textAnchor="middle" fontSize="17" fontWeight="800" fill={i === weakIdx ? "#ff5d6c" : "#8b94a7"}>
+              <text key={i} x={pt(i, 1.2)[0]} y={pt(i, 1.2)[1] + 6} textAnchor="middle" fontSize="17" fontWeight="800" fill={i === weakIdx ? "#ff5d6c" : "#a09b8c"}>
                 {LABEL[HEX[i]]}
               </text>
             ))}

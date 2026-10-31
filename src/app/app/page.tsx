@@ -235,7 +235,7 @@ function ProRow({
   const compared = recommended.size ? p.core.slice(0, recommended.size) : [];
   const same = compared.filter((id) => recommended.has(id)).length;
   return (
-    <li className={`flex flex-wrap items-center gap-3 rounded-md border-l-4 bg-panel-2 px-3 py-2 ${p.win ? "border-sky-500" : "border-rose-500"}`}>
+    <li className={`flex flex-wrap items-center gap-3 rounded-md px-3 py-2 ${p.win ? "bg-[color-mix(in_srgb,var(--chart-up)_12%,var(--color-panel-2))]" : "bg-[color-mix(in_srgb,var(--chart-down)_12%,var(--color-panel-2))]"}`}>
       <span
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
         style={{ background: `hsl(${hue} 45% 38%)` }}

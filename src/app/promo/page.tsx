@@ -40,12 +40,12 @@ export default async function PromoPage({ searchParams }: { searchParams: Promis
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg,#0a0d16 20%,#0a0d1600 70%)" }} />
           <div style={{ position: "absolute", left: 80, top: 80, fontSize: 28, fontWeight: 900, color: "#f87171", border: "3px solid #f87171", borderRadius: 999, padding: "8px 24px", background: "#220d12" }}>● LIVE RANKED DATA</div>
           <div style={{ position: "absolute", left: 76, top: 170, fontSize: 124, fontWeight: 900, letterSpacing: "-0.045em", lineHeight: 0.95 }}>
-            Know what<br />wins.<br /><span style={{ color: "#2dd4bf" }}>Right now.</span>
+            Know what<br />wins.<br /><span style={{ color: "#c8aa6e" }}>Right now.</span>
           </div>
           <div style={{ position: "absolute", left: 80, top: 620, display: "flex", gap: 14 }}>
             {champs.slice(0, 5).map((c) => (
               // eslint-disable-next-line @next/next/no-img-element
-              <img key={c.id} src={img.champion(version, c.image.full)} alt={c.name} width={92} height={92} style={{ borderRadius: 18, border: "3px solid #2dd4bf" }} />
+              <img key={c.id} src={img.champion(version, c.image.full)} alt={c.name} width={92} height={92} style={{ borderRadius: 18, border: "3px solid #c8aa6e" }} />
             ))}
           </div>
           <div style={{ position: "absolute", left: 80, top: 740, display: "flex", gap: 12, alignItems: "center" }}>
@@ -60,7 +60,7 @@ export default async function PromoPage({ searchParams }: { searchParams: Promis
               <img key={t} src={`/emblems/${t}.png`} alt={t} width={84} height={84} />
             ))}
           </div>
-          <div style={{ position: "absolute", left: 560, top: 860, background: "linear-gradient(90deg,#2dd4bf,#5eead4)", color: "#04201b", fontWeight: 900, fontSize: 40, borderRadius: 999, padding: "20px 44px", boxShadow: "0 0 40px #2dd4bf88" }}>lollive.vercel.app</div>
+          <div style={{ position: "absolute", left: 560, top: 860, background: "linear-gradient(90deg,#c8aa6e,#e3c98a)", color: "#04201b", fontWeight: 900, fontSize: 40, borderRadius: 999, padding: "20px 44px", boxShadow: "0 0 40px #c8aa6e88" }}>lollive.vercel.app</div>
         </div>
       </div>
     );
@@ -85,7 +85,7 @@ export default async function PromoPage({ searchParams }: { searchParams: Promis
         <div style={{ position: "absolute", left: 80, top: 750, display: "flex", gap: 14 }}>
           {pick.map((r) => (
             // eslint-disable-next-line @next/next/no-img-element
-            <img key={r.id} src={img.rune(r.icon)} alt={r.name} width={72} height={72} style={{ borderRadius: "50%", background: "#0f1730", border: "2px solid #2dd4bf", padding: 4 }} />
+            <img key={r.id} src={img.rune(r.icon)} alt={r.name} width={72} height={72} style={{ borderRadius: "50%", background: "#0f1730", border: "2px solid #c8aa6e", padding: 4 }} />
           ))}
         </div>
         <div style={{ position: "absolute", left: 80, top: 860, display: "flex", gap: 6 }}>
@@ -94,10 +94,10 @@ export default async function PromoPage({ searchParams }: { searchParams: Promis
             <img key={t} src={`/emblems/${t}.png`} alt={t} width={72} height={72} />
           ))}
         </div>
-        <div style={{ position: "absolute", left: 560, top: 872, background: "linear-gradient(90deg,#2dd4bf,#5eead4)", color: "#04201b", fontWeight: 900, fontSize: 34, borderRadius: 999, padding: "16px 36px", boxShadow: "0 0 40px #2dd4bf88" }}>lollive.vercel.app</div>
+        <div style={{ position: "absolute", left: 560, top: 872, background: "linear-gradient(90deg,#c8aa6e,#e3c98a)", color: "#04201b", fontWeight: 900, fontSize: 34, borderRadius: 999, padding: "16px 36px", boxShadow: "0 0 40px #c8aa6e88" }}>lollive.vercel.app</div>
 
         {champs.slice(0, 4).map((c, i) => (
-          <div key={c.id} style={{ position: "absolute", left: 880 + (i % 2) * 330 - (i >= 2 ? 40 : 0), top: 70 + Math.floor(i / 2) * 410 + (i % 2) * 40, width: 300, height: 380, borderRadius: 26, overflow: "hidden", border: "3px solid #2dd4bf66", boxShadow: "0 30px 80px #000c", transform: `rotate(${[-4, 3, 3, -3][i]}deg)` }}>
+          <div key={c.id} style={{ position: "absolute", left: 880 + (i % 2) * 330 - (i >= 2 ? 40 : 0), top: 70 + Math.floor(i / 2) * 410 + (i % 2) * 40, width: 300, height: 380, borderRadius: 26, overflow: "hidden", border: "3px solid #c8aa6e66", boxShadow: "0 30px 80px #000c", transform: `rotate(${[-4, 3, 3, -3][i]}deg)` }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={img.splash(c.id)} alt={c.name} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 20%" }} />
             <div style={{ position: "absolute", inset: "auto 0 0 0", padding: "40px 18px 16px", background: "linear-gradient(0deg,#000d,transparent)", fontWeight: 900, fontSize: 30 }}>{c.name}</div>

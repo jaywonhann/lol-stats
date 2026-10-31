@@ -31,7 +31,7 @@ export default function OgImage() {
       >
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", fontSize: 44, fontWeight: 900 }}>
-            live<span style={{ color: "#2dd4bf" }}>lol</span>.stats
+            live<span style={{ color: "#c8aa6e" }}>lol</span>.stats
           </div>
           <div style={{ display: "flex", flexDirection: "column", marginTop: 40, fontSize: 96, fontWeight: 900, lineHeight: 1 }}>
             <span>Your games,</span>
@@ -41,7 +41,7 @@ export default function OgImage() {
         </div>
         <svg width="460" height="460" viewBox="0 0 460 460">
           <polygon points={poly(pts)} fill="none" stroke="#5b6b8c" strokeWidth="3" />
-          <polygon points={poly(val)} fill="rgba(45,212,191,0.4)" stroke="#9ff7e8" strokeWidth="8" strokeLinejoin="round" />
+          <polygon points={poly(val)} fill="rgba(200,170,110,0.4)" stroke="#f0e6d2" strokeWidth="8" strokeLinejoin="round" />
           <circle cx={val[3][0]} cy={val[3][1]} r="16" fill="#ff4d5e" stroke="#fff" strokeWidth="4" />
         </svg>
       </div>
