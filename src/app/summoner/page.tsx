@@ -439,7 +439,7 @@ function Analysis({
   return (
     <>
       {profileHeader}
-      <SinceLastVisit id={`${server}:${account.puuid}`} now={snap} labels={t.since} locale={nl} />
+      <SinceLastVisit id={`${server}:${account.puuid}`} now={snap} labels={{ ...t.since, since: t.since.since("{date}") }} locale={nl} />
       {tiltPanel}
       {nowPanel}
       {titlesPanel}

@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 
+// 서버 컴포넌트에서 함수는 못 넘겨서 since 는 "{date}" 자리표시자가 든 문자열로 받아요
 // 다시 검색했을 때 "지난번보다" 달라진 점을 보여줘요. 기록은 이 브라우저에만 저장돼요
 type Snap = { at: number; last: number; wr: number; kda: number; cs: number };
-type Labels = { title: string; since: (date: string) => string; wr: string; kda: string; cs: string; same: string; better: string; worse: string };
+type Labels = { title: string; since: string; wr: string; kda: string; cs: string; same: string; better: string; worse: string };
 
 export default function SinceLastVisit({ id, now, labels, locale }: { id: string; now: Omit<Snap, "at">; labels: Labels; locale: string }) {
   const [prev, setPrev] = useState<Snap | null>(null);
@@ -29,7 +30,7 @@ export default function SinceLastVisit({ id, now, labels, locale }: { id: string
   return (
     <section className="rounded-xl border border-line bg-panel p-5">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-accent">{labels.title}</h2>
-      <p className="mt-1 text-xs text-muted">{labels.since(date)}</p>
+      <p className="mt-1 text-xs text-muted">{labels.since.replace("{date}", date)}</p>
       <ul className="mt-3 grid gap-2 sm:grid-cols-3">
         {rows.map((r) => {
           const tone = Math.abs(r.d) < r.min ? 0 : r.d > 0 ? 1 : -1;
