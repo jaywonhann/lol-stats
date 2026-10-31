@@ -546,7 +546,7 @@ const ko: Dict = {
   liveChampsNote: (games, h) => `최근 ${h}시간 진행 중 랭크 게임 ${games}판의 픽 비율로 나눈 추정치`,
   liveChampsGames: (n) => `${n}판`,
   liveChampsPlayers: "{n}명",
-  liveChampsTotal: "지금 게임 중인 {n}명이 하고 있는 챔피언",
+  liveChampsTotal: "지금 게임 중인 {n}명이 고른 챔피언",
   liveChampsSum: "챔피언 {n}개 · 합계 {total}명",
   liveChampsMore: "챔피언 {n}개 모두 보기",
   liveChampsLess: "상위 10개만 보기",
@@ -601,7 +601,7 @@ const ko: Dict = {
   coreSlot: (n) => `${n}코어`,
   fullBuilds: "많이 쓰는 코어 빌드 (완성 순서)",
   pickShort: "픽",
-  matchupNote: "아직 상대별 게임 수가 적어서, 게임 수도 함께 고려해 순서를 정했어요.",
+  matchupNote: "아직 상대별 게임 수가 적어서 게임 수도 함께 고려해 순서를 정했어요.",
   startingItems: "시작 아이템",
   summonerSpells: "소환사 주문",
   skillOrder: "스킬 마스터 순서",
@@ -616,7 +616,7 @@ const ko: Dict = {
   metaSubtitle: (server, window) =>
     `${server} 서버 · 에메랄드+ · 날짜별 픽률 (${window}일 이동 평균)`,
   metaIntro: (window) =>
-    `주식 차트처럼 요즘 많이 골라지고 있는 챔피언과 덜 골라지는 챔피언을 보여줘요. 최근 ${window}일 픽률을 그 전 ${window}일과 비교했어요.`,
+    `요즘 픽이 늘어난 챔피언과 줄어든 챔피언을 주식 차트처럼 보여줘요. 최근 ${window}일 픽률을 그 전 ${window}일과 비교했어요.`,
   metaCollecting:
     "이 서버의 날짜별 기록을 모으는 중이에요. 다음 수집(6시간마다)이 끝나면 차트가 표시돼요.",
   pickRising: "▲ 픽률 상승",
@@ -677,7 +677,7 @@ const ko: Dict = {
     champRecord: (name, w, l, wr) => `${name} (${w}승 ${l}패, ${wr}%)`,
     form: "최근 흐름",
     formNote:
-      "Riot API는 LP 기록을 주지 않아서 티어 그래프 대신 승패 흐름을 보여드려요. 이기면 한 칸 오르고, 지면 한 칸 내려가요.",
+      "Riot API는 LP 기록을 주지 않아서 티어 그래프 대신 승패 흐름을 보여드려요. 이기면 한 칸 오르고 지면 한 칸 내려가요.",
     formAria: (w, l) => `최근 게임 승패 흐름: ${w}승 ${l}패`,
     oldest: "이전",
     latest: "최근",
@@ -755,10 +755,10 @@ const ko: Dict = {
       dmg: "연습 포인트: 딜량. 라인전에서 견제를 더 자주 하고 한타 때 사거리 안에 머물러 보세요.",
       vision: "연습 포인트: 시야. 귀환할 때마다 제어 와드를 사고 장신구는 쿨마다 써 주세요.",
       kp: "연습 포인트: 합류. 싸움이 열리면 혼자 파밍하지 말고 드래곤·교전에 같이 움직여 보세요.",
-      deaths: "연습 포인트: 덜 죽기. 밀기 전에 와드를 박고, 상대 정글 위치를 생각하고, 체력이 낮으면 귀환해요.",
+      deaths: "연습 포인트: 덜 죽기. 밀기 전에 와드부터 박아요. 상대 정글 위치를 떠올리고 체력이 낮으면 귀환해요.",
     },
     tipKeepGoing:
-      "연습 포인트: 잘 맞는 챔피언을 계속 돌리면서, 최근 진 게임 하나를 돌려 보고 고칠 점 하나만 찾아보세요.",
+      "연습 포인트: 잘 맞는 챔피언을 계속 돌리면서 최근 진 게임 하나를 돌려 보고 고칠 점 하나만 찾아보세요.",
     update: "업데이트",
     updating: "업데이트 중…",
     updatedAgo: (ago) => `${ago} 업데이트`,

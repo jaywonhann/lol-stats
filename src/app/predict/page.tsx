@@ -116,7 +116,7 @@ export default async function PredictPage({ searchParams }: Props) {
           </ul>
           <p className="mt-4 text-xs text-muted">
             {ko
-              ? `${serverLabel(server, lang)} 서버 랭크 게임 집계로 만든 추정이에요. 라인 맞상대 승률과 챔피언 평균 승률만 쓰고, 플레이어 실력이나 팀 조합 시너지는 반영하지 않아서 30~70%로만 보여줘요. 실제 결과로 보정한 모델은 아니에요.`
+              ? `${serverLabel(server, lang)} 서버 랭크 게임 집계로 만든 추정이에요. 라인 맞상대 승률과 챔피언 평균 승률만 쓰고 플레이어 실력이나 팀 조합 시너지는 반영하지 않아서 30~70%로만 보여줘요. 실제 결과로 보정한 모델은 아니에요.`
               : `A rough estimate from ${serverLabel(server, lang)} ranked games. It only uses lane matchups and champion win rates, ignoring player skill and team synergy, so it is capped at 30–70%. It isn't calibrated against real results.`}
           </p>
         </Panel>

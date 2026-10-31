@@ -26,7 +26,7 @@ export default async function ToolsPage() {
   const labels = ko
     ? {
         spells: "상대 소환사 주문 쿨타임",
-        spellsNote: "상대가 주문을 쓰면 그 아이콘을 눌러요. 쿨타임이 끝날 때까지 시간이 줄어들고, 다시 누르면 지워져요.",
+        spellsNote: "상대가 주문을 쓰면 그 아이콘을 눌러요. 쿨타임이 끝날 때까지 시간이 줄어들고 다시 누르면 지워져요.",
         haste: "이오니아 장화 등 소환사 주문 쿨감 12",
         objectives: "오브젝트 리스폰 타이머",
         objectivesNote: "처치하는 순간에 눌러요. 리스폰 시간은 패치마다 바뀔 수 있어서 게임 내 값과 다르면 그걸 따라 주세요.",
