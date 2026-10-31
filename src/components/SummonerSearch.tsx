@@ -3,6 +3,7 @@ import { dict, type Lang } from "@/lib/i18n";
 import { serverLabel, type Server } from "@/lib/lanes";
 import { DEFAULT_TAG } from "@/lib/riot";
 import SummonerInput from "./SummonerInput";
+import RecentSummoners from "./RecentSummoners";
 
 export default function SummonerSearch({
   lang,
@@ -39,6 +40,7 @@ export default function SummonerSearch({
       <p className="mt-2 text-xs text-muted">
         {t.searching(serverLabel(server, lang))} {t.tagHint(DEFAULT_TAG[server])}
       </p>
+      {large && <RecentSummoners label={t.recentViewed} />}
     </form>
   );
 }

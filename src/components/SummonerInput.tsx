@@ -43,6 +43,11 @@ export default function SummonerInput({
     } catch {}
   }, [defaultValue]);
 
+  // "/" 단축키로 검색 페이지에 오면 바로 입력할 수 있게 포커스
+  useEffect(() => {
+    if (location.hash === "#search") document.getElementById("summoner-id")?.focus();
+  }, []);
+
   useEffect(() => {
     const close = (e: MouseEvent) => {
       if (box.current && !box.current.contains(e.target as Node)) setOpen(false);

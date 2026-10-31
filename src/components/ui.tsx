@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { dict, type Lang } from "@/lib/i18n";
 import type { Tier } from "@/lib/mock";
 

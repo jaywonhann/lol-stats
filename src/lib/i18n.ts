@@ -355,6 +355,7 @@ const en = {
     updatedAgo: (ago: string) => `Updated ${ago}`,
     updateWait: (sec: number) => `Try again in ${sec}s`,
     updateFailed: "Couldn't update. Try again in a moment.",
+    recentViewed: "Recently viewed",
     shareLabel: "Share my card",
     shareCopied: "Link copied!",
     // 칭호
@@ -765,6 +766,7 @@ const ko: Dict = {
     updateWait: (sec) => `${sec}초 뒤에 다시 할 수 있어요`,
     updateFailed: "업데이트하지 못했어요. 잠시 후 다시 눌러 주세요.",
     // 칭호
+    recentViewed: "최근 본 전적",
     shareLabel: "내 카드 공유하기",
     shareCopied: "링크를 복사했어요!",
     titlesTitle: "내 칭호",

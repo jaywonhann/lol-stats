@@ -9,6 +9,7 @@ import { LiveBadge } from "@/components/LivePanel";
 import { ADSENSE_CLIENT } from "@/lib/ads";
 import AdSlot from "@/components/AdSlot";
 import BottomNav from "@/components/BottomNav";
+import SlashSearch from "@/components/SlashSearch";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
@@ -130,6 +131,7 @@ export default async function RootLayout({
           associated properties are trademarks or registered trademarks of Riot
           Games, Inc.
         </footer>
+        <SlashSearch />
         <Analytics />
         <script
           type="application/ld+json"
