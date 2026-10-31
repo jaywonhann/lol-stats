@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import ShareButton from "@/components/ShareButton";
+import SinceLastVisit from "@/components/SinceLastVisit";
 import { Icon, Panel } from "@/components/ui";
 import { DivergingBars } from "@/components/charts";
 import TierEmblem from "@/components/TierEmblem";
@@ -227,6 +228,13 @@ function Analysis({
   const mainLane = roleList[0]?.lane ?? null;
   const laneName = (l: Lane) => laneLabel(l, lang);
   const total = games.length;
+  // 다시 왔을 때 비교할 요약 (브라우저에 저장)
+  const snap = {
+    last: games[0]?.endedAt ?? 0,
+    wr: total ? (games.filter((g) => g.win).length / total) * 100 : 0,
+    kda: games.reduce((a, g) => a + g.kills + g.assists, 0) / Math.max(1, games.reduce((a, g) => a + g.deaths, 0)),
+    cs: total ? games.reduce((a, g) => a + g.csPerMin, 0) / total : 0,
+  };
 
   // 요약 문장 (규칙 기반)
   const record = (c: ChampSummary) => t.champRecord(c.championName, c.wins, c.games - c.wins, fix(c.winRate, 0));
@@ -431,6 +439,7 @@ function Analysis({
   return (
     <>
       {profileHeader}
+      <SinceLastVisit id={`${server}:${account.puuid}`} now={snap} labels={t.since} locale={nl} />
       {tiltPanel}
       {nowPanel}
       {titlesPanel}

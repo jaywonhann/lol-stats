@@ -371,6 +371,7 @@ const en = {
     // 멘탈 지수
     tiltTitle: "Mind meter",
     queueAsk: "Should I queue now?",
+    since: { title: "Since your last visit", since: (d: string) => `Compared with your last 20 games when you checked on ${d}.`, wr: "Win rate", kda: "KDA", cs: "CS per minute", same: "About the same", better: "Getting better", worse: "Dipped a bit" },
     queueVerdict: ["Yes. You're in a good headspace, go for it.", "One more is fine. If you lose it, take a break.", "Not yet. Players who queue right after a losing streak win the least. Take 15 minutes."],
     tiltLevels: ["Zen master", "Chill", "Warming up", "Tilting", "Full tilt"],
     tiltMsg: ["Clear head. Queue up!", "Steady hands. Nothing to worry about.", "A little heated. Take a sip of water.", "Tilt alert. Maybe 15 minutes away from the rift?", "Full tilt! Mute the chat and take a real break."],
@@ -779,6 +780,7 @@ const ko: Dict = {
     // 멘탈 지수
     tiltTitle: "멘탈 지수",
     queueAsk: "지금 큐 돌려도 될까?",
+    since: { title: "지난번보다", since: (d) => `${d}에 확인했던 최근 20게임과 비교했어요.`, wr: "승률", kda: "KDA", cs: "분당 CS", same: "비슷해요", better: "좋아졌어요", worse: "조금 떨어졌어요" },
     queueVerdict: ["돌려도 좋아요. 지금 멘탈이 안정적이에요.", "한 판만 더 해요. 지면 그때는 쉬어요.", "아직이에요. 연패 직후 바로 큐를 돌리면 승률이 가장 낮아요. 15분만 쉬고 와요."],
     tiltLevels: ["멘탈 부처", "평온", "슬슬 열 받음", "틸트 주의", "풀 틸트"],
     tiltMsg: ["머리가 맑아요. 바로 큐 잡아도 좋아요!", "손이 안정적이에요. 걱정 없어요.", "살짝 달아올랐어요. 물 한 잔 마시고 오세요.", "틸트 경고예요. 15분만 협곡에서 벗어나 볼까요?", "풀 틸트예요! 채팅 끄고 제대로 쉬세요."],
