@@ -148,7 +148,7 @@ export default async function FaqPage() {
 
       <div className="space-y-3">
         {c.faq.map((f, i) => (
-          <details key={f.q} open={i < 2} className="group rounded-lg border border-line bg-panel px-5 py-4">
+          <details key={f.q} open={i < 2} className="group rounded-lg bg-panel px-5 py-4">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-semibold">
               <span>
                 <span className="mr-2 text-accent">Q.</span>

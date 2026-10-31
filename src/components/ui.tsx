@@ -28,8 +28,8 @@ export { default as Tabs } from "@/components/Tabs";
 
 export function Panel({ title, children, className = "" }: { title?: string; children: React.ReactNode; className?: string }) {
   return (
-    <section className={`rounded-lg border border-line bg-panel p-4 ${className}`}>
-      {title && <h2 className="mb-3 text-sm font-semibold text-muted">{title}</h2>}
+    <section className={`rounded-lg bg-panel p-4 ${className}`}>
+      {title && <h2 className="mb-3 text-base font-bold">{title}</h2>}
       {children}
     </section>
   );

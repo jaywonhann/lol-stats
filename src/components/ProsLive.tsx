@@ -59,7 +59,7 @@ export default function ProsLive({ champs, ko }: { champs: Record<string, Champ>
             const c = champs[String(p.champ)];
             const min = p.start > 0 ? Math.max(0, Math.floor((now - p.start) / 60_000)) : null;
             return (
-              <li key={`${p.server}-${p.who}`} className="flex items-center gap-3 rounded-lg border border-line bg-panel p-3">
+              <li key={`${p.server}-${p.who}`} className="flex items-center gap-3 rounded-lg bg-panel p-3">
                 {c && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={c.icon} alt={c.name} width={40} height={40} className="rounded-md" />

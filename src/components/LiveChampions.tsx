@@ -43,7 +43,7 @@ export default async function LiveChampions({
         )}
       </div>
       {rows.length === 0 ? (
-        <p className="mt-2 rounded-xl border border-line bg-panel p-4 text-sm text-muted">{t.liveChampsEmpty}</p>
+        <p className="mt-2 rounded-xl bg-panel p-4 text-sm text-muted">{t.liveChampsEmpty}</p>
       ) : (
         <LiveChampionsList
           rows={rows}

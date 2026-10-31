@@ -123,7 +123,7 @@ export default async function TierPage({ searchParams }: Props) {
         <LivePanel server={server} lang={lang} />
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-line bg-panel">
+      <div className="overflow-x-auto rounded-lg bg-panel">
         <table className="w-full min-w-[900px] text-sm">
           <thead className="border-b border-line text-xs text-muted">
             <tr>

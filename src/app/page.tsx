@@ -152,7 +152,7 @@ export default async function Home() {
                 <Link
                   key={key}
                   href={`/champions/${pick!.s.champion.id}?lane=${pick!.lane}`}
-                  className="lift flex flex-col items-center rounded-xl border border-line bg-panel p-4 text-center"
+                  className="lift flex flex-col items-center rounded-xl bg-panel p-4 text-center"
                 >
                   <span className="rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-bold text-accent">{name}</span>
                   <Icon src={img.champion(version, pick!.s.champion.image.full)} alt={pick!.s.champion.name} size={56} className="mt-3 rounded-full" />
@@ -179,7 +179,7 @@ export default async function Home() {
               <Link
                 key={`${lane}-${s.champion.id}`}
                 href={`/champions/${s.champion.id}?lane=${lane}`}
-                className="lift block rounded-xl border border-line bg-panel p-3"
+                className="lift block rounded-xl bg-panel p-3"
               >
                 <div className="flex items-center gap-2">
                   <Icon src={img.champion(version, s.champion.image.full)} alt={s.champion.name} size={36} />

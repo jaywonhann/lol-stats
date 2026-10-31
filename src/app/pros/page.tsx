@@ -96,7 +96,7 @@ export default async function ProsPage() {
               const hours = Math.max(1, Math.round((Date.now() - b.at) / 3_600_000));
               const ago = hours < 48 ? (ko ? `${hours}시간 전` : `${hours}h ago`) : ko ? `${Math.round(hours / 24)}일 전` : `${Math.round(hours / 24)}d ago`;
               return (
-                <li key={`${b.s}-${b.who}`} className="flex items-center gap-3 rounded-lg border border-line bg-panel p-3">
+                <li key={`${b.s}-${b.who}`} className="flex items-center gap-3 rounded-lg bg-panel p-3">
                   {c && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={c.icon} alt={c.name} width={40} height={40} className="rounded-md" />

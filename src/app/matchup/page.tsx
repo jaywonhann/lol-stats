@@ -37,7 +37,7 @@ export default async function MatchupPage({ searchParams }: Props) {
   const [g, w] = agg?.vs[B!.key] ?? [0, 0];
   const rate = g ? (w / g) * 100 : null;
 
-  const select = "w-full rounded-lg border border-line bg-panel-2 px-3 py-3 text-base";
+  const select = "w-full rounded-lg bg-panel-2 px-3 py-3 text-base";
   const opts = champions.map((c) => (
     <option key={c.id} value={c.id}>
       {c.name}

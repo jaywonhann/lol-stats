@@ -35,7 +35,7 @@ export default function GameTimers({ spells, labels }: { spells: Spell[]; labels
 
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border border-line bg-panel p-4">
+      <section className="rounded-xl bg-panel p-4">
         <h2 className="text-lg font-bold">{labels.spells}</h2>
         <p className="mb-3 text-xs text-muted">{labels.spellsNote}</p>
         <label className="mb-3 flex items-center gap-2 text-sm">
@@ -89,7 +89,7 @@ export default function GameTimers({ spells, labels }: { spells: Spell[]; labels
         </ul>
       </section>
 
-      <section className="rounded-xl border border-line bg-panel p-4">
+      <section className="rounded-xl bg-panel p-4">
         <h2 className="text-lg font-bold">{labels.objectives}</h2>
         <p className="mb-3 text-xs text-muted">{labels.objectivesNote}</p>
         <div className="grid gap-2 sm:grid-cols-2">

@@ -80,7 +80,7 @@ export default async function ProMatch({
                 .filter((k) => myEmph.slice(0, 3).some((m) => m.k === k))
                 .map((k) => t.names[k]);
               return (
-                <li key={`${pro.s}-${pro.who}`} className="flex items-center gap-3 rounded-lg border border-line bg-panel-2 p-3">
+                <li key={`${pro.s}-${pro.who}`} className="flex items-center gap-3 rounded-lg bg-panel-2 p-3">
                   <div className="min-w-0 flex-1">
                     <Link href={`/summoner?id=${encodeURIComponent(pro.who)}`} className="block truncate font-semibold hover:underline">
                       {pro.label}

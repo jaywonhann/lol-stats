@@ -323,7 +323,7 @@ function Analysis({
       <h2 className="text-sm font-semibold uppercase tracking-wide text-accent">{t.titlesTitle}</h2>
       <ul className="mt-3 flex flex-wrap gap-2">
         {myTitles.map((id) => (
-          <li key={id} className="rounded-xl border border-line bg-panel-2 px-3 py-2">
+          <li key={id} className="rounded-xl bg-panel-2 px-3 py-2">
             <p className="font-bold">{t.titleNames[id][0]}</p>
             <p className="text-xs text-muted">{t.titleNames[id][1]}</p>
           </li>
@@ -335,36 +335,30 @@ function Analysis({
   const tiltLevel = tl ? (tl.score < 15 ? 0 : tl.score < 35 ? 1 : tl.score < 55 ? 2 : tl.score < 75 ? 3 : 4) : 0;
   // 지금 큐 판정: 연패 중이거나 멘탈 지수가 높으면 쉬라고 해요
   const queueLevel = tl ? (tl.lossRun >= 2 || tl.score >= 55 ? 2 : tl.score >= 35 || tl.lossRun === 1 ? 1 : 0) : 0;
+  const verdictColor = queueLevel === 2 ? "var(--chart-down)" : queueLevel === 0 ? "var(--chart-up)" : undefined;
+  const meterColor = tl && tl.score >= 55 ? "var(--chart-down)" : "var(--chart-up)";
+  // 연패 수는 아래 "지금 흐름"에서 말하니까 여기서는 빼요 (같은 말 두 번 안 하기)
+  const whyRaw = tl ? t.tiltWhy(0, fix(tl.avg5), fix(tl.avgAll), tl.feeds, tl.quick) : "";
+  const why = whyRaw.charAt(0).toUpperCase() + whyRaw.slice(1);
   const tiltPanel = tl && (
     <Panel>
-      <div
-        className="mb-4 rounded-lg border px-4 py-3"
-        style={{ borderColor: queueLevel === 2 ? "var(--chart-down)" : queueLevel === 0 ? "var(--chart-up)" : "var(--color-line)" }}
-      >
-        <p className="text-xs font-medium text-muted">{t.queueAsk}</p>
-        <p className="mt-1 text-lg font-bold" style={{ color: queueLevel === 2 ? "var(--chart-down)" : queueLevel === 0 ? "var(--chart-up)" : undefined }}>
-          {t.queueVerdict[queueLevel]}
-        </p>
-      </div>
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-accent">{t.tiltTitle}</h2>
-      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
-        <p className="text-4xl font-bold tabular-nums" style={{ color: tl.score >= 55 ? "var(--chart-down)" : tl.score < 35 ? "var(--chart-up)" : undefined }}>
+      <h2 className="text-base font-bold">{t.queueAsk}</h2>
+      <p className="mt-1 text-xl font-bold leading-snug" style={{ color: verdictColor }}>
+        {t.queueVerdict[queueLevel]}
+      </p>
+      <div className="mt-4 flex items-baseline gap-3">
+        <span className="text-sm text-muted">{t.tiltTitle}</span>
+        <span className="text-2xl font-bold tabular-nums" style={{ color: tl.score >= 55 ? meterColor : tl.score < 35 ? meterColor : undefined }}>
           {tl.score}
-          <span className="text-base font-normal text-muted"> / 100</span>
-        </p>
-        <div className="min-w-0 flex-1">
-          <p className="text-lg font-bold">{t.tiltLevels[tiltLevel]}</p>
-          <p className="text-sm text-muted">{t.tiltMsg[tiltLevel]}</p>
-        </div>
+        </span>
+        <span className="text-sm text-muted">/ 100 · {t.tiltLevels[tiltLevel]}</span>
       </div>
-      <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-panel-2" role="img" aria-label={`${t.tiltTitle} ${tl.score}/100`}>
-        <div className="h-full rounded-full" style={{ width: `${Math.max(3, tl.score)}%`, background: tl.score >= 55 ? "var(--chart-down)" : "var(--chart-up)" }} />
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-panel-2" role="img" aria-label={`${t.tiltTitle} ${tl.score}/100`}>
+        <div className="h-full rounded-full" style={{ width: `${Math.max(3, tl.score)}%`, background: meterColor }} />
       </div>
-      {t.tiltWhy(tl.lossRun, fix(tl.avg5), fix(tl.avgAll), tl.feeds, tl.quick) && (
-        <p className="mt-3 text-sm">{t.tiltWhy(tl.lossRun, fix(tl.avg5), fix(tl.avgAll), tl.feeds, tl.quick)}</p>
-      )}
-      {(tl.afterLoss || tl.afterWin) && (
+      {(why || tl.afterLoss || tl.afterWin) && (
         <ul className="mt-3 space-y-1 text-sm text-muted">
+          {why && <li>{why}</li>}
           {tl.afterLoss && <li>{t.tiltAfterLoss(fix(tl.afterLoss.rate, 0), tl.afterLoss.n)}</li>}
           {tl.afterWin && <li>{t.tiltAfterWin(fix(tl.afterWin.rate, 0), tl.afterWin.n)}</li>}
         </ul>
@@ -373,23 +367,18 @@ function Analysis({
     </Panel>
   );
   const nowPanel = (
-    <section className="rounded-xl border border-accent/40 bg-panel p-5 md:p-6">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-accent">{t.nowTitle}</h2>
-      <div className="mt-4 grid gap-5 md:grid-cols-2">
+    <Panel>
+      <h2 className="text-base font-bold">{t.nowTitle}</h2>
+      <div className="mt-3 grid gap-6 md:grid-cols-2">
         <div>
-          <p className="text-xs font-medium text-muted">{t.flowLabel}</p>
-          <p
-            className="mt-1 text-xl font-bold leading-snug sm:text-2xl"
-            style={flowTone ? { color: flowTone === "up" ? "var(--chart-up)" : "var(--chart-down)" } : undefined}
-          >
-            {flowTone === "up" ? "▲ " : flowTone === "down" ? "▼ " : ""}
+          <p className="text-lg font-semibold leading-snug" style={flowTone ? { color: flowTone === "up" ? "var(--chart-up)" : "var(--chart-down)" } : undefined}>
             {flow}
           </p>
-          <div className="mt-3 flex gap-1.5" aria-hidden>
+          <div className="mt-3 flex gap-1" aria-hidden>
             {[...last5].reverse().map((g) => (
               <span
                 key={g.id}
-                className="flex h-8 w-8 items-center justify-center rounded-md text-xs font-bold text-white"
+                className="flex h-7 w-7 items-center justify-center rounded text-xs font-bold text-white"
                 style={{ background: g.win ? "var(--chart-up)" : "var(--chart-down)" }}
               >
                 {g.win ? t.winShort : t.lossShort}
@@ -398,42 +387,39 @@ function Analysis({
           </div>
         </div>
         {pick && (
-          <div>
-            <p className="text-xs font-medium text-muted">{t.pickLabel}</p>
-            <div className="mt-1 flex items-start gap-3">
-              {pick.champ && version && (
-                <Icon src={img.champion(version, pick.champ.image.full)} alt={pick.name} size={56} className="rounded-lg" />
+          <div className="flex items-start gap-3">
+            {pick.champ && version && (
+              <Icon src={img.champion(version, pick.champ.image.full)} alt={pick.name} size={48} className="rounded-md" />
+            )}
+            <div className="min-w-0">
+              <p className="text-lg font-semibold leading-snug">{pick.text}</p>
+              {pick.champ && (
+                <Link
+                  href={`/champions/${pick.champ.id}${pick.lane ? `?lane=${pick.lane}` : ""}`}
+                  className="mt-1 inline-block text-sm font-semibold text-accent hover:underline"
+                >
+                  {t.pickBuild} →
+                </Link>
               )}
-              <div className="min-w-0">
-                <p className="text-xl font-bold leading-snug sm:text-2xl">{pick.text}</p>
-                {pick.champ && (
-                  <Link
-                    href={`/champions/${pick.champ.id}${pick.lane ? `?lane=${pick.lane}` : ""}`}
-                    className="mt-1 inline-block text-sm font-semibold text-accent hover:underline"
-                  >
-                    {t.pickBuild} →
-                  </Link>
-                )}
-              </div>
             </div>
           </div>
         )}
       </div>
-      <div className="mt-5 grid gap-4 border-t border-line pt-4 md:grid-cols-2">
+      <dl className="mt-5 grid gap-x-6 gap-y-3 border-t border-line pt-4 text-sm md:grid-cols-2">
         <div>
-          <p className="text-xs font-medium text-muted">{t.goalLabel}</p>
-          <p className="mt-1 text-lg font-semibold leading-snug">{goal}</p>
+          <dt className="text-muted">{t.goalLabel}</dt>
+          <dd className="mt-0.5 font-medium">{goal}</dd>
         </div>
         {rest && (
           <div>
-            <p className="text-xs font-medium text-muted">{t.avoidLabel}</p>
-            <p className="mt-1 text-lg font-semibold leading-snug" style={{ color: "var(--chart-down)" }}>
+            <dt className="text-muted">{t.avoidLabel}</dt>
+            <dd className="mt-0.5 font-medium" style={{ color: "var(--chart-down)" }}>
               {t.avoidText(rest.championName, rest.wins, rest.games - rest.wins)}
-            </p>
+            </dd>
           </div>
         )}
-      </div>
-    </section>
+      </dl>
+    </Panel>
   );
 
   return (
@@ -496,7 +482,7 @@ function Analysis({
             {result.mastery.map((m) => {
               const c = champions.find((x) => x.key === String(m.championId));
               return (
-                <li key={m.championId} className="flex items-center gap-3 rounded-lg border border-line bg-panel-2 p-3 sm:flex-col sm:text-center">
+                <li key={m.championId} className="flex items-center gap-3 rounded-lg bg-panel-2 p-3 sm:flex-col sm:text-center">
                   {version && c && <Icon src={img.champion(version, c.image.full)} alt={c.name} size={44} className="rounded-lg" />}
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold">{c?.name ?? m.championId}</p>
@@ -664,7 +650,7 @@ function RankBox({ solo, lang }: { solo: LeagueEntry | null; lang: Lang }) {
   const nl = numLocale(lang);
   if (!solo)
     return (
-      <div className="flex w-full items-center gap-4 rounded-xl border border-line bg-panel-2 px-5 py-4 md:w-auto">
+      <div className="flex w-full items-center gap-4 rounded-xl bg-panel-2 px-5 py-4 md:w-auto">
         <TierEmblem tier="UNRANKED" size={72} />
         <div>
           <p className="text-xs text-muted">{t.soloDuo}</p>

@@ -28,8 +28,8 @@ export default function SinceLastVisit({ id, now, labels, locale }: { id: string
   ];
   const date = new Date(prev.at).toLocaleDateString(locale, { month: "short", day: "numeric" });
   return (
-    <section className="rounded-xl border border-line bg-panel p-5">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-accent">{labels.title}</h2>
+    <section className="rounded-xl bg-panel p-5">
+      <h2 className="text-base font-bold">{labels.title}</h2>
       <p className="mt-1 text-xs text-muted">{labels.since.replace("{date}", date)}</p>
       <ul className="mt-3 grid gap-2 sm:grid-cols-3">
         {rows.map((r) => {

@@ -56,7 +56,7 @@ export default function CommunityForm({ kind, n, cats, defaultCat, labels }: Pro
     setBusy(false);
   };
 
-  const field = "w-full rounded-lg border border-line bg-panel-2 px-3 py-2 text-sm outline-none focus:border-accent";
+  const field = "w-full rounded-lg bg-panel-2 px-3 py-2 text-sm outline-none focus:border-accent";
   return (
     <form onSubmit={submit} className="space-y-2">
       <div className="flex flex-wrap gap-2">

@@ -64,7 +64,7 @@ export default function LiveChampionsList({
           <li key={r.key}>
             <Link
               href={`/champions/${r.id}`}
-              className="lift flex items-center gap-3 rounded-xl border border-line bg-panel p-3"
+              className="lift flex items-center gap-3 rounded-xl bg-panel p-3"
             >
               <span className="w-5 text-center text-sm font-bold tabular-nums text-muted">{i + 1}</span>
               {/* eslint-disable-next-line @next/next/no-img-element */}

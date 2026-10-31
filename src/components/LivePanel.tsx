@@ -35,8 +35,8 @@ export default async function LivePanel({
     <section
       className={
         hero
-          ? "relative grid gap-6 overflow-hidden rounded-xl border border-line bg-panel p-5 before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-red-500/70 before:to-transparent md:grid-cols-[1.3fr_1fr] md:p-6"
-          : "rounded-lg border border-line bg-panel p-4 lg:w-[380px]"
+          ? "relative grid gap-6 overflow-hidden rounded-xl bg-panel p-5 before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-red-500/70 before:to-transparent md:grid-cols-[1.3fr_1fr] md:p-6"
+          : "rounded-lg bg-panel p-4 lg:w-[380px]"
       }
     >
       <div>

@@ -53,15 +53,14 @@ p, li { text-wrap: pretty; }
   animation: fade-up 0.25s ease-out both;
 }
 .lift {
-  transition: transform 0.15s ease, border-color 0.15s ease;
+  transition: background-color 0.15s ease;
 }
 .lift:hover {
-  transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-line));
+  background-color: var(--color-panel-2);
 }
 @media (prefers-reduced-motion: reduce) {
   .fade-up { animation: none; }
-  .lift, .lift:hover { transition: none; transform: none; }
+  .lift { transition: none; }
 }
 
 /* 맨 위 메뉴: 굵게, 마우스를 올리면 살짝 떠오르며 밑줄이 가운데서 펼쳐짐 */

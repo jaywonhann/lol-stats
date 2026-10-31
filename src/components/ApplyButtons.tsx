@@ -36,7 +36,7 @@ export default function ApplyButtons({ lang, runes, spells }: { lang: Lang; rune
   }
 
   return (
-    <div className="rounded-lg border border-line bg-panel p-3">
+    <div className="rounded-lg bg-panel p-3">
       <p className="mb-2 text-xs font-semibold text-muted">{t.applyTitle}</p>
       <div className="flex flex-wrap gap-2">
         <button

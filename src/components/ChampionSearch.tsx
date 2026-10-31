@@ -42,7 +42,7 @@ export default function ChampionSearch({ champions, lang, base = "/champions/", 
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder={t.searchPlaceholder}
-        className="w-full rounded-lg border border-line bg-panel-2 px-4 py-3 text-base outline-none focus:border-accent"
+        className="w-full rounded-lg bg-panel-2 px-4 py-3 text-base outline-none focus:border-accent"
       />
       {filters && (
         <div className="mt-3 flex flex-wrap gap-2">

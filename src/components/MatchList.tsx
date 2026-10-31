@@ -89,7 +89,7 @@ export default function MatchList({
           const win = me.win;
           return (
             <li key={m.metadata.matchId}>
-              <details className="group rounded-lg border border-line bg-panel">
+              <details className="group rounded-lg bg-panel">
                 <summary
                   className={`flex cursor-pointer list-none flex-wrap [&::-webkit-details-marker]:hidden items-center gap-x-3 gap-y-1 rounded-lg px-3 py-2 ${win ? "bg-[color-mix(in_srgb,var(--chart-up)_12%,transparent)]" : "bg-[color-mix(in_srgb,var(--chart-down)_12%,transparent)]"}`}
                 >
