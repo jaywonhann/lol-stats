@@ -9,8 +9,26 @@ import { getLang, getServer } from "@/lib/server";
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const ko = (await getLang()) === "ko";
+type Props = { searchParams: Promise<{ a?: string; b?: string; lane?: string }> };
+
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  const sp = await searchParams;
+  const lang = await getLang();
+  const ko = lang === "ko";
+  if (sp.a && sp.b) {
+    const { champions } = await getChampions(ddLocale(lang)).catch(() => ({ champions: [] as { id: string; name: string }[] }));
+    const A = champions.find((c) => c.id === sp.a);
+    const B = champions.find((c) => c.id === sp.b);
+    if (A && B) {
+      const ln = laneLabel(parseLane(sp.lane), lang);
+      return {
+        title: ko ? `${A.name} vs ${B.name} 상성 승률 (${ln})` : `${A.name} vs ${B.name} matchup win rate (${ln})`,
+        description: ko
+          ? `${ln}에서 ${A.name}와 ${B.name}가 붙은 실제 랭크 게임 승률과, ${B.name} 상대로 잘 이기는 챔피언을 보여줘요.`
+          : `Real ranked win rate when ${A.name} faced ${B.name} in ${ln}, plus the champions that beat ${B.name} most often.`,
+      };
+    }
+  }
   return {
     title: ko ? "챔피언 상성 비교" : "Champion matchup lookup",
     description: ko
@@ -18,8 +36,6 @@ export async function generateMetadata(): Promise<Metadata> {
       : "Pick two champions and see their real win rate against each other in the same lane.",
   };
 }
-
-type Props = { searchParams: Promise<{ a?: string; b?: string; lane?: string }> };
 
 export default async function MatchupPage({ searchParams }: Props) {
   const sp = await searchParams;
@@ -36,6 +52,29 @@ export default async function MatchupPage({ searchParams }: Props) {
   const agg = A && B && patch ? real.get(patch)!.champs[`${A.key}:${lane}`] : undefined;
   const [g, w] = agg?.vs[B!.key] ?? [0, 0];
   const rate = g ? (w / g) * 100 : null;
+
+  // 같은 라인에서 B를 가장 잘 이기는 챔피언, A가 가장 잘 이기는 챔피언 (실제 데이터, 표본 5게임 이상)
+  const byKey = new Map(champions.map((c) => [c.key, c]));
+  const champsAgg = patch ? real.get(patch)!.champs : {};
+  const beatsB: Ranked[] = [];
+  if (B) {
+    for (const [k, v] of Object.entries(champsAgg)) {
+      const [ck, cl] = k.split(":");
+      if (cl !== lane || ck === B.key) continue;
+      const [vg, vw] = v.vs[B.key] ?? [0, 0];
+      const c = byKey.get(ck);
+      if (c && vg >= 5) beatsB.push({ c, games: vg, rate: (vw / vg) * 100 });
+    }
+    beatsB.sort((x, y) => y.rate - x.rate || y.games - x.games);
+  }
+  const aBeats: Ranked[] = [];
+  if (agg) {
+    for (const [ok, [vg, vw]] of Object.entries(agg.vs)) {
+      const c = byKey.get(ok);
+      if (c && vg >= 5) aBeats.push({ c, games: vg, rate: (vw / vg) * 100 });
+    }
+    aBeats.sort((x, y) => y.rate - x.rate || y.games - x.games);
+  }
 
   const select = "w-full rounded-lg bg-panel-2 px-3 py-3 text-base";
   const opts = champions.map((c) => (
@@ -121,7 +160,45 @@ export default async function MatchupPage({ searchParams }: Props) {
           )}
         </Panel>
       )}
+      {A && B && (beatsB.length > 0 || aBeats.length > 0) && (
+        <div className="grid gap-4 md:grid-cols-2">
+          {beatsB.length > 0 && (
+            <Panel title={ko ? `${B.name} 상대로 잘 이기는 챔피언` : `Best picks against ${B.name}`}>
+              <RankList rows={beatsB.slice(0, 6)} version={version} href={(c) => `/matchup?a=${c.id}&b=${B.id}&lane=${lane}`} ko={ko} />
+            </Panel>
+          )}
+          {aBeats.length > 0 && (
+            <Panel title={ko ? `${A.name}가 잘 이기는 상대` : `${A.name} wins most against`}>
+              <RankList rows={aBeats.slice(0, 6)} version={version} href={(c) => `/matchup?a=${A.id}&b=${c.id}&lane=${lane}`} ko={ko} />
+            </Panel>
+          )}
+        </div>
+      )}
     </div>
+  );
+}
+
+type Champ = { id: string; key: string; name: string; image: { full: string } };
+type Ranked = { c: Champ; games: number; rate: number };
+
+function RankList({ rows, version, href, ko }: { rows: Ranked[]; version: string; href: (c: Champ) => string; ko: boolean }) {
+  return (
+    <ul className="space-y-1">
+      {rows.map(({ c, games, rate }) => (
+        <li key={c.id}>
+          <Link href={href(c)} className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-panel-2">
+            <Icon src={img.champion(version, c.image.full)} alt={c.name} size={28} className="rounded" />
+            <span className="flex-1 truncate text-sm">{c.name}</span>
+            <span className="text-right text-xs tabular-nums">
+              <span className="font-semibold" style={{ color: rate >= 50 ? "var(--chart-up)" : "var(--chart-down)" }}>
+                {rate.toFixed(1)}%
+              </span>
+              <span className="block text-muted">{ko ? `${games}게임` : `${games} games`}</span>
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }
 

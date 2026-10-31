@@ -411,10 +411,10 @@ export default async function ChampionPage({ params, searchParams }: Props) {
             </Panel>
 
             <Panel title={t.easyMatchups}>
-              <MatchupList lang={lang} rows={mu.easy} version={version} lane={lane} />
+              <MatchupList me={champion.id} lang={lang} rows={mu.easy} version={version} lane={lane} />
             </Panel>
             <Panel title={t.hardMatchups}>
-              <MatchupList lang={lang} rows={mu.hard} version={version} lane={lane} />
+              <MatchupList me={champion.id} lang={lang} rows={mu.hard} version={version} lane={lane} />
             </Panel>
             {[...mu.easy, ...mu.hard].some((m) => m.games < 10) && (
               <p className="px-1 text-xs text-muted">{t.matchupNote}</p>
@@ -553,7 +553,9 @@ function MatchupList({
   version,
   lane,
   lang,
+  me,
 }: {
+  me: string;
   lang: Lang;
   rows: Matchup[];
   version: string;
@@ -565,7 +567,7 @@ function MatchupList({
       {rows.map((m) => (
         <li key={m.champion.id}>
           <Link
-            href={`/champions/${m.champion.id}?lane=${lane}`}
+            href={`/matchup?a=${me}&b=${m.champion.id}&lane=${lane}`}
             className="flex items-center gap-2 hover:text-accent"
           >
             <Icon
