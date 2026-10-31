@@ -34,6 +34,11 @@ export default async function RootLayout({
   const source = hasRealData(server) ? ("real" as const) : ("mock" as const);
   return (
     <html lang={lang}>
+      <head>
+        {/* 한글·영문 모두 같은 인상으로 보이도록 Pretendard 를 실제로 불러와요 (필요한 글자만 나눠 받음) */}
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="" />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+      </head>
       <body className="min-h-screen antialiased">
         <a
           href="#main"

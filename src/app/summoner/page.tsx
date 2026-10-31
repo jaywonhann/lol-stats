@@ -373,7 +373,7 @@ function Analysis({
     </Panel>
   );
   const nowPanel = (
-    <section className="rounded-xl border border-accent/40 bg-panel p-5 shadow-[0_0_40px_-16px_var(--color-accent)] md:p-6">
+    <section className="rounded-xl border border-accent/40 bg-panel p-5 md:p-6">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-accent">{t.nowTitle}</h2>
       <div className="mt-4 grid gap-5 md:grid-cols-2">
         <div>

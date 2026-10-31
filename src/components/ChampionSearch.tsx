@@ -75,7 +75,7 @@ export default function ChampionSearch({ champions, lang, base = "/champions/", 
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={c.icon} alt={c.name} width={56} height={56} loading="lazy" style={{ width: 56, height: 56 }} className="overflow-hidden text-[0px] rounded-md group-hover:ring-2 group-hover:ring-accent" />
             <span className="w-full truncate text-xs text-muted group-hover:text-text">{c.name}</span>
-            {c.wr !== undefined && <span className="text-[11px] tabular-nums text-muted">{c.wr.toFixed(1)}%</span>}
+            {c.wr !== undefined && <span className="text-xs tabular-nums text-muted">{c.wr.toFixed(1)}%</span>}
           </Link>
         ))}
         {results.length === 0 && <p className="col-span-full text-sm text-muted">{t.noResults}</p>}
