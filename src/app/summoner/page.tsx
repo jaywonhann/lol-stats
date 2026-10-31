@@ -180,15 +180,16 @@ function Analysis({
   const { account, profile, solo } = result;
   const games = toGames(result.matches, account.puuid);
 
-  const profileHeader = (
+  // glance: 가운데 빈 자리에 최근 게임 요약과 칭찬 한 줄을 넣어요
+  const profileHeader = (glance?: React.ReactNode) => (
     <Panel>
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
         {version && profile ? (
           <Icon src={img.profileIcon(version, profile.profileIconId)} alt="" size={64} className="rounded-xl bg-panel-2" />
         ) : (
           <div className="h-16 w-16 shrink-0 rounded-xl bg-panel-2" />
         )}
-        <div className="min-w-0 flex-1">
+        <div className={`min-w-0 ${glance ? "shrink-0" : "flex-1"}`}>
           <p className="break-words text-xl font-bold">
             {account.gameName} <span className="font-normal text-muted">#{account.tagLine}</span>
           </p>
@@ -197,6 +198,7 @@ function Analysis({
             {profile && ` · ${t.level(profile.summonerLevel.toLocaleString(nl))}`}
           </p>
         </div>
+        {glance}
         <RankBox solo={solo} lang={lang} />
       </div>
       <div className="mt-3 flex flex-wrap justify-end gap-2 border-t border-line pt-3">
@@ -209,7 +211,7 @@ function Analysis({
   if (!games.length)
     return (
       <>
-        {profileHeader}
+        {profileHeader()}
         {tagNote}
         <Panel>
           <p className="text-sm">{t.noGames}</p>
@@ -243,6 +245,52 @@ function Analysis({
   const avoid = enough.filter((c) => c.winRate < 45).sort((a, b) => a.winRate - b.winRate).slice(0, 2);
   const s0 = sw.strengths[0];
   const w0 = sw.weaknesses[0];
+  const g = t.glance;
+  const wins = games.filter((x) => x.win).length;
+  const top3 = [...champs].sort((a, b) => b.games - a.games).slice(0, 3);
+  // 들어오자마자 기분 좋은 한 줄: 강점 → 잘 맞는 챔피언 → 연승 순으로 찾아요
+  const praise = s0
+    ? g.good(t.metricNames[s0.metric], fix(s0.value, 0))
+    : best[0]
+      ? g.goodChamp(best[0].championName, fix(best[0].winRate, 0))
+      : f.streak?.win && f.streak.count >= 2
+        ? g.goodStreak(f.streak.count)
+        : g.steady;
+  const stat = (label: string, value: React.ReactNode, sub?: string) => (
+    <div>
+      <p className="text-xs text-muted">{label}</p>
+      <p className="text-lg font-bold tabular-nums leading-tight">{value}</p>
+      {sub && <p className="text-xs text-muted">{sub}</p>}
+    </div>
+  );
+  const glance = (
+    <div className="min-w-0 flex-1 basis-80 space-y-3 md:border-l md:border-line md:pl-6">
+      <p className="text-base font-semibold" style={{ color: "var(--chart-up)" }}>
+        {praise}
+      </p>
+      <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-4">
+        {stat(g.wr, `${fix(snap.wr, 0)}%`, g.record(wins, total - wins))}
+        {stat(g.kda, fix(snap.kda, 2))}
+        {stat(g.cs, fix(snap.cs, 1))}
+        {mainLane && stat(g.role, laneName(mainLane))}
+      </div>
+      {top3.length > 0 && version && (
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-xs text-muted">{g.most}</span>
+          {top3.map((c) => (
+            <span key={c.championId} className="flex items-center gap-1.5 text-sm">
+              {c.champion && <Icon src={img.champion(version, c.champion.image.full)} alt={c.championName} size={28} className="rounded-md" />}
+              <span className="tabular-nums" style={{ color: c.winRate >= 50 ? "var(--chart-up)" : "var(--chart-down)" }}>
+                {fix(c.winRate, 0)}%
+              </span>
+              <span className="text-xs text-muted">{c.games}</span>
+            </span>
+          ))}
+        </div>
+      )}
+      <p className="text-xs text-muted">{g.recent(total)}</p>
+    </div>
+  );
   const summary = [
     mainLane && t.sumRole(laneName(mainLane), roleList[0].games, total),
     best.length ? t.sumBest(best.map(record).join(", ")) : !enough.length ? t.sumBestNone : null,
@@ -424,7 +472,7 @@ function Analysis({
 
   return (
     <>
-      {profileHeader}
+      {profileHeader(glance)}
       <SinceLastVisit id={`${server}:${account.puuid}`} now={snap} labels={{ ...t.since, since: t.since.since("{date}") }} locale={nl} />
       {tiltPanel}
       {nowPanel}
