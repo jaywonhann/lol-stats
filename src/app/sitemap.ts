@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getChampions } from "@/lib/ddragon";
-import { loadRealData } from "@/lib/real";
+import { loadRealData, realLanes } from "@/lib/real";
 
 export const revalidate = 86400;
 
@@ -29,6 +29,18 @@ function topMatchups(byKey: Map<string, string>, limit = 400): string[] {
   return [...counts.entries()].sort((x, y) => y[1] - x[1]).slice(0, limit).map(([id]) => id);
 }
 
+// 주 라인 외에 실제 데이터가 충분한 다른 라인 ("야스오 탑 빌드" 같은 검색용)
+function offLanes(champions: Parameters<typeof realLanes>[1][]): string[] {
+  const out = new Set<string>();
+  for (const server of ["kr", "na1", "euw1"] as const) {
+    const real = loadRealData({ server, rank: "all" });
+    const patch = [...real.keys()].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).pop();
+    if (!patch) continue;
+    for (const c of champions) for (const l of realLanes(real.get(patch)!, c).slice(1)) out.add(`${c.id}?lane=${l}`);
+  }
+  return [...out];
+}
+
 // 검색엔진용: 주요 페이지 + 모든 챔피언 페이지 + 인기 상성 조합
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
@@ -38,6 +50,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     return [
       ...pages,
       ...champions.map((c) => ({ url: `${SITE}/champions/${c.id}`, lastModified: now, changeFrequency: "daily" as const, priority: 0.6 })),
+      ...offLanes(champions).map((q) => ({ url: `${SITE}/champions/${q}`, lastModified: now, changeFrequency: "daily" as const, priority: 0.55 })),
       ...topMatchups(new Map(champions.map((c) => [c.key, c.id]))).map((q) => ({
         url: `${SITE}/matchup?${q.replaceAll("&", "&amp;")}`,
         lastModified: now,

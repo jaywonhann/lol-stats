@@ -47,13 +47,15 @@ type Props = {
   searchParams: Promise<{ lane?: string; rank?: string }>;
 };
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params;
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
+  const [{ id }, sp] = await Promise.all([params, searchParams]);
   const lang = await getLang();
   const t = dict(lang);
   const data = await getChampion(id, ddLocale(lang));
   if (!data) return { title: t.champion };
-  const n = data.champion.name;
+  // ?lane= 이 있으면 "야스오 탑 빌드"처럼 라인별 검색어에 맞춘 제목
+  const ln = LANES.find((l) => l.id === sp.lane)?.id;
+  const n = ln ? `${data.champion.name} ${laneLabel(ln, lang)}` : data.champion.name;
   return {
     title: t.champMetaTitle(n),
     description:
