@@ -1,4 +1,5 @@
-// 소환사 검색창: 일반 GET 폼 (자동완성은 클라이언트 입력창이 담당)
+// 소환사 검색창: next/form 이라 페이지를 새로 받지 않고 이동해서, 결과를 기다리는 동안 뼈대 화면이 바로 떠요 (자동완성은 클라이언트 입력창이 담당)
+import Form from "next/form";
 import { dict, type Lang } from "@/lib/i18n";
 import { serverLabel, type Server } from "@/lib/lanes";
 import { DEFAULT_TAG } from "@/lib/riot";
@@ -18,7 +19,7 @@ export default function SummonerSearch({
 }) {
   const t = dict(lang).summoner;
   return (
-    <form action="/summoner" method="get" role="search" className="w-full">
+    <Form action="/summoner" role="search" className="w-full">
       <label htmlFor="summoner-id" className="sr-only">
         {t.inputLabel}
       </label>
@@ -41,6 +42,6 @@ export default function SummonerSearch({
         {t.searching(serverLabel(server, lang))} {t.tagHint(DEFAULT_TAG[server])}
       </p>
       {large && <RecentSummoners label={t.recentViewed} />}
-    </form>
+    </Form>
   );
 }
