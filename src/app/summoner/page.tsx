@@ -203,16 +203,23 @@ function Analysis({
   const { account, profile, solo } = result;
   const games = toGames(result.matches, account.puuid);
 
-  // glance: 가운데 빈 자리에 최근 게임 요약과 칭찬 한 줄을 넣어요
+  // 헤더 한 줄: 이름(+버튼) | 솔랭 티어·LP | 최근 10판 승패 + 칭찬 한 줄. 아래 빈 줄 없이 꽉 채워요.
   const profileHeader = (glance?: React.ReactNode) => (
     <Panel>
       <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
-        {version && profile ? (
-          <Icon src={img.profileIcon(version, profile.profileIconId)} alt="" size={64} className="rounded-xl bg-panel-2" />
-        ) : (
-          <div className="h-16 w-16 shrink-0 rounded-xl bg-panel-2" />
-        )}
-        <div className={`min-w-0 ${glance ? "shrink-0" : "flex-1"}`}>
+        <div className="relative shrink-0">
+          {version && profile ? (
+            <Icon src={img.profileIcon(version, profile.profileIconId)} alt="" size={72} className="rounded-xl bg-panel-2" />
+          ) : (
+            <div className="h-[72px] w-[72px] rounded-xl bg-panel-2" />
+          )}
+          {profile && (
+            <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full border border-line bg-bg px-2 text-[11px] font-semibold tabular-nums">
+              {profile.summonerLevel.toLocaleString(nl)}
+            </span>
+          )}
+        </div>
+        <div className="min-w-0 basis-56 flex-1 sm:flex-none">
           <p className="break-words text-xl font-bold">
             {account.gameName} <span className="font-normal text-muted">#{account.tagLine}</span>
           </p>
@@ -220,12 +227,19 @@ function Analysis({
             {serverLabel(server, lang)}
             {profile && ` · ${t.level(profile.summonerLevel.toLocaleString(nl))}`}
           </p>
+          <div className="mt-2.5 flex flex-wrap items-start gap-2">
+            <ShareButton url={`/summoner?id=${encodeURIComponent(`${account.gameName}#${account.tagLine}`)}&s=${server}`} title={t.metaTitle(`${account.gameName}#${account.tagLine}`)} label={t.shareLabel} copied={t.shareCopied} />
+            {update}
+          </div>
         </div>
-        {glance}
-      </div>
-      <div className="mt-3 flex flex-wrap justify-end gap-2 border-t border-line pt-3">
-        <ShareButton url={`/summoner?id=${encodeURIComponent(`${account.gameName}#${account.tagLine}`)}&s=${server}`} title={t.metaTitle(`${account.gameName}#${account.tagLine}`)} label={t.shareLabel} copied={t.shareCopied} />
-        {update}
+        <div className="hidden self-stretch border-l border-line md:block" aria-hidden />
+        <RankBox solo={solo} lang={lang} />
+        {glance && (
+          <>
+            <div className="hidden self-stretch border-l border-line lg:block" aria-hidden />
+            {glance}
+          </>
+        )}
       </div>
     </Panel>
   );
@@ -234,7 +248,6 @@ function Analysis({
     return (
       <>
         {profileHeader()}
-        <RankBox solo={solo} lang={lang} />
         {tagNote}
         <Panel>
           <p className="text-sm">{t.noGames}</p>
@@ -279,10 +292,28 @@ function Analysis({
       : f.streak?.win && f.streak.count >= 2
         ? g.goodStreak(f.streak.count)
         : g.steady;
+  const last10 = games.slice(0, 10);
+  const w10 = last10.filter((x) => x.win).length;
   const glance = (
-    <p className="min-w-0 flex-1 basis-64 text-base font-semibold md:border-l md:border-line md:pl-6" style={{ color: "var(--chart-up)" }}>
-      {praise}
-    </p>
+    <div className="min-w-0 basis-64 flex-1">
+      <p className="mb-1.5 text-xs text-muted">
+        {g.recent(last10.length)} <b className="text-text">{g.record(w10, last10.length - w10)}</b>
+      </p>
+      <div className="flex flex-wrap gap-1" aria-label={g.record(w10, last10.length - w10)}>
+        {[...last10].reverse().map((x) => (
+          <span
+            key={x.id}
+            className="flex h-6 w-6 items-center justify-center rounded text-[11px] font-bold text-white"
+            style={{ background: x.win ? "var(--chart-up)" : "var(--chart-down)" }}
+          >
+            {x.win ? t.winShort : t.lossShort}
+          </span>
+        ))}
+      </div>
+      <p className="mt-2 text-sm font-semibold" style={{ color: "var(--chart-up)" }}>
+        {praise}
+      </p>
+    </div>
   );
   // 오른쪽 위 요약 막대: 승률 도넛 + KDA + 모스트 3 + 지표 칩 4개
   const avgK = games.reduce((a, x) => a + x.kills, 0) / total;
@@ -595,7 +626,6 @@ function Analysis({
       {profileHeader(glance)}
       <div className="grid items-start gap-4 lg:grid-cols-[19rem_minmax(0,1fr)]">
         <aside className="space-y-4">
-          <RankBox solo={solo} lang={lang} />
           {positionsPanel}
           {mostPanel}
         </aside>
@@ -725,16 +755,17 @@ const TIER_HEX: Record<string, string> = {
   CHALLENGER: "#f7d774",
 };
 
+// 헤더 안에 들어가는 솔랭 티어 (엠블럼 + 티어·LP + 전적)
 function RankBox({ solo, lang }: { solo: LeagueEntry | null; lang: Lang }) {
   const t = dict(lang).summoner;
   const nl = numLocale(lang);
   if (!solo)
     return (
-      <div className="flex w-full items-center gap-4 rounded-xl bg-panel-2 px-5 py-4">
-        <TierEmblem tier="UNRANKED" size={72} />
+      <div className="flex shrink-0 items-center gap-3">
+        <TierEmblem tier="UNRANKED" size={56} />
         <div>
+          <p className="text-lg font-bold leading-tight">{t.unranked}</p>
           <p className="text-xs text-muted">{t.soloDuo}</p>
-          <p className="text-2xl font-bold">{t.unranked}</p>
         </div>
       </div>
     );
@@ -743,26 +774,20 @@ function RankBox({ solo, lang }: { solo: LeagueEntry | null; lang: Lang }) {
   const wr = games ? (solo.wins / games) * 100 : 0;
   const color = TIER_HEX[solo.tier] ?? "#5b6475";
   return (
-    <div className="flex w-full items-center gap-4 rounded-lg bg-panel px-4 py-3">
-      <TierEmblem tier={solo.tier} size={96} />
-      <div className="min-w-0 flex-1">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted">{t.soloDuo}</p>
-        <p className="text-2xl font-extrabold leading-tight" style={{ color }}>
-          {t.tiers[solo.tier] ?? solo.tier}
-          {!apex && ` ${solo.rank}`}
+    <div className="flex shrink-0 items-center gap-3">
+      <TierEmblem tier={solo.tier} size={64} />
+      <div className="min-w-0">
+        <p className="text-lg font-extrabold leading-tight">
+          <span style={{ color }}>
+            {t.tiers[solo.tier] ?? solo.tier}
+            {!apex && ` ${solo.rank}`}
+          </span>{" "}
+          <span className="font-semibold tabular-nums text-muted">{solo.leaguePoints.toLocaleString(nl)} LP</span>
         </p>
-        <p className="mt-0.5 text-2xl font-black tabular-nums leading-tight">
-          {solo.leaguePoints.toLocaleString(nl)}
-          <span className="ml-1 text-base font-semibold text-muted">LP</span>
-        </p>
-        {!apex && (
-          <div className="mt-2 h-1.5 w-full max-w-[14rem] overflow-hidden rounded-full bg-black/30" aria-hidden>
-            <div className="h-full rounded-full" style={{ width: `${Math.min(100, solo.leaguePoints)}%`, background: color }} />
-          </div>
-        )}
-        <p className="mt-2 text-xs text-muted">
-          {t.record(solo.wins.toLocaleString(nl), solo.losses.toLocaleString(nl))} · {dict(lang).winRate}{" "}
-          <span className={wr >= 50 ? "text-win" : "text-lose"}>{wr.toFixed(1)}%</span>
+        <p className="mt-0.5 text-xs text-muted">
+          {t.soloDuo} · {dict(lang).winRate}{" "}
+          <span className={`font-semibold ${wr >= 50 ? "text-win" : "text-lose"}`}>{wr.toFixed(0)}%</span>{" "}
+          ({t.record(solo.wins.toLocaleString(nl), solo.losses.toLocaleString(nl))})
         </p>
       </div>
     </div>
