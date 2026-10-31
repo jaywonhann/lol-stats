@@ -25,23 +25,7 @@ export function TierBadge({ tier, lang }: { tier: Tier; lang: Lang }) {
   );
 }
 
-export function Tabs({ items, active }: { items: { id: string; label: string; href: string }[]; active: string }) {
-  return (
-    <div className="flex flex-wrap gap-1">
-      {items.map((t) => (
-        <Link
-          key={t.id}
-          href={t.href}
-          className={`rounded-md px-3 py-1.5 text-sm ${
-            t.id === active ? "bg-accent font-semibold text-black" : "bg-panel-2 text-muted hover:text-text"
-          }`}
-        >
-          {t.label}
-        </Link>
-      ))}
-    </div>
-  );
-}
+export { default as Tabs } from "@/components/Tabs";
 
 export function Panel({ title, children, className = "" }: { title?: string; children: React.ReactNode; className?: string }) {
   return (
