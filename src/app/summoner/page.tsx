@@ -6,19 +6,18 @@ import { Icon, Panel } from "@/components/ui";
 import { DivergingBars } from "@/components/charts";
 import TierEmblem from "@/components/TierEmblem";
 import UpdateButton from "@/components/UpdateButton";
-import FormChart from "@/components/FormChart";
 import ScoreCard from "@/components/ScoreCard";
 import GrowthCard from "@/components/GrowthCard";
 import ProMatch from "@/components/ProMatch";
 import MatchList from "@/components/MatchList";
 import { growth } from "@/lib/growth";
-import { scoreReport } from "@/lib/score";
+import { rateMatch, scoreReport } from "@/lib/score";
 import SummonerSearch from "@/components/SummonerSearch";
-import { getChampions, getPatches, getVersion, img, type Champion } from "@/lib/ddragon";
+import { getChampions, getPatches, getRuneTrees, getSummonerSpells, getVersion, img, type Champion } from "@/lib/ddragon";
 import { ddLocale, dict, numLocale, timeAgo, type Lang } from "@/lib/i18n";
 import { boards } from "@/lib/stats";
 import { fetchedAt } from "@/lib/summoner-cache";
-import { laneLabel, parseServer, serverLabel, type Lane, type Server } from "@/lib/lanes";
+import { LANES, laneLabel, parseServer, serverLabel, type Lane, type Server } from "@/lib/lanes";
 import { getLang, getServer } from "@/lib/server";
 import {
   lookupSummoner,
@@ -122,6 +121,20 @@ export default async function SummonerPage({ searchParams }: Props) {
     getPatches().catch(() => [] as string[]),
     fetchedAt(summonerTag(server, parsed.gameName, parsed.tagLine)),
   ]);
+  // 게임 목록에 쓰는 소환사 주문·룬 아이콘 (번호 → 이미지 주소)
+  const [spellList, trees] = version
+    ? await Promise.all([
+        getSummonerSpells(version, ddLocale(lang)).catch(() => []),
+        getRuneTrees(version, ddLocale(lang)).catch(() => []),
+      ])
+    : [[], []];
+  const spellIcons: Record<number, string> = {};
+  for (const sp of spellList) spellIcons[Number(sp.key)] = img.spell(version!, sp.image.full);
+  const runeIcons: Record<number, string> = {};
+  for (const tr of trees) {
+    runeIcons[tr.id] = img.rune(tr.icon);
+    for (const slot of tr.slots) for (const r of slot.runes) runeIcons[r.id] = img.rune(r.icon);
+  }
   const update = (
     <UpdateButton
       id={riotId}
@@ -149,12 +162,18 @@ export default async function SummonerPage({ searchParams }: Props) {
         patches={patches}
         tagNote={tagNote}
         update={update}
+        spellIcons={spellIcons}
+        runeIcons={runeIcons}
       />
     </div>
   );
 }
 
 const fix = (v: number, d = 1) => v.toFixed(d);
+const tiltLevelOf = (score: number) => (score < 15 ? 0 : score < 35 ? 1 : score < 55 ? 2 : score < 75 ? 3 : 4);
+// 지금 큐 판정: 연패 중이거나 멘탈 지수가 높으면 쉬라고 해요
+const queueLevelOf = (tl: { lossRun: number; score: number }) =>
+  tl.lossRun >= 2 || tl.score >= 55 ? 2 : tl.score >= 35 || tl.lossRun === 1 ? 1 : 0;
 
 function Analysis({
   result,
@@ -165,6 +184,8 @@ function Analysis({
   patches,
   tagNote,
   update,
+  spellIcons,
+  runeIcons,
 }: {
   result: Lookup;
   lang: Lang;
@@ -174,6 +195,8 @@ function Analysis({
   patches: string[];
   update: React.ReactNode;
   tagNote: React.ReactNode;
+  spellIcons: Record<number, string>;
+  runeIcons: Record<number, string>;
 }) {
   const t = dict(lang).summoner;
   const nl = numLocale(lang);
@@ -199,7 +222,6 @@ function Analysis({
           </p>
         </div>
         {glance}
-        <RankBox solo={solo} lang={lang} />
       </div>
       <div className="mt-3 flex flex-wrap justify-end gap-2 border-t border-line pt-3">
         <ShareButton url={`/summoner?id=${encodeURIComponent(`${account.gameName}#${account.tagLine}`)}&s=${server}`} title={t.metaTitle(`${account.gameName}#${account.tagLine}`)} label={t.shareLabel} copied={t.shareCopied} />
@@ -212,6 +234,7 @@ function Analysis({
     return (
       <>
         {profileHeader()}
+        <RankBox solo={solo} lang={lang} />
         {tagNote}
         <Panel>
           <p className="text-sm">{t.noGames}</p>
@@ -256,40 +279,147 @@ function Analysis({
       : f.streak?.win && f.streak.count >= 2
         ? g.goodStreak(f.streak.count)
         : g.steady;
-  const stat = (label: string, value: React.ReactNode, sub?: string) => (
-    <div>
-      <p className="text-xs text-muted">{label}</p>
-      <p className="text-lg font-bold tabular-nums leading-tight">{value}</p>
-      {sub && <p className="text-xs text-muted">{sub}</p>}
+  const glance = (
+    <p className="min-w-0 flex-1 basis-64 text-base font-semibold md:border-l md:border-line md:pl-6" style={{ color: "var(--chart-up)" }}>
+      {praise}
+    </p>
+  );
+  // 오른쪽 위 요약 막대: 승률 도넛 + KDA + 모스트 3 + 지표 칩 4개
+  const avgK = games.reduce((a, x) => a + x.kills, 0) / total;
+  const avgD = games.reduce((a, x) => a + x.deaths, 0) / total;
+  const avgA = games.reduce((a, x) => a + x.assists, 0) / total;
+  const inbuns = result.matches.flatMap((m) => rateMatch(m).filter((r) => r.puuid === account.puuid).map((r) => r.inbun));
+  const avgInbun = inbuns.length ? inbuns.reduce((a, v) => a + v, 0) / inbuns.length : null;
+  const laneEdge = lanes.diffs.length ? lanes.diffs.reduce((a, d) => a + d.value, 0) / lanes.diffs.length : null;
+  const wrPct = (wins / total) * 100;
+  const R = 26;
+  const C = 2 * Math.PI * R;
+  const chip = (label: string, value: React.ReactNode, tone?: "up" | "down") => (
+    <div className="flex items-center justify-between gap-2 rounded-md bg-panel-2 px-3 py-2">
+      <span className="text-xs text-muted">{label}</span>
+      <span className="text-sm font-bold tabular-nums" style={tone ? { color: tone === "up" ? "var(--chart-up)" : "var(--chart-down)" } : undefined}>
+        {value}
+      </span>
     </div>
   );
-  const glance = (
-    <div className="min-w-0 flex-1 basis-80 space-y-3 md:border-l md:border-line md:pl-6">
-      <p className="text-base font-semibold" style={{ color: "var(--chart-up)" }}>
-        {praise}
-      </p>
-      <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-4">
-        {stat(g.wr, `${fix(snap.wr, 0)}%`, g.record(wins, total - wins))}
-        {stat(g.kda, fix(snap.kda, 2))}
-        {stat(g.cs, fix(snap.cs, 1))}
-        {mainLane && stat(g.role, laneName(mainLane))}
-      </div>
-      {top3.length > 0 && version && (
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-xs text-muted">{g.most}</span>
-          {top3.map((c) => (
-            <span key={c.championId} className="flex items-center gap-1.5 text-sm">
-              {c.champion && <Icon src={img.champion(version, c.champion.image.full)} alt={c.championName} size={28} className="rounded-md" />}
-              <span className="tabular-nums" style={{ color: c.winRate >= 50 ? "var(--chart-up)" : "var(--chart-down)" }}>
-                {fix(c.winRate, 0)}%
-              </span>
-              <span className="text-xs text-muted">{c.games}</span>
-            </span>
-          ))}
+  const summaryBar = (
+    <Panel>
+      <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
+        <div className="flex items-center gap-4">
+          <svg width="64" height="64" viewBox="0 0 64 64" role="img" aria-label={`${g.winRate} ${fix(wrPct, 0)}%`}>
+            <circle cx="32" cy="32" r={R} fill="none" stroke="var(--chart-down)" strokeWidth="7" />
+            <circle
+              cx="32"
+              cy="32"
+              r={R}
+              fill="none"
+              stroke="var(--chart-up)"
+              strokeWidth="7"
+              strokeDasharray={`${(wrPct / 100) * C} ${C}`}
+              transform="rotate(-90 32 32)"
+            />
+            <text x="32" y="36" textAnchor="middle" fontSize="14" fontWeight="700" fill="currentColor">
+              {fix(wrPct, 0)}%
+            </text>
+          </svg>
+          <div className="leading-tight">
+            <p className="text-sm text-muted">{g.games(total, wins, total - wins)}</p>
+            <p className="text-xl font-bold tabular-nums">{fix(snap.kda, 2)} KDA</p>
+            <p className="text-xs text-muted tabular-nums">
+              {fix(avgK)} / <span style={{ color: "var(--chart-down)" }}>{fix(avgD)}</span> / {fix(avgA)}
+            </p>
+          </div>
         </div>
-      )}
-      <p className="text-xs text-muted">{g.recent(total)}</p>
-    </div>
+        {top3.length > 0 && (
+          <div className="min-w-0 flex-1">
+            <p className="mb-2 text-xs text-muted">{g.most3}</p>
+            <ul className="flex flex-wrap gap-x-6 gap-y-2">
+              {top3.map((c) => (
+                <li key={c.championId} className="flex items-center gap-2">
+                  {version && c.champion ? (
+                    <Icon src={img.champion(version, c.champion.image.full)} alt={c.championName} size={40} className="rounded-md" />
+                  ) : (
+                    <span className="h-10 w-10 rounded-md bg-panel-2" />
+                  )}
+                  <span className="leading-tight">
+                    <span className="block text-sm font-bold tabular-nums" style={{ color: c.winRate >= 50 ? "var(--chart-up)" : "var(--chart-down)" }}>
+                      {fix(c.winRate, 0)}%
+                    </span>
+                    <span className="block text-xs text-muted">{g.record(c.wins, c.games - c.wins)}</span>
+                    <span className="block text-xs text-muted">{fix(c.kda, 2)} KDA</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-4">
+        {chip(g.lane, laneEdge === null ? "-" : `${laneEdge >= 0 ? "+" : "−"}${fix(Math.abs(laneEdge), 0)}%`, laneEdge === null ? undefined : laneEdge >= 0 ? "up" : "down")}
+        {chip(g.inbun, avgInbun === null ? "-" : g.inbunVal(fix(avgInbun)), avgInbun === null ? undefined : avgInbun >= 1 ? "up" : "down")}
+        {chip(g.mental, tl ? `${tl.score} · ${t.tiltLevels[tiltLevelOf(tl.score)]}` : "-", tl ? (tl.score >= 55 ? "down" : tl.score < 35 ? "up" : undefined) : undefined)}
+        {chip(g.queue, tl ? g.queueShort[queueLevelOf(tl)] : "-", tl ? (queueLevelOf(tl) === 2 ? "down" : queueLevelOf(tl) === 0 ? "up" : undefined) : undefined)}
+      </div>
+    </Panel>
+  );
+  // 왼쪽: 포지션 비율 (라인별 비율·승률·게임 수)
+  const laneRows = LANES.map((l) => {
+    const gs = games.filter((x) => x.lane === l.id);
+    return { lane: l.id, n: gs.length, wr: gs.length ? (gs.filter((x) => x.win).length / gs.length) * 100 : 0 };
+  });
+  const positionsPanel = (
+    <Panel title={g.positions}>
+      <div className="grid grid-cols-[auto_repeat(5,minmax(0,1fr))] gap-x-1 gap-y-1.5 text-center text-xs tabular-nums">
+        <span />
+        {laneRows.map((r) => (
+          <span key={r.lane} className={`truncate font-semibold ${r.lane === mainLane ? "text-accent" : "text-muted"}`}>
+            {laneName(r.lane)}
+          </span>
+        ))}
+        <span className="text-left text-muted">{g.share}</span>
+        {laneRows.map((r) => (
+          <span key={r.lane} className={r.lane === mainLane ? "font-bold" : ""}>{r.n ? `${fix((r.n / total) * 100, 0)}%` : "-"}</span>
+        ))}
+        <span className="text-left text-muted">{g.winRate}</span>
+        {laneRows.map((r) => (
+          <span key={r.lane} style={r.n ? { color: r.wr >= 50 ? "var(--chart-up)" : "var(--chart-down)" } : undefined}>
+            {r.n ? `${fix(r.wr, 0)}%` : "-"}
+          </span>
+        ))}
+        <span className="text-left text-muted">{g.gamesCol}</span>
+        {laneRows.map((r) => (
+          <span key={r.lane} className="text-muted">{r.n || "-"}</span>
+        ))}
+      </div>
+    </Panel>
+  );
+  const mostPanel = (
+    <Panel title={g.mostChamps}>
+      <ul className="-mx-1 space-y-0.5">
+        {champs.slice(0, 10).map((c) => (
+          <li key={c.championId}>
+            <Link
+              href={c.champion ? `/champions/${c.champion.id}${c.lane ? `?lane=${c.lane}` : ""}` : "#"}
+              className="flex items-center gap-2 rounded-md px-1 py-1.5 hover:bg-panel-2"
+            >
+              {version && c.champion ? (
+                <Icon src={img.champion(version, c.champion.image.full)} alt="" size={32} className="rounded-md" />
+              ) : (
+                <span className="h-8 w-8 rounded-md bg-panel-2" />
+              )}
+              <span className="min-w-0 flex-1 truncate text-sm font-semibold">{c.championName}</span>
+              <span className="w-14 text-right text-xs tabular-nums text-muted">{fix(c.kda, 2)} KDA</span>
+              <span className="w-14 text-right leading-tight tabular-nums">
+                <span className="block text-sm font-bold" style={{ color: c.winRate >= 50 ? "var(--chart-up)" : "var(--chart-down)" }}>
+                  {fix(c.winRate, 0)}%
+                </span>
+                <span className="block text-[11px] text-muted">{t.gameCount(c.games)}</span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </Panel>
   );
   const summary = [
     mainLane && t.sumRole(laneName(mainLane), roleList[0].games, total),
@@ -317,15 +447,6 @@ function Analysis({
     tips.push({ text: t.tipTier(mainLaneName), href: `/tier${laneQ}`, link: t.tipTierLink(mainLaneName) });
   }
   tips.push({ text: w0 ? t.tipPractice[w0.metric] : t.tipKeepGoing });
-
-  const champIcon = (c: { championName: string; champion: Champion | null }, size: number) =>
-    version ? (
-      <Icon src={img.champion(version, c.champion?.image.full ?? `${c.championName}.png`)} alt={c.championName} size={size} />
-    ) : (
-      <span className="shrink-0 rounded bg-panel-2" style={{ width: size, height: size }} />
-    );
-  const nameOf = (g: { championId: number; championName: string }) =>
-    champions.find((c) => c.key === String(g.championId))?.name ?? g.championName;
 
   // 지금 흐름 · 이번 게임 추천 (규칙 기반)
   const last5 = games.slice(0, 5);
@@ -380,9 +501,8 @@ function Analysis({
       <p className="mt-3 text-xs text-muted">{t.titlesNote}</p>
     </Panel>
   );
-  const tiltLevel = tl ? (tl.score < 15 ? 0 : tl.score < 35 ? 1 : tl.score < 55 ? 2 : tl.score < 75 ? 3 : 4) : 0;
-  // 지금 큐 판정: 연패 중이거나 멘탈 지수가 높으면 쉬라고 해요
-  const queueLevel = tl ? (tl.lossRun >= 2 || tl.score >= 55 ? 2 : tl.score >= 35 || tl.lossRun === 1 ? 1 : 0) : 0;
+  const tiltLevel = tl ? tiltLevelOf(tl.score) : 0;
+  const queueLevel = tl ? queueLevelOf(tl) : 0;
   const verdictColor = queueLevel === 2 ? "var(--chart-down)" : queueLevel === 0 ? "var(--chart-up)" : undefined;
   const meterColor = tl && tl.score >= 55 ? "var(--chart-down)" : "var(--chart-up)";
   // 연패 수는 아래 "지금 흐름"에서 말하니까 여기서는 빼요 (같은 말 두 번 안 하기)
@@ -473,15 +593,31 @@ function Analysis({
   return (
     <>
       {profileHeader(glance)}
-      <SinceLastVisit id={`${server}:${account.puuid}`} now={snap} labels={{ ...t.since, since: t.since.since("{date}") }} locale={nl} />
-      {tiltPanel}
-      {nowPanel}
-      {titlesPanel}
-      <div className="space-y-1 text-xs text-muted">
-        <p>{t.analyzed(total, result.matchIds)}</p>
-        {tagNote}
-      </div>
-
+      <div className="grid items-start gap-4 lg:grid-cols-[19rem_minmax(0,1fr)]">
+        <aside className="space-y-4">
+          <RankBox solo={solo} lang={lang} />
+          {positionsPanel}
+          {mostPanel}
+        </aside>
+        <div className="min-w-0 space-y-4">
+          {summaryBar}
+          <SinceLastVisit id={`${server}:${account.puuid}`} now={snap} labels={{ ...t.since, since: t.since.since("{date}") }} locale={nl} />
+          <MatchList
+            matches={result.matches}
+            puuid={account.puuid}
+            version={version}
+            champions={champions}
+            lang={lang}
+            spellIcons={spellIcons}
+            runeIcons={runeIcons}
+          />
+          <div className="space-y-1 text-xs text-muted">
+            <p>{t.analyzed(total, result.matchIds)}</p>
+            {tagNote}
+          </div>
+          {tiltPanel}
+          {nowPanel}
+          {titlesPanel}
       {score && <GrowthCard g={growth(score)} lang={lang} />}
 
       {mainLane && (
@@ -546,112 +682,6 @@ function Analysis({
         </Panel>
       )}
 
-      <MatchList matches={result.matches} puuid={account.puuid} version={version} champions={champions} lang={lang} />
-
-      <Panel title={t.form}>
-        <div className="mb-4 grid grid-cols-3 gap-2 text-center">
-          <Stat label={t.recentWinRate} value={`${fix(f.winRate, 0)}%`} sub={t.record(String(f.wins), String(f.losses))} />
-          <Stat
-            label={t.currentStreak}
-            value={f.streak ? t.streak(f.streak.win, f.streak.count) : "-"}
-            tone={f.streak ? (f.streak.win ? "up" : "down") : undefined}
-          />
-          <Stat
-            label={t.net}
-            value={`${f.wins - f.losses >= 0 ? "▲+" : "▼−"}${Math.abs(f.wins - f.losses)}`}
-            tone={f.wins - f.losses >= 0 ? "up" : "down"}
-          />
-        </div>
-        <FormChart
-          games={f.chrono.map((g) => ({
-            win: g.win,
-            title: t.gameTitle(nameOf(g), g.win, `${g.kills}/${g.deaths}/${g.assists}`),
-          }))}
-          winLabel={t.winShort}
-          lossLabel={t.lossShort}
-          oldest={t.oldest}
-          latest={t.latest}
-          aria={t.formAria(f.wins, f.losses)}
-        />
-        <p className="mt-3 text-xs text-muted">{t.formNote}</p>
-      </Panel>
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Panel title={t.mostPlayed} className="lg:col-span-2">
-          <div className="mb-1 hidden grid-cols-[2rem_minmax(0,1fr)_3.5rem_3.5rem_3.5rem_3.5rem_6rem] gap-x-3 text-xs text-muted sm:grid">
-            <span />
-            <span />
-            <span className="text-right">{t.games}</span>
-            <span className="text-right">{dict(lang).winRate}</span>
-            <span className="text-right">{t.kda}</span>
-            <span className="text-right">{t.csMin}</span>
-            <span className="text-right">{t.siteAvg}</span>
-          </div>
-          <ul className="divide-y divide-line">
-            {champs.slice(0, 5).map((c) => (
-              <li
-                key={c.championId}
-                className="grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2 py-2 sm:grid-cols-[2rem_minmax(0,1fr)_3.5rem_3.5rem_3.5rem_3.5rem_6rem]"
-              >
-                {champIcon(c, 32)}
-                <div className="min-w-0">
-                  {c.champion ? (
-                    <Link href={`/champions/${c.champion.id}${c.lane ? `?lane=${c.lane}` : ""}`} className="block truncate text-sm font-medium hover:text-accent">
-                      {c.championName}
-                    </Link>
-                  ) : (
-                    <span className="block truncate text-sm font-medium">{c.championName}</span>
-                  )}
-                  <span className="text-xs text-muted">{c.lane ? laneName(c.lane) : "-"}</span>
-                </div>
-                <div className="col-span-2 grid grid-cols-5 gap-2 text-sm sm:contents">
-                  <Cell label={t.games} value={String(c.games)} />
-                  <Cell
-                    label={dict(lang).winRate}
-                    value={`${fix(c.winRate, 0)}%`}
-                    className={c.winRate >= 55 ? "text-win" : c.winRate < 45 ? "text-lose" : ""}
-                  />
-                  <Cell label={t.kda} value={fix(c.kda, 2)} />
-                  <Cell label={t.csMin} value={fix(c.csPerMin)} />
-                  <div className="text-right leading-tight">
-                    <span className="block text-xs text-muted sm:hidden">{t.siteAvg}</span>
-                    {c.siteWinRate === null ? (
-                      <span className="text-muted">-</span>
-                    ) : (
-                      <>
-                        <span className="block whitespace-nowrap text-xs text-muted">{t.siteAvgVal(fix(c.siteWinRate))}</span>
-                        <Delta value={c.winRate - c.siteWinRate} />
-                      </>
-                    )}
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-3 text-xs text-muted">
-            {avg.patch ? t.siteAvgNote(serverLabel(server, lang), avg.patch) : t.noSiteAvg}
-          </p>
-        </Panel>
-
-        <Panel title={t.roles}>
-          <ul className="space-y-3">
-            {roleList.map((r) => (
-              <li key={r.lane}>
-                <div className="mb-1 flex justify-between text-sm">
-                  <span>{laneName(r.lane)}</span>
-                  <span className="text-muted">
-                    {t.gameCount(r.games)} · {fix((r.games / total) * 100, 0)}%
-                  </span>
-                </div>
-                <div className="h-2 rounded bg-panel-2">
-                  <div className="h-2 rounded bg-accent" style={{ width: `${(r.games / total) * 100}%` }} />
-                </div>
-              </li>
-            ))}
-          </ul>
-        </Panel>
-      </div>
-
       {score && <ScoreCard report={score} lang={lang} />}
 
       <Panel title={t.laneVs}>
@@ -676,6 +706,8 @@ function Analysis({
           </div>
         )}
       </Panel>
+        </div>
+      </div>
     </>
   );
 }
@@ -698,7 +730,7 @@ function RankBox({ solo, lang }: { solo: LeagueEntry | null; lang: Lang }) {
   const nl = numLocale(lang);
   if (!solo)
     return (
-      <div className="flex w-full items-center gap-4 rounded-xl bg-panel-2 px-5 py-4 md:w-auto">
+      <div className="flex w-full items-center gap-4 rounded-xl bg-panel-2 px-5 py-4">
         <TierEmblem tier="UNRANKED" size={72} />
         <div>
           <p className="text-xs text-muted">{t.soloDuo}</p>
@@ -711,21 +743,15 @@ function RankBox({ solo, lang }: { solo: LeagueEntry | null; lang: Lang }) {
   const wr = games ? (solo.wins / games) * 100 : 0;
   const color = TIER_HEX[solo.tier] ?? "#5b6475";
   return (
-    <div
-      className="flex w-full items-center gap-4 rounded-xl border px-4 py-3 md:w-auto md:min-w-[22rem]"
-      style={{
-        borderColor: `${color}66`,
-        background: `radial-gradient(120% 140% at 0% 50%, ${color}2e 0%, transparent 60%), var(--color-panel-2)`,
-      }}
-    >
-      <TierEmblem tier={solo.tier} size={128} />
+    <div className="flex w-full items-center gap-4 rounded-lg bg-panel px-4 py-3">
+      <TierEmblem tier={solo.tier} size={96} />
       <div className="min-w-0 flex-1">
         <p className="text-xs font-medium uppercase tracking-wide text-muted">{t.soloDuo}</p>
-        <p className="text-2xl font-extrabold leading-tight sm:text-3xl" style={{ color }}>
+        <p className="text-2xl font-extrabold leading-tight" style={{ color }}>
           {t.tiers[solo.tier] ?? solo.tier}
           {!apex && ` ${solo.rank}`}
         </p>
-        <p className="mt-0.5 text-3xl font-black tabular-nums leading-tight sm:text-4xl">
+        <p className="mt-0.5 text-2xl font-black tabular-nums leading-tight">
           {solo.leaguePoints.toLocaleString(nl)}
           <span className="ml-1 text-base font-semibold text-muted">LP</span>
         </p>
@@ -740,40 +766,6 @@ function RankBox({ solo, lang }: { solo: LeagueEntry | null; lang: Lang }) {
         </p>
       </div>
     </div>
-  );
-}
-
-function Stat({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: "up" | "down" }) {
-  return (
-    <div className="rounded-md bg-panel-2 px-2 py-2">
-      <p className="text-xs text-muted">{label}</p>
-      <p
-        className="text-lg font-bold"
-        style={tone ? { color: tone === "up" ? "var(--chart-up)" : "var(--chart-down)" } : undefined}
-      >
-        {value}
-      </p>
-      {sub && <p className="text-xs text-muted">{sub}</p>}
-    </div>
-  );
-}
-
-function Cell({ label, value, className = "" }: { label: string; value: string; className?: string }) {
-  return (
-    <div className="text-right leading-tight">
-      <span className="block text-xs text-muted sm:hidden">{label}</span>
-      <span className={className}>{value}</span>
-    </div>
-  );
-}
-
-function Delta({ value }: { value: number }) {
-  const up = value >= 0;
-  return (
-    <span className="block whitespace-nowrap text-xs font-semibold" style={{ color: up ? "var(--chart-up)" : "var(--chart-down)" }}>
-      {up ? "▲" : "▼"}
-      {Math.abs(value).toFixed(1)}
-    </span>
   );
 }
 

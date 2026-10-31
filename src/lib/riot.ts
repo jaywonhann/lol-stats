@@ -100,6 +100,10 @@ export type Participant = {
   item4?: number;
   item5?: number;
   item6?: number;
+  champLevel?: number;
+  summoner1Id?: number;
+  summoner2Id?: number;
+  perks?: { styles: { style: number; selections: { perk: number }[] }[] };
 };
 
 export type Match = {
