@@ -114,77 +114,93 @@ async function main() {
   const seenFile = path.join(dir, `seen-${patch}.json`);
   const seen = new Set(read(seenFile, []));
 
-  // 1) 플레이어 표본: 마스터 이상 + 다이아·에메랄드 1페이지 (칼바람은 티어와 상관없이 같이 하니까)
-  const puuids = new Set();
-  for (const league of ["challengerleagues", "grandmasterleagues", "masterleagues"]) {
-    const l = await riot(`${PLATFORM}/lol/league/v4/${league}/by-queue/RANKED_SOLO_5x5`);
-    for (const e of l?.entries ?? []) if (e.puuid) puuids.add(e.puuid);
+  // 1) 칼바람 계열 큐 찾기 (Riot 공식 큐 목록에서 칼바람 나락 맵 큐). 증바람은 설명에 Mayhem/증강이 들어간 큐예요.
+  const queueList = (await getJson("https://static.developer.riotgames.com/docs/lol/queues.json")) ?? [];
+  const modeOf = { 450: "aram", 2400: "mayhem" };
+  for (const q of queueList) {
+    const d = `${q.description ?? ""}`;
+    if (!/howling abyss/i.test(q.map ?? "") || /custom|bot|tutorial|deprecated/i.test(d) || q.queueId === 0) continue;
+    modeOf[q.queueId] ??= /mayhem|augment/i.test(d) ? "mayhem" : null;
   }
-  for (const name of ["DIAMOND", "EMERALD", "PLATINUM"]) {
+  const QUEUES = Object.entries(modeOf).filter(([, m]) => m).map(([q]) => Number(q));
+  console.log(`::notice::칼바람 큐: ${QUEUES.map((q) => `${q}=${modeOf[q]}`).join(", ")}`);
+
+  // 2) 시작 표본: 여러 티어 랭커. 칼바람 게임을 찾으면 그 게임의 다른 9명도 이어서 조회합니다 (칼바람 하는 사람을 따라감)
+  const players = [];
+  const queued = new Set();
+  const addPlayer = (puuid) => {
+    if (puuid && !queued.has(puuid) && queued.size < 5000) {
+      queued.add(puuid);
+      players.push(puuid);
+    }
+  };
+  const seeds = [];
+  for (const name of ["GOLD", "PLATINUM", "SILVER", "EMERALD", "DIAMOND"]) {
     for (const div of ["I", "III"]) {
       const page = await riot(`${PLATFORM}/lol/league/v4/entries/RANKED_SOLO_5x5/${name}/${div}?page=1`);
-      for (const e of page ?? []) if (e.puuid) puuids.add(e.puuid);
+      for (const e of page ?? []) if (e.puuid) seeds.push(e.puuid);
     }
   }
-  const players = [...puuids].sort(() => Math.random() - 0.5).slice(0, PLAYERS);
+  seeds.sort(() => Math.random() - 0.5).slice(0, PLAYERS).forEach(addPlayer);
 
-  // 2) 최근 7일 증바람·칼바람 게임 ID
-  const since = Math.floor(Date.now() / 1000) - 7 * 24 * 3600;
-  const ids = new Map();
-  const found = { 2400: 0, 450: 0 };
-  for (const [i, puuid] of players.entries()) {
-    if (timeLeft() < 0.65 * MAX_MINUTES * 60_000) break;
-    for (const q of i % 3 === 0 ? [2400, 450] : [2400]) {
-      const list = await riot(`${REGION}/lol/match/v5/matches/by-puuid/${puuid}/ids?queue=${q}&startTime=${since}&count=15`);
-      for (const id of list ?? []) {
-        if (seen.has(id) || ids.has(id)) continue;
-        ids.set(id, q);
-        found[q]++;
-      }
-    }
-  }
-  console.log(`::notice::${SERVER} 플레이어 ${players.length}명에서 새 게임 증바람 ${found[2400]}개, 칼바람 ${found[450]}개`);
-
-  // 3) 게임 상세 (타임라인 없이 최종 아이템만 사용해서 호출을 아낍니다)
+  const since = Math.floor(Date.now() / 1000) - 5 * 24 * 3600;
   const augIds = new Set(Object.values(db.champs).flatMap((c) => Object.keys(c.augments ?? {})));
+  const found = {};
   let done = 0;
+  let checked = 0;
   let logged = false;
-  for (const [id, q] of ids) {
-    if (timeLeft() < 60_000) break;
-    const m = await riot(`${REGION}/lol/match/v5/matches/${id}`);
-    seen.add(id);
-    if (!m?.info || m.info.gameDuration < 300) continue;
-    const mode = MODES[m.info.queueId] ?? MODES[q];
-    db.matches[mode] = (db.matches[mode] ?? 0) + 1;
-    for (const p of m.info.participants) {
-      const c = (db.champs[`${mode}:${p.championId}`] ??= { games: 0, wins: 0, items: {}, builds: {}, boots: {}, augments: {}, augSets: {}, spells: {}, runes: {} });
-      const win = p.win;
-      c.games++;
-      if (win) c.wins++;
-      const items = [p.item0, p.item1, p.item2, p.item3, p.item4, p.item5].map(String);
-      const core = [...new Set(items.filter(isCore))];
-      for (const it of core) bump(c.items, it, win);
-      if (core.length >= 3) bump(c.builds, core.slice(0, 3).sort().join(","), win);
-      const boots = items.find(isBoots);
-      if (boots) bump(c.boots, boots, win);
-      const augs = [1, 2, 3, 4, 5, 6].map((n) => p[`playerAugment${n}`]).filter((a) => a > 0).map(String);
-      for (const a of augs) {
-        bump(c.augments, a, win);
-        augIds.add(a);
-      }
-      if (augs.length >= 2) bump(c.augSets, augs.slice(0, 2).sort().join(","), win);
-      const sp = [p.summoner1Id, p.summoner2Id].sort((a, b) => a - b);
-      bump(c.spells, sp.join(","), win);
-      const [pri, sec] = p.perks?.styles ?? [];
-      if (pri && sec) bump(c.runes, `${pri.style}|${pri.selections.map((s) => s.perk).join(",")}|${sec.style}|${sec.selections.map((s) => s.perk).sort().join(",")}`, win);
-      if (!logged && mode === "mayhem") {
-        logged = true;
-        const keys = Object.keys(p).filter((k) => /augment/i.test(k)).map((k) => `${k}=${p[k]}`);
-        console.log(`::notice::증바람 증강 필드 확인: ${keys.join(" ") || "없음"}`);
+  const crawlFirst = []; // 칼바람 게임에서 찾은 사람을 먼저 조회
+  while (timeLeft() > 60_000) {
+    const puuid = crawlFirst.shift() ?? players.shift();
+    if (!puuid) break;
+    checked++;
+    for (const q of QUEUES) {
+      const list = await riot(`${REGION}/lol/match/v5/matches/by-puuid/${puuid}/ids?queue=${q}&startTime=${since}&count=10`);
+      for (const id of list ?? []) {
+        if (seen.has(id) || timeLeft() < 60_000) continue;
+        seen.add(id);
+        const m = await riot(`${REGION}/lol/match/v5/matches/${id}`);
+        if (!m?.info || m.info.gameDuration < 300 || !`${m.info.gameVersion}`.startsWith(`${patch}.`)) continue;
+        const mode = modeOf[m.info.queueId] ?? modeOf[q];
+        if (!mode) continue;
+        found[m.info.queueId] = (found[m.info.queueId] ?? 0) + 1;
+        db.matches[mode] = (db.matches[mode] ?? 0) + 1;
+        for (const p of m.info.participants) {
+          if (p.puuid && !queued.has(p.puuid) && queued.size < 5000) {
+            queued.add(p.puuid);
+            crawlFirst.push(p.puuid);
+          }
+          const c = (db.champs[`${mode}:${p.championId}`] ??= { games: 0, wins: 0, items: {}, builds: {}, boots: {}, augments: {}, augSets: {}, spells: {}, runes: {} });
+          const win = p.win;
+          c.games++;
+          if (win) c.wins++;
+          const items = [p.item0, p.item1, p.item2, p.item3, p.item4, p.item5].map(String);
+          const core = [...new Set(items.filter(isCore))];
+          for (const it of core) bump(c.items, it, win);
+          if (core.length >= 3) bump(c.builds, core.slice(0, 3).sort().join(","), win);
+          const boots = items.find(isBoots);
+          if (boots) bump(c.boots, boots, win);
+          const augs = [1, 2, 3, 4, 5, 6].map((n) => p[`playerAugment${n}`]).filter((x) => x > 0).map(String);
+          for (const x of augs) {
+            bump(c.augments, x, win);
+            augIds.add(x);
+          }
+          if (augs.length >= 2) bump(c.augSets, augs.slice(0, 2).sort().join(","), win);
+          const sp = [p.summoner1Id, p.summoner2Id].sort((x, y) => x - y);
+          bump(c.spells, sp.join(","), win);
+          const [pri, sec] = p.perks?.styles ?? [];
+          if (pri && sec) bump(c.runes, `${pri.style}|${pri.selections.map((x) => x.perk).join(",")}|${sec.style}|${sec.selections.map((x) => x.perk).sort().join(",")}`, win);
+          if (!logged && mode === "mayhem") {
+            logged = true;
+            const keys = Object.keys(p).filter((k) => /augment/i.test(k)).map((k) => `${k}=${p[k]}`);
+            console.log(`::notice::증바람 증강 필드 확인: ${keys.join(" ") || "없음"}`);
+          }
+        }
+        done++;
       }
     }
-    done++;
   }
+  console.log(`::notice::${SERVER} 플레이어 ${checked}명 조회, 큐별 새 게임 ${JSON.stringify(found)}`);
   db.updatedAt = new Date().toISOString();
   fs.writeFileSync(file, JSON.stringify(db));
   fs.writeFileSync(seenFile, JSON.stringify([...seen].slice(-30000)));
