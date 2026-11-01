@@ -1,0 +1,46 @@
+name: 증바람·칼바람 게임 수집
+
+on:
+  schedule:
+    - cron: "23 0,6,12,18 * * *" # 랭크 수집(3·9·15·21시 UTC) 사이 시간에 돌아서 솔랭 표본을 줄이지 않아요
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  aram:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        server: [kr, na1, euw1]
+    concurrency:
+      group: aram-${{ matrix.server }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 게임 수집
+        env:
+          RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
+          SERVER: ${{ matrix.server }}
+          MAX_MINUTES: "40"
+        run: node scripts/aram.mjs
+      - name: 결과 커밋
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/aram
+          git diff --cached --quiet && exit 0
+          git commit -m "증바람·칼바람 데이터 업데이트 (${{ matrix.server }})"
+          for i in 1 2 3 4 5; do
+            git pull --rebase -X theirs origin main && git push && exit 0
+            sleep $((i * 5))
+          done
+          exit 1
