@@ -64,25 +64,26 @@ p, li { text-wrap: pretty; }
 }
 
 /* 맨 위 메뉴: 굵게, 마우스를 올리면 살짝 떠오르며 밑줄이 가운데서 펼쳐짐 */
-/* 위 메뉴 띠: 두꺼운 색 띠 위에 크고 굵은 흰 글씨, 마우스를 올리면 아래에 금색 줄 */
+/* 위 메뉴 띠: 60-30-10 규칙. 바탕(60%)과 같은 남색 계열을 한 단계만 밝게 쌓고, 강조색 금색(10%)은 아래 테두리와 마우스 올림에만 씁니다 (롤 클라이언트처럼 남색 + 금테) */
 .site-header {
-  background: linear-gradient(90deg, #13244a 0%, #1b3170 55%, #22397f 100%);
-  border-bottom: 1px solid #2c4590;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  background: linear-gradient(180deg, #13203a 0%, #0d1729 100%);
+  border-bottom: 1px solid transparent;
+  border-image: linear-gradient(90deg, transparent 0%, rgba(200, 170, 110, 0.75) 20%, rgba(200, 170, 110, 0.75) 80%, transparent 100%) 1;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
 }
 .site-header select {
-  background: rgba(7, 13, 23, 0.45);
-  border-color: rgba(255, 255, 255, 0.18);
+  background: #0a1322;
+  border-color: #2a3a57;
 }
 .site-header label {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-muted);
 }
 .nav-link {
   position: relative;
   padding: 0.35rem 0;
   font-size: 1.15rem;
   font-weight: 800;
-  color: #fff;
+  color: var(--color-text);
   transition: color 0.15s ease;
 }
 .nav-link::after {
