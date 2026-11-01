@@ -4,6 +4,7 @@ import { Icon, Panel } from "@/components/ui";
 import { getChampions, getPatches, img } from "@/lib/ddragon";
 import { LANES, laneLabel, parseLane } from "@/lib/lanes";
 import { loadRealData } from "@/lib/real";
+import { topMatchups } from "@/lib/matchups";
 import { ddLocale } from "@/lib/i18n";
 import { getLang, getServer } from "@/lib/server";
 
@@ -69,6 +70,20 @@ export default async function MatchupPage({ searchParams }: Props) {
       if (c && vg >= 5) beatsB.push({ c, games: vg, rate: (vw / vg) * 100 });
     }
     beatsB.sort((x, y) => y.rate - x.rate || y.games - x.games);
+  }
+  // 아무것도 안 골랐을 때 보여줄 인기 상성 (같은 두 챔피언의 반대 방향은 한 번만)
+  const popular: { a: Champ; b: Champ; lane: typeof lane; games: number; wins: number }[] = [];
+  if (!(A && B)) {
+    const seen = new Set<string>();
+    for (const m of topMatchups()) {
+      const a = byKey.get(m.a);
+      const b = byKey.get(m.b);
+      const pair = [m.a, m.b].sort().join(":") + m.lane;
+      if (!a || !b || seen.has(pair)) continue;
+      seen.add(pair);
+      popular.push({ a, b, lane: m.lane, games: m.games, wins: m.wins });
+      if (popular.length >= 12) break;
+    }
   }
   const aBeats: Ranked[] = [];
   if (agg) {
@@ -161,6 +176,33 @@ export default async function MatchupPage({ searchParams }: Props) {
               {ko ? "이 조합은 아직 수집된 게임이 부족해요. 라인을 바꿔 보거나 다른 챔피언을 골라 보세요." : "Not enough collected games for this pairing yet. Try another lane or champion."}
             </p>
           )}
+        </Panel>
+      )}
+      {!(A && B) && popular.length > 0 && (
+        <Panel title={ko ? "많이 붙는 상성" : "Most-played matchups"}>
+          <ul className="grid gap-1 sm:grid-cols-2">
+            {popular.map(({ a, b, lane: l, games, wins }) => {
+              const r = (wins / games) * 100;
+              return (
+                <li key={`${a.id}-${b.id}-${l}`}>
+                  <Link href={`/matchup?a=${a.id}&b=${b.id}&lane=${l}`} className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-panel-2">
+                    <Icon src={img.champion(version, a.image.full)} alt={a.name} size={28} className="rounded" />
+                    <span className="text-xs text-muted">vs</span>
+                    <Icon src={img.champion(version, b.image.full)} alt={b.name} size={28} className="rounded" />
+                    <span className="min-w-0 flex-1 truncate text-sm">
+                      {a.name} vs {b.name} <span className="text-xs text-muted">· {laneLabel(l, lang)}</span>
+                    </span>
+                    <span className="text-right text-xs tabular-nums">
+                      <span className="font-semibold" style={{ color: r >= 50 ? "var(--chart-up)" : "var(--chart-down)" }}>
+                        {r.toFixed(1)}%
+                      </span>
+                      <span className="block text-muted">{ko ? `${games}게임` : `${games} games`}</span>
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         </Panel>
       )}
       {A && B && (beatsB.length > 0 || aBeats.length > 0) && (
