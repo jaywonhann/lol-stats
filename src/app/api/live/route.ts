@@ -3,6 +3,7 @@
 // Vercel 환경변수 RIOT_API_KEY 가 있어야 동작하고, 결과는 1분 동안 CDN에 캐시됩니다.
 import { NextResponse } from "next/server";
 import { parseServer, type Server } from "@/lib/lanes";
+import { recentSample } from "@/lib/live-history";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,10 @@ export async function GET(req: Request) {
         } else if (res.status === 404) checked++;
       }),
     );
+    // 20명 표본은 0명으로 자주 튀어서, 최근 10분 단위 기록(80명씩)과 합쳐서 추정합니다
+    const past = await recentSample(server);
+    checked += past.checked;
+    inGame += past.inGame;
     if (!checked) return NextResponse.json({ available: false, reason: "busy" });
     return NextResponse.json(
       {

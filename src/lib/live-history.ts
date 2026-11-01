@@ -76,3 +76,12 @@ export async function liveChampionBuild(server: Server, champKey: string) {
     updatedAt: last || null,
   };
 }
+
+// 최근 25분 안의 10분 표본(각 80명)을 합친 값. 실시간 20명 표본만 쓰면 0명처럼 튀어서 같이 섞습니다.
+export async function recentSample(server: Server): Promise<{ inGame: number; checked: number }> {
+  const pts = ((await load(server))?.points ?? []) as (LivePoint & { inGame?: number; checked?: number })[];
+  const now = Date.now();
+  return pts
+    .filter((p) => now - new Date(p.at).getTime() < 25 * 60_000 && p.checked)
+    .reduce((s, p) => ({ inGame: s.inGame + (p.inGame ?? 0), checked: s.checked + (p.checked ?? 0) }), { inGame: 0, checked: 0 });
+}
