@@ -122,6 +122,8 @@ async function main() {
     if (!/howling abyss/i.test(q.map ?? "") || /custom|bot|tutorial|deprecated/i.test(d) || q.queueId === 0) continue;
     modeOf[q.queueId] ??= /mayhem|augment/i.test(d) ? "mayhem" : null;
   }
+  // 이전 실행에서 직접 찾아낸 칼바람 맵 큐 (공식 목록에 아직 없는 새 모드)
+  for (const [q, m] of Object.entries(read(path.join(DIR, "queues.json"), {}))) modeOf[q] ??= m;
   const QUEUES = Object.entries(modeOf).filter(([, m]) => m).map(([q]) => Number(q));
   console.log(`::notice::칼바람 큐: ${QUEUES.map((q) => `${q}=${modeOf[q]}`).join(", ")}`);
 
@@ -150,7 +152,8 @@ async function main() {
   let checked = 0;
   let logged = false;
   const crawlFirst = []; // 칼바람 게임에서 찾은 사람을 먼저 조회
-  while (timeLeft() > 60_000) {
+  const aramPlayers = [];
+  while (timeLeft() > 4 * 60_000) {
     const puuid = crawlFirst.shift() ?? players.shift();
     if (!puuid) break;
     checked++;
@@ -166,6 +169,7 @@ async function main() {
         found[m.info.queueId] = (found[m.info.queueId] ?? 0) + 1;
         db.matches[mode] = (db.matches[mode] ?? 0) + 1;
         for (const p of m.info.participants) {
+          if (p.puuid && aramPlayers.length < 50) aramPlayers.push(p.puuid);
           if (p.puuid && !queued.has(p.puuid) && queued.size < 5000) {
             queued.add(p.puuid);
             crawlFirst.push(p.puuid);
@@ -198,6 +202,29 @@ async function main() {
         }
         done++;
       }
+    }
+  }
+  // 증바람 게임이 하나도 없으면, 칼바람 하는 사람들의 최근 게임을 큐 구분 없이 열어 칼바람 맵(12)의 다른 큐를 찾습니다
+  if (!Object.keys(found).some((q) => modeOf[q] === "mayhem")) {
+    const extra = {};
+    const sample = {};
+    for (const puuid of aramPlayers.slice(0, 12)) {
+      if (timeLeft() < 60_000) break;
+      const list = (await riot(`${REGION}/lol/match/v5/matches/by-puuid/${puuid}/ids?startTime=${since}&count=8`)) ?? [];
+      for (const id of list) {
+        if (timeLeft() < 60_000) break;
+        const m = await riot(`${REGION}/lol/match/v5/matches/${id}`);
+        if (!m?.info) continue;
+        const k = `${m.info.queueId}/${m.info.gameMode}/map${m.info.mapId}`;
+        sample[k] = (sample[k] ?? 0) + 1;
+        if (m.info.mapId === 12 && !modeOf[m.info.queueId] && m.info.queueId !== 0) extra[m.info.queueId] = "mayhem";
+      }
+    }
+    console.log(`::notice::${SERVER} 큐 탐색: ${JSON.stringify(sample)}`);
+    if (Object.keys(extra).length) {
+      const qf = path.join(DIR, "queues.json");
+      fs.writeFileSync(qf, JSON.stringify({ ...read(qf, {}), ...extra }));
+      console.log(`::notice::새 칼바람 맵 큐를 증바람으로 등록: ${Object.keys(extra).join(", ")}`);
     }
   }
   console.log(`::notice::${SERVER} 플레이어 ${checked}명 조회, 큐별 새 게임 ${JSON.stringify(found)}`);
