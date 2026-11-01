@@ -313,6 +313,9 @@ function Analysis({
       <p className="mt-2 text-sm font-semibold" style={{ color: "var(--chart-up)" }}>
         {praise}
       </p>
+      <a href="#analysis" className="mt-1 inline-block text-sm font-semibold text-accent hover:underline">
+        {g.toAnalysis}
+      </a>
     </div>
   );
   // 오른쪽 위 요약 막대: 승률 도넛 + KDA + 모스트 3 + 지표 칩 4개
@@ -645,6 +648,7 @@ function Analysis({
             <p>{t.analyzed(total, result.matchIds)}</p>
             {tagNote}
           </div>
+          <div id="analysis" className="scroll-mt-20" aria-hidden />
           {tiltPanel}
           {nowPanel}
           {titlesPanel}

@@ -226,6 +226,7 @@ const en = {
     level: (n: string) => `Level ${n}`,
     glance: {
       recent: (n: number) => `Last ${n} ranked games`,
+      toAnalysis: "See my full analysis ↓",
       wr: "Win rate",
       kda: "KDA",
       cs: "CS/min",
@@ -674,6 +675,7 @@ const ko: Dict = {
     level: (n) => `레벨 ${n}`,
     glance: {
       recent: (n) => `최근 랭크 ${n}판`,
+      toAnalysis: "내 분석 자세히 보기 ↓",
       wr: "승률",
       kda: "KDA",
       cs: "분당 CS",
