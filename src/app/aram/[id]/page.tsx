@@ -20,7 +20,7 @@ async function findChamp(id: string, lang: "ko" | "en") {
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const [{ id }, sp, lang] = await Promise.all([params, searchParams, getLang()]);
   const ko = lang === "ko";
-  const mode = parseMode(sp.mode);
+  const mode = parseMode(sp.mode, !!loadAram().matches.mayhem);
   const { champ } = await findChamp(id, lang);
   if (!champ) return {};
   const name = modeName(mode, ko);
@@ -31,7 +31,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     description: ko
       ? `실제 ${name} 게임으로 집계한 ${champ.name} 승률 높은 템트리${mode === "mayhem" ? ", 증강" : ""}, 신발, 룬, 스펠.`
       : `${champ.name} best items${mode === "mayhem" ? ", augments" : ""}, boots, runes and spells from real ${name} games.`,
-    alternates: { canonical: `/aram/${champ.id}${mode === "aram" ? "?mode=aram" : ""}` },
+    alternates: { canonical: `/aram/${champ.id}?mode=${mode}` },
   };
 }
 
@@ -49,7 +49,8 @@ function Stat({ row, ko }: { row: Row; ko: boolean }) {
 export default async function AramChampPage({ params, searchParams }: Props) {
   const [{ id }, sp, lang] = await Promise.all([params, searchParams, getLang()]);
   const ko = lang === "ko";
-  const mode = parseMode(sp.mode);
+  const data = loadAram();
+  const mode = parseMode(sp.mode, !!data.matches.mayhem);
   const { version, champ } = await findChamp(id, lang);
   if (!champ) notFound();
   const [items, trees, spells] = await Promise.all([
@@ -57,7 +58,6 @@ export default async function AramChampPage({ params, searchParams }: Props) {
     getRuneTrees(version, ddLocale(lang)).catch(() => []),
     getSummonerSpells(version, ddLocale(lang)).catch(() => []),
   ]);
-  const data = loadAram();
   const augMeta = loadAugments();
   const a = data.champs[`${mode}:${champ.key}`];
   const enough = a && a.games >= MIN_ARAM_GAMES;
@@ -106,13 +106,13 @@ export default async function AramChampPage({ params, searchParams }: Props) {
                 ? `실제 ${a.games.toLocaleString()}게임 · 승률 ${base.toFixed(1)}% · 패치 ${data.patch}`
                 : `${a.games.toLocaleString()} real games · ${base.toFixed(1)}% win rate · patch ${data.patch}`
               : ko
-                ? "아직 게임이 충분히 모이지 않았어요."
-                : "Not enough games collected yet."}
+                ? mode === "mayhem" ? "지금은 증바람이 열려 있지 않아서 게임이 없어요. 칼바람 탭을 봐 주세요." : "아직 게임이 충분히 모이지 않았어요."
+                : mode === "mayhem" ? "ARAM: Mayhem isn't live right now. Try the ARAM tab." : "Not enough games collected yet."}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {ARAM_MODES.map((m) => (
-            <Link key={m} href={`/aram/${champ.id}${m === "aram" ? "?mode=aram" : ""}`} className={tab(mode === m)}>{modeName(m, ko)}</Link>
+            <Link key={m} href={`/aram/${champ.id}?mode=${m}`} className={tab(mode === m)}>{modeName(m, ko)}</Link>
           ))}
         </div>
       </div>
@@ -223,7 +223,7 @@ export default async function AramChampPage({ params, searchParams }: Props) {
       )}
 
       <p className="text-sm">
-        <Link href={mode === "aram" ? "/aram?mode=aram" : "/aram"} className="text-accent hover:underline">
+        <Link href={`/aram?mode=${mode}`} className="text-accent hover:underline">
           {ko ? `← ${modeName(mode, true)} 전체 챔피언 순위` : `← All ${modeName(mode, false)} champions`}
         </Link>
         <span className="mx-2 text-muted">·</span>

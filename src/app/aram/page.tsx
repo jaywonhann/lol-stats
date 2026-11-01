@@ -12,14 +12,14 @@ type Props = { searchParams: Promise<{ mode?: string; sort?: string }> };
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const ko = (await getLang()) === "ko";
-  const mode = parseMode((await searchParams).mode);
+  const mode = parseMode((await searchParams).mode, !!loadAram().matches.mayhem);
   const name = modeName(mode, ko);
   return {
     title: ko ? `${name} 챔피언 티어 · 템트리 · 증강 승률` : `${name} tier list, builds and augments`,
     description: ko
       ? `실제 ${name} 게임으로 집계한 챔피언 승률 순위와 챔피언별 템트리, 증강 추천.`
       : `Champion win rates from real ${name} games, with item builds and augment picks for every champion.`,
-    alternates: { canonical: mode === "mayhem" ? "/aram" : "/aram?mode=aram" },
+    alternates: { canonical: `/aram?mode=${mode}` },
   };
 }
 
@@ -27,9 +27,10 @@ export default async function AramPage({ searchParams }: Props) {
   const sp = await searchParams;
   const lang = await getLang();
   const ko = lang === "ko";
-  const mode = parseMode(sp.mode);
+  const data = loadAram();
+  const mode = parseMode(sp.mode, !!data.matches.mayhem);
   const sort = sp.sort === "pick" ? "pick" : "wr";
-  const [{ version, champions }, data] = await Promise.all([getChampions(ddLocale(lang)), Promise.resolve(loadAram())]);
+  const { version, champions } = await getChampions(ddLocale(lang));
   const total = data.matches[mode] ?? 0;
   const rows = champions
     .map((c) => ({ c, a: data.champs[`${mode}:${c.key}`] }))
@@ -37,7 +38,7 @@ export default async function AramPage({ searchParams }: Props) {
     .map(({ c, a }) => ({ c, games: a!.games, wr: (a!.wins / a!.games) * 100, pick: (a!.games / Math.max(1, total)) * 100, score: (a!.wins + 10) / (a!.games + 20) }))
     .sort((a, b) => (sort === "pick" ? b.games - a.games : b.score - a.score));
   const tab = (on: boolean) => `rounded-full px-3 py-1.5 text-sm ${on ? "bg-accent font-semibold text-bg" : "bg-panel-2 text-muted hover:text-text"}`;
-  const q = (m: AramMode, s: string) => `/aram?${new URLSearchParams({ ...(m === "aram" ? { mode: m } : {}), ...(s === "pick" ? { sort: s } : {}) })}`;
+  const q = (m: AramMode, s: string) => `/aram?${new URLSearchParams({ mode: m, ...(s === "pick" ? { sort: s } : {}) })}`;
 
   return (
     <div className="space-y-4">
@@ -60,13 +61,19 @@ export default async function AramPage({ searchParams }: Props) {
       <Panel>
         {rows.length === 0 ? (
           <p className="text-sm text-muted">
-            {ko ? "데이터를 모으는 중이에요. 6시간마다 새 게임이 추가돼요." : "Collecting games now. New games are added every 6 hours."}
+            {mode === "mayhem"
+              ? ko
+                ? "지금은 증바람이 열려 있지 않아서 게임이 없어요. 증바람이 다시 열리면 자동으로 모아서 보여드려요. 그동안 칼바람 탭을 봐 주세요."
+                : "ARAM: Mayhem isn't live right now, so there are no games. We'll collect it automatically when it returns. Try the ARAM tab meanwhile."
+              : ko
+                ? "데이터를 모으는 중이에요. 6시간마다 새 게임이 추가돼요."
+                : "Collecting games now. New games are added every 6 hours."}
           </p>
         ) : (
           <ul className="divide-y divide-line">
             {rows.map((r, i) => (
               <li key={r.c.id}>
-                <Link href={`/aram/${r.c.id}${mode === "aram" ? "?mode=aram" : ""}`} className="flex items-center gap-3 py-2 hover:bg-panel-2">
+                <Link href={`/aram/${r.c.id}?mode=${mode}`} className="flex items-center gap-3 py-2 hover:bg-panel-2">
                   <span className="w-7 text-right text-sm tabular-nums text-muted">{i + 1}</span>
                   <Icon src={img.champion(version, r.c.image.full)} alt={r.c.name} size={36} className="rounded-md" />
                   <span className="min-w-0 flex-1 truncate font-medium">{r.c.name}</span>

@@ -5,7 +5,8 @@ import path from "node:path";
 type Counts = Record<string, [number, number]>;
 export type AramMode = "mayhem" | "aram";
 export const ARAM_MODES: AramMode[] = ["mayhem", "aram"];
-export const parseMode = (m?: string): AramMode => (m === "aram" ? "aram" : "mayhem");
+// 모드를 안 고르면 증바람 데이터가 있을 때만 증바람, 아니면 칼바람 (증바람은 기간 한정 모드라 없을 때가 있어요)
+export const parseMode = (m?: string, hasMayhem = true): AramMode => (m === "aram" ? "aram" : m === "mayhem" ? "mayhem" : hasMayhem ? "mayhem" : "aram");
 
 export type AramChamp = {
   games: number;

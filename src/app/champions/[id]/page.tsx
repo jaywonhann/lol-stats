@@ -158,7 +158,7 @@ export default async function ChampionPage({ params, searchParams }: Props) {
               ))}
             </div>
             <Link href={`/aram/${champion.id}`} className="mt-2 inline-block text-xs font-semibold text-accent hover:underline">
-              {lang === "ko" ? "증바람 템트리 · 증강 보기 →" : "ARAM: Mayhem build and augments →"}
+              {lang === "ko" ? "칼바람·증바람 템트리 보기 →" : "ARAM build →"}
             </Link>
           </div>
           {stat && (
