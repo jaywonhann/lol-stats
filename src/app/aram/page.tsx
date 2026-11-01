@@ -4,6 +4,7 @@ import { Icon, Panel } from "@/components/ui";
 import { getChampions, img } from "@/lib/ddragon";
 import { ddLocale } from "@/lib/i18n";
 import { getLang } from "@/lib/server";
+import RowFilter from "@/components/RowFilter";
 import { ARAM_MODES, loadAram, MIN_ARAM_GAMES, modeName, parseMode, type AramMode } from "@/lib/aram";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +31,11 @@ export default async function AramPage({ searchParams }: Props) {
   const data = loadAram();
   const mode = parseMode(sp.mode, !!data.matches.mayhem);
   const sort = sp.sort === "pick" ? "pick" : "wr";
-  const { version, champions } = await getChampions(ddLocale(lang));
+  const [{ version, champions }, alt] = await Promise.all([
+    getChampions(ddLocale(lang)),
+    getChampions(ddLocale(ko ? "en" : "ko")).then((r) => r.champions).catch(() => []),
+  ]);
+  const altName = new Map(alt.map((c) => [c.id, c.name]));
   const total = data.matches[mode] ?? 0;
   const rows = champions
     .map((c) => ({ c, a: data.champs[`${mode}:${c.key}`] }))
@@ -57,6 +62,9 @@ export default async function AramPage({ searchParams }: Props) {
         <span className="mx-1 w-px bg-line" aria-hidden />
         <Link href={q(mode, "wr")} className={tab(sort === "wr")}>{ko ? "승률 순" : "Win rate"}</Link>
         <Link href={q(mode, "pick")} className={tab(sort === "pick")}>{ko ? "많이 하는 순" : "Most played"}</Link>
+        <div className="w-full sm:ml-auto sm:w-auto">
+          <RowFilter target="aram-list" placeholder={ko ? "챔피언 이름으로 찾기" : "Find a champion"} />
+        </div>
       </div>
       <Panel>
         {rows.length === 0 ? (
@@ -70,9 +78,9 @@ export default async function AramPage({ searchParams }: Props) {
                 : "Collecting games now. New games are added every 6 hours."}
           </p>
         ) : (
-          <ul className="divide-y divide-line">
+          <ul id="aram-list" className="divide-y divide-line">
             {rows.map((r, i) => (
-              <li key={r.c.id}>
+              <li key={r.c.id} data-filter={`${r.c.name}${altName.get(r.c.id) ?? ""}${r.c.id}`.toLowerCase().replace(/\s+/g, "")}>
                 <Link href={`/aram/${r.c.id}?mode=${mode}`} className="flex items-center gap-3 py-2 hover:bg-panel-2">
                   <span className="w-7 text-right text-sm tabular-nums text-muted">{i + 1}</span>
                   <Icon src={img.champion(version, r.c.image.full)} alt={r.c.name} size={36} className="rounded-md" />
