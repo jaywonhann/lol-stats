@@ -157,6 +157,9 @@ export default async function ChampionPage({ params, searchParams }: Props) {
                 </div>
               ))}
             </div>
+            <Link href={`/aram/${champion.id}`} className="mt-2 inline-block text-xs font-semibold text-accent hover:underline">
+              {lang === "ko" ? "증바람 템트리 · 증강 보기 →" : "ARAM: Mayhem build and augments →"}
+            </Link>
           </div>
           {stat && (
             <dl className="grid grid-cols-4 gap-4 text-center">

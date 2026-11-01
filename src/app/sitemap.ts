@@ -2,11 +2,12 @@ import type { MetadataRoute } from "next";
 import { getChampions } from "@/lib/ddragon";
 import { loadRealData, realLanes } from "@/lib/real";
 import { topMatchups } from "@/lib/matchups";
+import { loadAram, MIN_ARAM_GAMES } from "@/lib/aram";
 
 export const revalidate = 86400;
 
 const SITE = "https://lollive.vercel.app";
-const PAGES = ["", "/tier", "/trends", "/meta", "/champions", "/matchup", "/items", "/summoner", "/ranking", "/pros", "/predict", "/tools", "/community", "/faq"];
+const PAGES = ["", "/tier", "/trends", "/meta", "/champions", "/matchup", "/items", "/summoner", "/ranking", "/aram", "/aram?mode=aram", "/pros", "/predict", "/tools", "/community", "/faq"];
 
 // 실제 데이터에서 표본이 많은 상성 조합 상위 N개 ("야스오 vs 요네" 같은 검색 유입용)
 function matchupUrls(byKey: Map<string, string>, limit = 400): string[] {
@@ -34,9 +35,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const pages = PAGES.map((p) => ({ url: `${SITE}${p}`, lastModified: now, changeFrequency: "daily" as const, priority: p === "" ? 1 : 0.7 }));
   try {
     const { champions } = await getChampions();
+    const aram = loadAram();
     return [
       ...pages,
       ...champions.map((c) => ({ url: `${SITE}/champions/${c.id}`, lastModified: now, changeFrequency: "daily" as const, priority: 0.6 })),
+      ...champions
+        .filter((c) => (aram.champs[`mayhem:${c.key}`]?.games ?? 0) >= MIN_ARAM_GAMES)
+        .map((c) => ({ url: `${SITE}/aram/${c.id}`, lastModified: now, changeFrequency: "daily" as const, priority: 0.6 })),
       ...offLanes(champions).map((q) => ({ url: `${SITE}/champions/${q}`, lastModified: now, changeFrequency: "daily" as const, priority: 0.55 })),
       ...matchupUrls(new Map(champions.map((c) => [c.key, c.id]))).map((q) => ({
         url: `${SITE}/matchup?${q.replaceAll("&", "&amp;")}`,

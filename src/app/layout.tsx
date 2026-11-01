@@ -66,6 +66,9 @@ export default async function RootLayout({
             <Link href="/ranking" className="nav-link">
               {lang === "ko" ? "랭킹" : "Ladder"}
             </Link>
+            <Link href="/aram" className="nav-link">
+              {lang === "ko" ? "증바람" : "ARAM"}
+            </Link>
             <details className="nav-more relative hidden sm:block">
               <summary className="nav-link cursor-pointer list-none [&::-webkit-details-marker]:hidden">
                 {lang === "ko" ? "더보기 ▾" : "More ▾"}

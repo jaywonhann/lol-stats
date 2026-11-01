@@ -1,0 +1,86 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { Icon, Panel } from "@/components/ui";
+import { getChampions, img } from "@/lib/ddragon";
+import { ddLocale } from "@/lib/i18n";
+import { getLang } from "@/lib/server";
+import { ARAM_MODES, loadAram, MIN_ARAM_GAMES, modeName, parseMode, type AramMode } from "@/lib/aram";
+
+export const dynamic = "force-dynamic";
+
+type Props = { searchParams: Promise<{ mode?: string; sort?: string }> };
+
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  const ko = (await getLang()) === "ko";
+  const mode = parseMode((await searchParams).mode);
+  const name = modeName(mode, ko);
+  return {
+    title: ko ? `${name} 챔피언 티어 · 템트리 · 증강 승률` : `${name} tier list, builds and augments`,
+    description: ko
+      ? `실제 ${name} 게임으로 집계한 챔피언 승률 순위와 챔피언별 템트리, 증강 추천.`
+      : `Champion win rates from real ${name} games, with item builds and augment picks for every champion.`,
+    alternates: { canonical: mode === "mayhem" ? "/aram" : "/aram?mode=aram" },
+  };
+}
+
+export default async function AramPage({ searchParams }: Props) {
+  const sp = await searchParams;
+  const lang = await getLang();
+  const ko = lang === "ko";
+  const mode = parseMode(sp.mode);
+  const sort = sp.sort === "pick" ? "pick" : "wr";
+  const [{ version, champions }, data] = await Promise.all([getChampions(ddLocale(lang)), Promise.resolve(loadAram())]);
+  const total = data.matches[mode] ?? 0;
+  const rows = champions
+    .map((c) => ({ c, a: data.champs[`${mode}:${c.key}`] }))
+    .filter((r) => r.a && r.a.games >= MIN_ARAM_GAMES)
+    .map(({ c, a }) => ({ c, games: a!.games, wr: (a!.wins / a!.games) * 100, pick: (a!.games / Math.max(1, total)) * 100, score: (a!.wins + 5) / (a!.games + 10) }))
+    .sort((a, b) => (sort === "pick" ? b.games - a.games : b.score - a.score));
+  const tab = (on: boolean) => `rounded-full px-3 py-1.5 text-sm ${on ? "bg-accent font-semibold text-bg" : "bg-panel-2 text-muted hover:text-text"}`;
+  const q = (m: AramMode, s: string) => `/aram?${new URLSearchParams({ ...(m === "aram" ? { mode: m } : {}), ...(s === "pick" ? { sort: s } : {}) })}`;
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-2xl font-bold">{ko ? `${modeName(mode, true)} 챔피언 순위` : `${modeName(mode, false)} champion tier list`}</h1>
+        <p className="mt-1 text-sm text-muted">
+          {ko
+            ? `한국·북미·유럽 서버의 실제 ${modeName(mode, true)} ${total.toLocaleString()}게임 (패치 ${data.patch ?? "-"}). 챔피언을 누르면 템트리${mode === "mayhem" ? "와 증강" : ""}이 나와요.`
+            : `${total.toLocaleString()} real ${modeName(mode, false)} games from KR, NA and EUW (patch ${data.patch ?? "-"}). Pick a champion for builds${mode === "mayhem" ? " and augments" : ""}.`}
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {ARAM_MODES.map((m) => (
+          <Link key={m} href={q(m, sort)} className={tab(mode === m)}>{modeName(m, ko)}</Link>
+        ))}
+        <span className="mx-1 w-px bg-line" aria-hidden />
+        <Link href={q(mode, "wr")} className={tab(sort === "wr")}>{ko ? "승률 순" : "Win rate"}</Link>
+        <Link href={q(mode, "pick")} className={tab(sort === "pick")}>{ko ? "많이 하는 순" : "Most played"}</Link>
+      </div>
+      <Panel>
+        {rows.length === 0 ? (
+          <p className="text-sm text-muted">
+            {ko ? "데이터를 모으는 중이에요. 6시간마다 새 게임이 추가돼요." : "Collecting games now. New games are added every 6 hours."}
+          </p>
+        ) : (
+          <ul className="divide-y divide-line">
+            {rows.map((r, i) => (
+              <li key={r.c.id}>
+                <Link href={`/aram/${r.c.id}${mode === "aram" ? "?mode=aram" : ""}`} className="flex items-center gap-3 py-2 hover:bg-panel-2">
+                  <span className="w-7 text-right text-sm tabular-nums text-muted">{i + 1}</span>
+                  <Icon src={img.champion(version, r.c.image.full)} alt={r.c.name} size={36} className="rounded-md" />
+                  <span className="min-w-0 flex-1 truncate font-medium">{r.c.name}</span>
+                  <span className="w-16 text-right text-sm font-semibold tabular-nums" style={{ color: r.wr >= 50 ? "var(--chart-up)" : "var(--chart-down)" }}>
+                    {r.wr.toFixed(1)}%
+                  </span>
+                  <span className="hidden w-16 text-right text-xs tabular-nums text-muted sm:block">{r.pick.toFixed(1)}%</span>
+                  <span className="w-14 text-right text-xs tabular-nums text-muted">{r.games.toLocaleString()}{ko ? "판" : ""}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
+    </div>
+  );
+}
