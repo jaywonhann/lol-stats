@@ -9,6 +9,7 @@ import { ddLocale, dict, type Lang } from "@/lib/i18n";
 import { LANES, laneLabel, serverLabel } from "@/lib/lanes";
 import { boards, movers } from "@/lib/stats";
 import { getLang, getServer } from "@/lib/server";
+import { topMatchups } from "@/lib/matchups";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +84,20 @@ export default async function Home() {
         })
         .slice(0, 8)
     : [];
+  // 많이 붙는 상성 6개 (같은 두 챔피언의 반대 방향은 한 번만)
+  const byKey = new Map(champions.map((c) => [c.key, c]));
+  const duels: { a: (typeof champions)[number]; b: (typeof champions)[number]; lane: (typeof LANES)[number]["id"]; games: number; wins: number }[] = [];
+  const seenDuel = new Set<string>();
+  for (const m of topMatchups()) {
+    const a = byKey.get(m.a);
+    const b = byKey.get(m.b);
+    const pair = [m.a, m.b].sort().join(":") + m.lane;
+    if (!a || !b || seenDuel.has(pair)) continue;
+    seenDuel.add(pair);
+    duels.push({ a, b, lane: m.lane, games: m.games, wins: m.wins });
+    if (duels.length >= 6) break;
+  }
+
   const quick = [
     { href: "/summoner", label: lang === "ko" ? "내 멘탈 지수 테스트" : "Test my mind meter", hot: true },
     { href: "/tier", label: t.nav.tier },
@@ -199,6 +214,40 @@ export default async function Home() {
                 </div>
               </Link>
             ))}
+          </div>
+        </section>
+      )}
+
+      {duels.length > 0 && (
+        <section>
+          <SectionTitle
+            title={lang === "ko" ? "많이 붙는 상성" : "Most-played matchups"}
+            note={lang === "ko" ? "최근 랭크 게임에서 가장 자주 만난 라인 상대예요. 왼쪽 챔피언 기준 승률이에요." : "The lane opponents that met most often in recent ranked games. Win rate is for the left champion."}
+            href="/matchup"
+            link={t.viewAll}
+          />
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {duels.map(({ a, b, lane, games, wins }) => {
+              const r = (wins / games) * 100;
+              return (
+                <Link key={`${a.id}-${b.id}-${lane}`} href={`/matchup?a=${a.id}&b=${b.id}&lane=${lane}`} className="lift flex items-center gap-2 rounded-xl bg-panel p-3">
+                  <Icon src={img.champion(version, a.image.full)} alt={a.name} size={36} />
+                  <span className="text-xs font-bold text-muted">VS</span>
+                  <Icon src={img.champion(version, b.image.full)} alt={b.name} size={36} />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-semibold">
+                      {a.name} vs {b.name}
+                    </div>
+                    <div className="text-xs text-muted">
+                      {laneLabel(lane, lang)} · {t.gamesN(games)}
+                    </div>
+                  </div>
+                  <span className="text-sm font-bold tabular-nums" style={{ color: r >= 50 ? "var(--chart-up)" : "var(--chart-down)" }}>
+                    {r.toFixed(1)}%
+                  </span>
+                </Link>
+              );
+            })}
           </div>
         </section>
       )}
