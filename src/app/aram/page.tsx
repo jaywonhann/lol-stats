@@ -34,7 +34,7 @@ export default async function AramPage({ searchParams }: Props) {
   const rows = champions
     .map((c) => ({ c, a: data.champs[`${mode}:${c.key}`] }))
     .filter((r) => r.a && r.a.games >= MIN_ARAM_GAMES)
-    .map(({ c, a }) => ({ c, games: a!.games, wr: (a!.wins / a!.games) * 100, pick: (a!.games / Math.max(1, total)) * 100, score: (a!.wins + 5) / (a!.games + 10) }))
+    .map(({ c, a }) => ({ c, games: a!.games, wr: (a!.wins / a!.games) * 100, pick: (a!.games / Math.max(1, total)) * 100, score: (a!.wins + 10) / (a!.games + 20) }))
     .sort((a, b) => (sort === "pick" ? b.games - a.games : b.score - a.score));
   const tab = (on: boolean) => `rounded-full px-3 py-1.5 text-sm ${on ? "bg-accent font-semibold text-bg" : "bg-panel-2 text-muted hover:text-text"}`;
   const q = (m: AramMode, s: string) => `/aram?${new URLSearchParams({ ...(m === "aram" ? { mode: m } : {}), ...(s === "pick" ? { sort: s } : {}) })}`;

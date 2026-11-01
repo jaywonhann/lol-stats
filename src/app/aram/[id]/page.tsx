@@ -67,14 +67,14 @@ export default async function AramChampPage({ params, searchParams }: Props) {
   const base = enough ? (a.wins / a.games) * 100 : 50;
   const min = enough ? Math.max(3, Math.round(a.games * 0.03)) : 3;
 
-  const builds = enough ? ranked(a.builds, a.games, base, min, 4) : [];
+  const builds = enough ? ranked(a.builds, a.games, base, Math.max(5, Math.round(a.games * 0.05)), 4) : [];
   const topItems = enough ? ranked(a.items, a.games, base, min, 8, "pick") : [];
   const boots = enough ? ranked(a.boots, a.games, base, min, 3, "pick") : [];
   const augBest = enough ? ranked(a.augments, a.games, base, Math.max(3, Math.round(a.games * 0.02)), 8) : [];
   const augPick = enough ? ranked(a.augments, a.games, base, 1, 8, "pick") : [];
   const augSets = enough ? ranked(a.augSets, a.games, base, 3, 4) : [];
   const spellRows = enough ? ranked(a.spells, a.games, base, min, 2, "pick") : [];
-  const runeRows = enough ? ranked(a.runes, a.games, base, min, 2) : [];
+  const runeRows = enough ? ranked(a.runes, a.games, base, min, 2, "pick") : [];
 
   const ItemIcon = ({ id: iid, size = 36 }: { id: string; size?: number }) => {
     const it = itemById.get(iid);

@@ -23,7 +23,7 @@ export type AugmentMeta = { en?: string; ko?: string; icon?: string | null; rari
 
 const ROOT = path.join(process.cwd(), "data", "aram");
 const SERVERS = ["kr", "na1", "euw1"];
-export const MIN_ARAM_GAMES = 10;
+export const MIN_ARAM_GAMES = 15;
 
 const add = (into: Counts, from: Counts) => {
   for (const [k, [g, w]] of Object.entries(from ?? {})) {
