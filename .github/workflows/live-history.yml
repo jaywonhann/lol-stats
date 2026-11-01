@@ -34,6 +34,7 @@ jobs:
           RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
           OUT: /tmp/live-data
           TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
         run: |
           mkdir -p $OUT
@@ -51,6 +52,11 @@ jobs:
               && git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -q -m "실시간 인원 기록" \
               && git push -q --force "https://x-access-token:$TOKEN@github.com/$REPO.git" live-data ) || echo "::warning::올리기 실패"
             sleep $(( 600 - ( $(date +%s) - t0 ) > 0 ? 600 - ( $(date +%s) - t0 ) : 1 ))
+            # 랭크 게임 수집 예약 실행이 GitHub 쪽에서 몇 시간씩 밀리거나 빠지니, 마지막 수집이 6시간 넘게 지났으면 대신 실행
+            last=$(gh api "repos/$REPO/actions/workflows/collect.yml/runs?per_page=1" --jq '.workflow_runs[0].created_at // empty' 2>/dev/null || true)
+            if [ -n "$last" ] && [ $(( $(date +%s) - $(date -d "$last" +%s) )) -gt $((370 * 60)) ]; then
+              gh workflow run collect.yml -R "$REPO" --ref main && echo "::notice::밀린 랭크 게임 수집을 대신 실행했어요"
+            fi
             # 시크릿은 실행이 시작될 때 한 번만 들어오니, 키가 거절되면 이번 실행을 끝내고 새 실행에서 새 키를 받는다
             [ "$code" = 3 ] && break
           done
