@@ -10,6 +10,7 @@ import { LANES, laneLabel, serverLabel } from "@/lib/lanes";
 import { boards, movers } from "@/lib/stats";
 import { getLang, getServer } from "@/lib/server";
 import { topMatchups } from "@/lib/matchups";
+import { loadAram, MIN_ARAM_GAMES } from "@/lib/aram";
 
 export const dynamic = "force-dynamic";
 
@@ -97,6 +98,16 @@ export default async function Home() {
     duels.push({ a, b, lane: m.lane, games: m.games, wins: m.wins });
     if (duels.length >= 6) break;
   }
+
+  // 칼바람(증바람이 열려 있으면 증바람) 승률 TOP 6
+  const aram = loadAram();
+  const aramMode = aram.matches.mayhem ? "mayhem" : "aram";
+  const aramTop = champions
+    .map((c) => ({ c, a: aram.champs[`${aramMode}:${c.key}`] }))
+    .filter((r) => r.a && r.a.games >= MIN_ARAM_GAMES)
+    .map(({ c, a }) => ({ c, games: a!.games, wr: (a!.wins / a!.games) * 100, score: (a!.wins + 10) / (a!.games + 20) }))
+    .sort((x, y) => y.score - x.score)
+    .slice(0, 6);
 
   const quick = [
     { href: "/summoner", label: lang === "ko" ? "내 멘탈 지수 테스트" : "Test my mind meter", hot: true },
@@ -248,6 +259,31 @@ export default async function Home() {
                 </Link>
               );
             })}
+          </div>
+        </section>
+      )}
+
+      {aramTop.length > 0 && (
+        <section>
+          <SectionTitle
+            title={lang === "ko" ? (aramMode === "mayhem" ? "증바람 승률 TOP" : "칼바람 승률 TOP") : aramMode === "mayhem" ? "Top ARAM: Mayhem champions" : "Top ARAM champions"}
+            note={lang === "ko" ? "한국·북미·유럽 실제 게임 기준이에요. 누르면 템트리가 나와요." : "From real games on KR, NA and EUW. Tap a champion for the build."}
+            href={`/aram?mode=${aramMode}`}
+            link={t.viewAll}
+          />
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+            {aramTop.map(({ c, games, wr }) => (
+              <Link key={c.id} href={`/aram/${c.id}?mode=${aramMode}`} className="lift flex items-center gap-2 rounded-xl bg-panel p-3">
+                <Icon src={img.champion(version, c.image.full)} alt={c.name} size={36} />
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold">{c.name}</div>
+                  <div className="text-xs tabular-nums">
+                    <span className="font-bold" style={{ color: wr >= 50 ? "var(--chart-up)" : "var(--chart-down)" }}>{wr.toFixed(1)}%</span>
+                    <span className="text-muted"> · {t.gamesN(games)}</span>
+                  </div>
+                </div>
+              </Link>
+            ))}
           </div>
         </section>
       )}
