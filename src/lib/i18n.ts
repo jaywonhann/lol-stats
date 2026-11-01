@@ -182,6 +182,7 @@ const en = {
   skillOrder: "Skill order",
   easyMatchups: "Easy matchups",
   hardMatchups: "Hard matchups",
+  bestDuo: (lane: string): string => (lane === "bottom" ? "Best support partners" : "Best ADC partners"),
   buildRunesCounters: "Builds · Runes · Counters",
   noBuildLane: (name: string, lane: string) =>
     `Not enough ${name} ${lane} games yet this patch. Real builds will show up once more games come in.`,
@@ -635,6 +636,7 @@ const ko: Dict = {
   skillOrder: "스킬 마스터 순서",
   easyMatchups: "상대하기 쉬운 챔피언",
   hardMatchups: "상대하기 어려운 챔피언",
+  bestDuo: (lane) => (lane === "bottom" ? "궁합 좋은 서포터" : "궁합 좋은 원딜"),
   buildRunesCounters: "빌드 · 룬 · 카운터",
   noBuildLane: (name, lane) =>
     `이번 패치에서 ${name} ${lane} 게임이 아직 충분히 모이지 않았어요. 게임이 더 모이면 실제 빌드가 표시돼요.`,

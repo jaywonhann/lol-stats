@@ -275,6 +275,10 @@ export function addMatch(db, match, timeline, { isBoots, isCore, isTrinket = () 
 
     const opp = ps.find((o) => o.teamId !== p.teamId && o.teamPosition === p.teamPosition);
     if (opp) bump(c.vs, String(opp.championId), win);
+    // 바텀 듀오 궁합: 원딜은 같은 팀 서포터, 서포터는 같은 팀 원딜을 기록
+    const mateLane = lane === "bottom" ? "UTILITY" : lane === "support" ? "BOTTOM" : null;
+    const mate = mateLane && ps.find((o) => o.teamId === p.teamId && o.teamPosition === mateLane);
+    if (mate) bump((c.duo ??= {}), String(mate.championId), win);
   }
   return picks;
 }

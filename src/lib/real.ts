@@ -20,6 +20,7 @@ export type ChampAgg = {
   core4?: Counts; // 먼저 완성한 코어템 4개 순서
   slots?: Counts; // "n:아이템ID" n번째로 완성한 코어템
   shards?: Counts; // "공격,유연,방어" 능력치 파편
+  duo?: Counts; // 바텀 듀오 상대편(원딜↔서포터) 챔피언 key
 };
 
 export type PatchData = {
@@ -69,7 +70,7 @@ function merge(list: PatchData[]): PatchData {
       t.wins += c.wins;
       for (const key of ["runes", "spells", "starters", "core", "boots", "skills", "vs"] as const)
         addCounts(t[key], c[key]);
-      for (const key of ["core4", "slots", "shards"] as const) if (c[key]) addCounts((t[key] ??= {}), c[key]);
+      for (const key of ["core4", "slots", "shards", "duo"] as const) if (c[key]) addCounts((t[key] ??= {}), c[key]);
     }
   }
   return out;
@@ -252,6 +253,21 @@ export function realCorePath(c: ChampAgg, items: Item[]) {
     return list.every(Boolean) ? (list as Item[]) : null;
   });
   return { path, builds };
+}
+
+// 바텀 듀오 궁합: 함께한 판이 충분한 파트너를 평균 쪽으로 당긴 승률 순으로
+export function realDuos(c: ChampAgg, champions: Champion[], n = 5): Matchup[] {
+  if (!c.duo) return [];
+  const byKey = new Map(champions.map((ch) => [ch.key, ch]));
+  const base = c.wins / c.games;
+  const PRIOR = 10;
+  return Object.entries(c.duo)
+    .filter(([, [g]]) => g >= 8)
+    .map(([key, [g, w]]) => ({ champion: byKey.get(key)!, winRate: (w / g) * 100, games: g, score: (w + base * PRIOR) / (g + PRIOR) }))
+    .filter((m) => m.champion)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, n)
+    .map(({ champion, winRate, games }) => ({ champion, winRate, games }));
 }
 
 export function realMatchups(

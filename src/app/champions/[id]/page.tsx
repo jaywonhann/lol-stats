@@ -35,6 +35,7 @@ import {
   realChamp,
   realCorePath,
   realMatchups,
+  realDuos,
   realWinRates,
   type SlotOption,
 } from "@/lib/real";
@@ -110,6 +111,7 @@ export default async function ChampionPage({ params, searchParams }: Props) {
     ? (realChamp(loadRealData({ server, rank: "all" }).get(patch) ?? real.get(patch)!, champion, lane) ?? agg)
     : null;
   const mu = allAgg ? realMatchups(allAgg, champion, champions) : null;
+  const duos = allAgg && (lane === "bottom" || lane === "support") ? realDuos(allAgg, champions) : [];
   const cp = agg ? realCorePath(agg, items) : null;
   const wr = agg ? realWinRates(agg, items, trees, spells) : null;
   const updatedAt = source === "real" ? real.get(patch)!.updatedAt : null;
@@ -418,6 +420,24 @@ export default async function ChampionPage({ params, searchParams }: Props) {
             <Panel title={t.hardMatchups}>
               <MatchupList me={champion.id} lang={lang} rows={mu.hard} version={version} lane={lane} />
             </Panel>
+            {duos.length > 0 && (
+              <Panel title={t.bestDuo(lane)}>
+                <ul className="space-y-2">
+                  {duos.map((m) => (
+                    <li key={m.champion.id}>
+                      <Link href={`/champions/${m.champion.id}?lane=${lane === "bottom" ? "support" : "bottom"}`} className="flex items-center gap-2 hover:text-accent">
+                        <Icon src={img.champion(version, m.champion.image.full)} alt={m.champion.name} size={28} />
+                        <span className="flex-1 truncate text-sm">{m.champion.name}</span>
+                        <span className="text-right text-xs">
+                          <WinRate value={m.winRate} />
+                          <span className="block text-muted">{t.games(m.games.toLocaleString(nl))}</span>
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </Panel>
+            )}
             {[...mu.easy, ...mu.hard].some((m) => m.games < 10) && (
               <p className="px-1 text-xs text-muted">{t.matchupNote}</p>
             )}
