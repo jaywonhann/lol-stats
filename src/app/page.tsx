@@ -4,7 +4,8 @@ import SummonerSearch from "@/components/SummonerSearch";
 import { Icon, Panel, TierBadge, WinRate, pct } from "@/components/ui";
 import { getChampions, getItems, getPatches, getRuneTrees, getSummonerSpells, img } from "@/lib/ddragon";
 import BuildIcons from "@/components/BuildIcons";
-import { quickBuild, realChamp } from "@/lib/real";
+import { loadActivity, quickBuild, realChamp } from "@/lib/real";
+import { liveHistory } from "@/lib/live-history";
 import { ddLocale, dict, type Lang } from "@/lib/i18n";
 import { LANES, laneLabel, serverLabel } from "@/lib/lanes";
 import { boards, movers } from "@/lib/stats";
@@ -63,11 +64,10 @@ export default async function Home() {
   const AW = lang === "ko"
     ? { title: `패치 ${patch} 어워드`, note: "실제 랭크 게임 기록으로 뽑은, 이번 패치의 재미있는 챔피언들이에요.", hidden: ["숨은 OP상", "아무도 안 하는데 제일 잘 이겨요"], people: ["국민 픽상", "어딜 가나 이 챔피언"], sad: ["억울한 인기상", "다들 하는데 자꾸 져요"], rocket: ["로켓 상승상", "최근 며칠 사이 가장 많이 뜬 챔피언"] }
     : { title: `Patch ${patch} awards`, note: "This patch's most interesting champions, picked from real ranked games.", hidden: ["Hidden OP", "Nobody plays it, and it wins the most"], people: ["People's pick", "It's in every game"], sad: ["Popular but sad", "Everyone picks it, everyone loses"], rocket: ["Rocket riser", "Climbed the most in the last few days"] };
-  // 히어로 배경: 라인별 1위 중 승률이 가장 높은 챔피언
-  const featured = picks
-    .filter((p) => p.rows.length > 0)
-    .map((p) => ({ lane: p.lane, s: p.rows[0] }))
-    .sort((a, b) => b.s.winRate - a.s.winRate)[0];
+  // 첫 화면: 라인별 1위, 지금 게임 중인 인원(10분 기록의 마지막 값), 최근 24시간 분석 게임 수
+  const laneTops = picks.filter((p) => p.rows.length > 0).map((p) => ({ lane: p.lane, s: p.rows[0] }));
+  const liveNow = (await liveHistory(server).catch(() => [])).at(-1)?.estimate ?? null;
+  const analyzed = loadActivity(server)?.total ?? 0;
   // "지금 뜨는 빌드": 라인별 상위 픽 중 메타 점수가 높은 챔피언과 그 챔피언의 대표 룬·스펠·코어템
   const [items, trees, spells] = await Promise.all([
     getItems(version, ddLocale(lang)),
@@ -109,63 +109,53 @@ export default async function Home() {
     .sort((x, y) => y.score - x.score)
     .slice(0, 6);
 
-  const quick = [
-    { href: "/summoner", label: lang === "ko" ? "내 멘탈 지수 테스트" : "Test my mind meter", hot: true },
-    { href: "/tier", label: t.nav.tier },
-    { href: "/trends", label: t.nav.trends },
-    { href: "/ranking", label: lang === "ko" ? "랭킹" : "Ranking" },
-  ];
 
   return (
     <div className="space-y-10">
-      <section className="fade-up relative -mx-4 overflow-hidden rounded-none border-line bg-panel px-4 py-12 sm:mx-0 sm:rounded-2xl sm:border sm:px-10 sm:py-14">
-        {featured && (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={img.splash(featured.s.champion.id)}
-              alt=""
-              aria-hidden
-              className="pointer-events-none absolute inset-y-0 right-0 h-full w-full object-cover object-[70%_20%] opacity-35 sm:w-3/4"
-            />
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-panel via-panel/90 to-panel/30" />
-          </>
-        )}
-        <div className="relative max-w-xl">
+      <section className="fade-up -mx-4 border-line bg-panel px-4 py-10 sm:mx-0 sm:rounded-2xl sm:border sm:px-8 sm:py-12">
+        <div className="text-center">
           <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">
             live<span className="text-accent">lol</span>.stats
           </h1>
-          <p className="mt-3 text-lg font-semibold sm:text-xl">{t.heroTagline}</p>
-          <p className="mt-1 text-sm text-muted">
-            {t.homeSubtitle(serverLabel(server, lang), patch)}
-          </p>
-          <div className="mt-6">
-            <SummonerSearch lang={lang} server={server} large />
-          </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {quick.map((q) => (
-              <Link
-                key={q.href}
-                href={q.href}
-                className={`rounded-full border px-3 py-1 text-xs transition-colors hover:border-accent hover:text-text ${
-                  "hot" in q ? "border-accent text-accent" : "border-line bg-panel-2/70 text-muted"
-                }`}
-              >
-                {q.label}
+          <p className="mt-2 text-sm text-muted">{t.heroTagline}</p>
+        </div>
+        <div className="mx-auto mt-6 max-w-2xl">
+          <SummonerSearch lang={lang} server={server} large />
+        </div>
+        <div className="mt-6 flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-muted">
+          {liveNow != null && (
+            <Link href="/tier" className="inline-flex items-center gap-1.5 hover:text-text">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-[#e8213a]" aria-hidden />
+              <b className="text-base text-text tabular-nums">{liveNow.toLocaleString()}{lang === "ko" ? "명" : ""}</b>
+              {lang === "ko" ? "지금 게임 중인 마스터+" : "Master+ players in game now"}
+            </Link>
+          )}
+          {analyzed > 0 && (
+            <span>
+              <b className="text-base text-text tabular-nums">{analyzed.toLocaleString()}{lang === "ko" ? "판" : ""}</b>{" "}
+              {lang === "ko" ? `최근 24시간 분석한 ${serverLabel(server, lang)} 게임` : `${serverLabel(server, lang)} games analyzed in 24h`}
+            </span>
+          )}
+          <span>
+            <b className="text-base text-text tabular-nums">{patch}</b> {lang === "ko" ? "패치" : "patch"}
+          </span>
+        </div>
+        {laneTops.length > 0 && (
+          <div className="mt-8 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+            {laneTops.map(({ lane, s }) => (
+              <Link key={lane} href={`/champions/${s.champion.id}?lane=${lane}`} className="lift rounded-xl bg-panel-2/60 p-3">
+                <div className="text-xs font-semibold text-muted">{lang === "ko" ? `${laneLabel(lane, lang)} 1위` : `#1 ${laneLabel(lane, lang)}`}</div>
+                <div className="mt-2 flex items-center gap-2">
+                  <Icon src={img.champion(version, s.champion.image.full)} alt={s.champion.name} size={32} />
+                  <span className="min-w-0 flex-1 truncate text-sm font-semibold">{s.champion.name}</span>
+                  <span className="text-sm font-bold tabular-nums" style={{ color: s.winRate >= 50 ? "var(--chart-up)" : "var(--chart-down)" }}>
+                    {s.winRate.toFixed(1)}%
+                  </span>
+                </div>
               </Link>
             ))}
           </div>
-          {featured && (
-            <Link
-              href={`/champions/${featured.s.champion.id}?lane=${featured.lane}`}
-              className="mt-6 inline-flex items-center gap-2 text-xs text-muted hover:text-accent"
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
-              {t.heroFeatured(featured.s.champion.name, laneLabel(featured.lane, lang))}
-              <span aria-hidden>→</span>
-            </Link>
-          )}
-        </div>
+        )}
       </section>
 
       {awards.length > 0 && (
