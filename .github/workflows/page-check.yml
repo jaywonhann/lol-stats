@@ -11,7 +11,7 @@ jobs:
           SITE=https://lollive.vercel.app
           for p in / /tier /duo /duo/opengraph-image /aram "/aram/Jinx?mode=aram" /champions/Jinx /tier/opengraph-image /champions/Jinx/opengraph-image "/api/aram-card?id=Jinx&mode=aram" "/summoner?id=Hide%20on%20bush%23KR1&s=kr"; do
             out=$(curl -s -o /tmp/body -w "%{http_code} %{content_type} %{size_download}" "$SITE$p")
-            echo "::notice title=$p::$out"
+            echo "::notice title=${p//%/pct}::$out"
           done
           curl -s "$SITE/summoner?id=Hide%20on%20bush%23KR1&s=kr" | grep -o 'In game now\|지금 게임 중\|Hide on bush' | sort | uniq -c | sed 's/^/::notice title=summoner::/'
           curl -s "$SITE/champions/Jinx" | grep -o '<meta property="og:image"[^>]*>' | head -2 | sed 's/^/::notice title=og-tag::/'
