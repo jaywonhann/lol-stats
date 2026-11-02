@@ -7,7 +7,7 @@ import { loadAram, MIN_ARAM_GAMES } from "@/lib/aram";
 export const revalidate = 86400;
 
 const SITE = "https://lollive.vercel.app";
-const PAGES = ["", "/tier", "/trends", "/meta", "/champions", "/matchup", "/items", "/summoner", "/ranking", "/aram", "/duo", "/pros", "/predict", "/tools", "/community", "/faq"];
+const PAGES = ["", "/tier", "/trends", "/meta", "/champions", "/matchup", "/items", "/summoner", "/ranking", "/aram", "/duo", "/pros", "/predict", "/tools", "/community", "/faq", "/pro"];
 
 // 실제 데이터에서 표본이 많은 상성 조합 상위 N개 ("야스오 vs 요네" 같은 검색 유입용)
 function matchupUrls(byKey: Map<string, string>, limit = 400): string[] {

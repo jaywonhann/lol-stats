@@ -11,6 +11,7 @@ const TEXT = {
     sections: [
       ["What we collect", "livelol.stats does not require an account. We don't ask for your name, email or password. If you use the feedback form, we store the message you write. If you search a summoner, the Riot ID you type is sent to Riot Games' API to show public ranked data."],
       ["Cookies and local storage", "We use cookies to remember your server and language. Our analytics (Vercel Web Analytics) counts page views without using cookies to track you across sites."],
+      ["PRO purchases", "PRO payments are processed by Lemon Squeezy; we never see your card details. When you unlock PRO we store your license key in a cookie on this device so we can check it with Lemon Squeezy."],
       ["Advertising", "We may show ads through Google AdSense. Google and its partners may use cookies to show ads based on your visits to this and other sites. You can manage this at https://adssettings.google.com or opt out at https://www.aboutads.info."],
       ["Third parties", "Game data comes from Riot Games' public API. Fonts, images and videos may be loaded from Riot, YouTube and CDN providers, which receive your IP address when you load them."],
       ["Contact", "Questions or deletion requests: use the feedback form on the FAQ page."],
@@ -23,6 +24,7 @@ const TEXT = {
     sections: [
       ["수집하는 정보", "livelol.stats는 회원가입이 없고 이름, 이메일, 비밀번호를 받지 않아요. 의견 보내기를 쓰면 작성한 내용이 저장돼요. 소환사 검색을 하면 입력한 라이엇 ID가 공개 랭크 정보를 보여주기 위해 Riot Games API로 전송돼요."],
       ["쿠키와 로컬 저장소", "선택한 서버와 언어를 기억하려고 쿠키를 써요. 방문 통계(Vercel Web Analytics)는 다른 사이트까지 따라다니며 추적하는 쿠키 없이 페이지 조회수를 세요."],
+      ["PRO 구매", "PRO 결제는 Lemon Squeezy가 처리하고, 카드 정보는 저희가 보지 않아요. PRO를 열면 라이선스 키를 이 기기의 쿠키에 저장해서 Lemon Squeezy로 확인해요."],
       ["광고", "구글 애드센스로 광고를 보여줄 수 있어요. 구글과 파트너는 이 사이트와 다른 사이트의 방문 기록을 바탕으로 광고를 보여주려고 쿠키를 쓸 수 있어요. https://adssettings.google.com 에서 설정하거나 https://www.aboutads.info 에서 거부할 수 있어요."],
       ["제3자 서비스", "게임 데이터는 Riot Games의 공개 API에서 가져와요. 글꼴, 이미지, 영상은 Riot, YouTube, CDN에서 불러올 수 있고 이때 방문자의 IP 주소가 해당 서비스에 전달돼요."],
       ["문의", "질문이나 삭제 요청은 FAQ 페이지의 의견 보내기로 남겨 주세요."],

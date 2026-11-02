@@ -7,6 +7,7 @@ import { DivergingBars } from "@/components/charts";
 import TierEmblem from "@/components/TierEmblem";
 import UpdateButton from "@/components/UpdateButton";
 import ScoreCard from "@/components/ScoreCard";
+import { proText } from "@/lib/pro-text";
 import GrowthCard from "@/components/GrowthCard";
 import ProMatch from "@/components/ProMatch";
 import MatchList from "@/components/MatchList";
@@ -650,6 +651,17 @@ function Analysis({
           </div>
           <div id="analysis" className="scroll-mt-20" aria-hidden />
           {tiltPanel}
+          <Link
+            href={`/pro/report?id=${encodeURIComponent(`${account.gameName}#${account.tagLine}`)}&s=${server}`}
+            className="flex items-center gap-4 rounded-lg border border-accent/50 bg-panel p-4 hover:bg-panel-2"
+          >
+            <span className="rounded bg-accent px-2 py-0.5 text-xs font-black text-bg">PRO</span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-bold">{proText(lang).cta}</span>
+              <span className="block text-sm text-muted">{proText(lang).ctaBody}</span>
+            </span>
+            <span className="shrink-0 text-sm font-semibold text-accent">{proText(lang).ctaButton} →</span>
+          </Link>
           {nowPanel}
           {titlesPanel}
       {score && <GrowthCard g={growth(score)} lang={lang} />}
