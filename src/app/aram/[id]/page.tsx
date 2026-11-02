@@ -5,7 +5,7 @@ import { Icon, Panel } from "@/components/ui";
 import { getChampions, getItems, getRuneTrees, getSummonerSpells, img } from "@/lib/ddragon";
 import { ddLocale } from "@/lib/i18n";
 import { getLang } from "@/lib/server";
-import { ARAM_MODES, loadAram, loadAugments, MIN_ARAM_GAMES, modeName, parseMode, ranked, type Row } from "@/lib/aram";
+import { ARAM_MODES, loadAram, loadAugments, MIN_ARAM_GAMES, modeName, parseMode, ranked, rankedLow, type Row } from "@/lib/aram";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,7 @@ type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ mode?: s
 async function findChamp(id: string, lang: "ko" | "en") {
   const { version, champions } = await getChampions(ddLocale(lang));
   const champ = champions.find((c) => c.id.toLowerCase() === id.toLowerCase());
-  return { version, champ };
+  return { version, champ, champions };
 }
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
@@ -51,8 +51,9 @@ export default async function AramChampPage({ params, searchParams }: Props) {
   const ko = lang === "ko";
   const data = loadAram();
   const mode = parseMode(sp.mode, !!data.matches.mayhem);
-  const { version, champ } = await findChamp(id, lang);
+  const { version, champ, champions } = await findChamp(id, lang);
   if (!champ) notFound();
+  const champByKey = new Map(champions.map((c) => [c.key, c]));
   const [items, trees, spells] = await Promise.all([
     getItems(version, ddLocale(lang)).catch(() => []),
     getRuneTrees(version, ddLocale(lang)).catch(() => []),
@@ -74,6 +75,9 @@ export default async function AramChampPage({ params, searchParams }: Props) {
   const augPick = enough ? ranked(a.augments, a.games, base, 1, 8, "pick") : [];
   const augSets = enough ? ranked(a.augSets, a.games, base, 3, 4) : [];
   const spellRows = enough ? ranked(a.spells, a.games, base, min, 2, "pick") : [];
+  const pairMin = enough ? Math.max(5, Math.round(a.games * 0.03)) : 5;
+  const allies = enough && a.with ? ranked(a.with, a.games, base, pairMin, 5) : [];
+  const hard = enough && a.vs ? rankedLow(a.vs, a.games, base, pairMin, 5) : [];
   const runeRows = enough ? ranked(a.runes, a.games, base, min, 2, "pick") : [];
 
   const ItemIcon = ({ id: iid, size = 36 }: { id: string; size?: number }) => {
@@ -192,6 +196,35 @@ export default async function AramChampPage({ params, searchParams }: Props) {
             </>
           )}
 
+          {(allies.length > 0 || hard.length > 0) && (
+            <Panel title={ko ? "같이 하면 잘 이기는 팀원 · 만나면 힘든 상대" : "Best teammates and toughest enemies"}>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {[
+                  { rows: allies, label: ko ? "같이 하면 잘 이겨요" : "Wins more with" },
+                  { rows: hard, label: ko ? "만나면 자주 져요" : "Loses more against" },
+                ].map(({ rows, label }) => (
+                  <div key={label}>
+                    <p className="mb-1.5 text-xs font-semibold text-muted">{label}</p>
+                    <ul className="space-y-1.5">
+                      {rows.map((r) => {
+                        const c = champByKey.get(r.key);
+                        if (!c) return null;
+                        return (
+                          <li key={r.key}>
+                            <Link href={`/aram/${c.id}?mode=${mode}`} className="flex items-center gap-2 hover:text-accent">
+                              <Icon src={img.champion(version, c.image.full)} alt={c.name} size={28} className="rounded-md" />
+                              <span className="min-w-0 truncate text-sm">{c.name}</span>
+                              <Stat row={r} ko={ko} />
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </Panel>
+          )}
           <Panel title={ko ? "룬 · 스펠" : "Runes and spells"}>
             <ul className="space-y-2">
               {runeRows.map((r) => {

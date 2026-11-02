@@ -190,6 +190,11 @@ async function main() {
             augIds.add(x);
           }
           if (augs.length >= 2) bump(c.augSets, augs.slice(0, 2).sort().join(","), win);
+          // 같은 팀 챔피언(같이 하면 잘 이기는 팀원)과 상대 팀 챔피언(만나면 힘든 상대)
+          for (const o of m.info.participants) {
+            if (o === p) continue;
+            bump((c[o.teamId === p.teamId ? "with" : "vs"] ??= {}), String(o.championId), win);
+          }
           const sp = [p.summoner1Id, p.summoner2Id].sort((x, y) => x - y);
           bump(c.spells, sp.join(","), win);
           const [pri, sec] = p.perks?.styles ?? [];

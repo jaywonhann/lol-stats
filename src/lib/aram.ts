@@ -18,6 +18,8 @@ export type AramChamp = {
   augSets: Counts;
   spells: Counts;
   runes: Counts;
+  with?: Counts; // 같은 팀 챔피언 key
+  vs?: Counts; // 상대 팀 챔피언 key
 };
 type AramFile = { patch: string; updatedAt: string; matches: Record<string, number>; champs: Record<string, AramChamp> };
 export type AugmentMeta = { en?: string; ko?: string; icon?: string | null; rarity?: number | string };
@@ -61,6 +63,7 @@ export function loadAram(): { patch: string | null; updatedAt: string | null; ma
         t.games += c.games;
         t.wins += c.wins;
         for (const key of ["items", "builds", "boots", "augments", "augSets", "spells", "runes"] as const) add(t[key], c[key]);
+        for (const key of ["with", "vs"] as const) if (c[key]) add((t[key] ??= {}), c[key]);
       }
     }
   }
@@ -84,3 +87,8 @@ export function ranked(counts: Counts, total: number, base: number, minGames: nu
 }
 
 export const modeName = (m: AramMode, ko: boolean) => (m === "mayhem" ? (ko ? "증바람 (증강 칼바람)" : "ARAM: Mayhem") : ko ? "칼바람 나락" : "ARAM");
+
+// 승률이 가장 낮은 쪽 (만나면 힘든 상대). 표본 보정은 ranked 와 같아요
+export function rankedLow(counts: Counts, total: number, base: number, minGames: number, n: number): Row[] {
+  return ranked(counts, total, base, minGames, 9999).reverse().slice(0, n);
+}
