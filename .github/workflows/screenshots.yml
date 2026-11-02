@@ -3,6 +3,10 @@ name: 사이트 스크린샷
 
 on:
   workflow_dispatch:
+    inputs:
+      set:
+        description: "찍을 묶음 (default 또는 blog)"
+        default: default
 
 permissions:
   contents: write
@@ -13,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.ref }}
       - name: 브라우저 준비
         run: |
           mkdir -p /tmp/pw && cd /tmp/pw && npm init -y >/dev/null && npm i playwright@1.47.2 >/dev/null
@@ -22,8 +26,9 @@ jobs:
         run: |
           mkdir -p shots && cp scripts/screenshots.mjs /tmp/pw/
           cd /tmp/pw
+          export SHOT_SET="${{ inputs.set }}"
           OUT=$GITHUB_WORKSPACE/shots SHOT_LANG=ko node screenshots.mjs
-          OUT=$GITHUB_WORKSPACE/shots SHOT_LANG=en node screenshots.mjs
+          if [ "$SHOT_SET" != "blog" ]; then OUT=$GITHUB_WORKSPACE/shots SHOT_LANG=en node screenshots.mjs; fi
       - name: screenshots 브랜치에 올리기
         run: |
           cd shots
