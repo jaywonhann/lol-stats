@@ -239,3 +239,19 @@ export async function ladder(server: Server, tier: LadderTier, top = 30) {
     rows: sorted.slice(0, top).map((e, i) => ({ ...e, rank: i + 1, account: names[i] })),
   };
 }
+
+// 지금 하고 있는 게임 (op.gg "인게임 정보"). 게임 중이 아니면 null. 1분만 캐시해요.
+export type ActiveGame = {
+  gameLength: number; // 초
+  gameStartTime: number;
+  gameQueueConfigId: number;
+  participants: { puuid: string; teamId: number; championId: number; spell1Id: number; spell2Id: number; riotId?: string }[];
+  bannedChampions?: { championId: number; teamId: number }[];
+};
+export async function activeGame(server: Server, puuid: string, tags?: string[]): Promise<ActiveGame | null> {
+  try {
+    return await get<ActiveGame>(server, `/lol/spectator/v5/active-games/by-summoner/${encodeURIComponent(puuid)}`, MINUTE, tags);
+  } catch {
+    return null;
+  }
+}

@@ -10,6 +10,8 @@ import ScoreCard from "@/components/ScoreCard";
 import GrowthCard from "@/components/GrowthCard";
 import ProMatch from "@/components/ProMatch";
 import MatchList from "@/components/MatchList";
+import LiveGame from "@/components/LiveGame";
+import { Suspense } from "react";
 import { growth } from "@/lib/growth";
 import { rateMatch, scoreReport } from "@/lib/score";
 import SummonerSearch from "@/components/SummonerSearch";
@@ -153,6 +155,15 @@ export default async function SummonerPage({ searchParams }: Props) {
   return (
     <div className="space-y-6">
       {header}
+      <Suspense fallback={null}>
+        <LiveGame
+          server={server}
+          puuid={result.account.puuid}
+          lang={lang}
+          tags={[summonerTag(server, parsed.gameName, parsed.tagLine)]}
+          spellIcons={spellIcons}
+        />
+      </Suspense>
       <Analysis
         result={result}
         lang={lang}
