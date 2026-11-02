@@ -1,5 +1,6 @@
 name: 페이지 점검
-# 사이트 주요 페이지와 공유 이미지가 실제로 열리는지 확인만 합니다 (시크릿 없음)
+# 사이트 주요 페이지와 공유 이미지가 실제로 열리는지 확인만 합니다 (시크릿 없음).
+# 결과는 알림(notice)으로 남겨요. 단계당 알림이 10개까지라 한 줄에 여러 개를 묶어요.
 on:
   workflow_dispatch:
 jobs:
@@ -9,9 +10,15 @@ jobs:
       - name: Fetch pages
         run: |
           SITE=https://lollive.vercel.app
-          for p in / /tier /duo /duo/opengraph-image /aram "/aram/Jinx?mode=aram" /champions/Jinx /tier/opengraph-image /champions/Jinx/opengraph-image "/api/aram-card?id=Jinx&mode=aram" "/summoner?id=Hide%20on%20bush%23KR1&s=kr"; do
-            out=$(curl -s -o /tmp/body -w "%{http_code} %{content_type} %{size_download}" "$SITE$p")
-            echo "::notice title=${p//%/pct}::$out"
+          pages=""
+          for p in / /tier /duo /aram "/aram/Jinx?mode=aram" /champions/Jinx "/summoner?id=Hide%20on%20bush%23KR1&s=kr"; do
+            pages="$pages | $p $(curl -s -o /dev/null -w '%{http_code}' "$SITE$p")"
           done
-          curl -s "$SITE/summoner?id=Hide%20on%20bush%23KR1&s=kr" | grep -o 'In game now\|지금 게임 중\|Hide on bush' | sort | uniq -c | sed 's/^/::notice title=summoner::/'
-          curl -s "$SITE/champions/Jinx" | grep -o '<meta property="og:image"[^>]*>' | head -2 | sed 's/^/::notice title=og-tag::/'
+          echo "::notice title=pages::${pages//%/pct}"
+          imgs=""
+          for p in /tier/opengraph-image /duo/opengraph-image /champions/Jinx/opengraph-image "/api/aram-card?id=Jinx&mode=aram"; do
+            imgs="$imgs | $p $(curl -s -o /dev/null -w '%{http_code} %{content_type} %{size_download}' "$SITE$p")"
+          done
+          echo "::notice title=share images::$imgs"
+          live=$(curl -s "$SITE/summoner?id=Hide%20on%20bush%23KR1&s=kr" | grep -o 'In game now\|지금 게임 중' | head -1)
+          echo "::notice title=summoner live game::${live:-not in game}"
