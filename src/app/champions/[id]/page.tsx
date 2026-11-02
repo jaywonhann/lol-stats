@@ -439,6 +439,9 @@ export default async function ChampionPage({ params, searchParams }: Props) {
                     </li>
                   ))}
                 </ul>
+                <Link href="/duo" className="mt-3 block text-xs text-accent hover:underline">
+                  {lang === "ko" ? "바텀 듀오 조합 전체 순위 보기 →" : "See the full bot lane duo tier list →"}
+                </Link>
               </Panel>
             )}
             {[...mu.easy, ...mu.hard].some((m) => m.games < 10) && (

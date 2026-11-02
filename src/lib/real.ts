@@ -382,3 +382,30 @@ export function quickBuild(c: ChampAgg, items: Item[], trees: RuneTree[], spells
   return { keystone, secondary: page?.secondary, spells: b.spells[0]?.value ?? [], core };
 }
 export type QuickBuild = ReturnType<typeof quickBuild>;
+
+// 바텀 듀오 조합 순위: 3개 서버의 최근 2개 패치에서 원딜 기준으로 기록한 서포터 짝을 모읍니다
+export type DuoPair = { adc: string; sup: string; games: number; wins: number };
+export function realDuoPairs(rank: Filter["rank"], servers: Filter["server"][]): { pairs: DuoPair[]; patch?: string; games: number } {
+  const pairs = new Map<string, DuoPair>();
+  let latest: string | undefined;
+  let games = 0;
+  for (const server of servers) {
+    const data = loadRealData({ server, rank });
+    const recent = [...data.keys()].sort((x, y) => x.localeCompare(y, undefined, { numeric: true })).slice(-2);
+    for (const p of recent) {
+      if (!latest || p.localeCompare(latest, undefined, { numeric: true }) > 0) latest = p;
+      for (const [k, c] of Object.entries(data.get(p)!.champs)) {
+        const [adc, lane] = k.split(":");
+        if (lane !== "bottom" || !c.duo) continue;
+        for (const [sup, [g, w]] of Object.entries(c.duo)) {
+          const v = pairs.get(`${adc}-${sup}`) ?? { adc, sup, games: 0, wins: 0 };
+          v.games += g;
+          v.wins += w;
+          games += g;
+          pairs.set(`${adc}-${sup}`, v);
+        }
+      }
+    }
+  }
+  return { pairs: [...pairs.values()], patch: latest, games };
+}

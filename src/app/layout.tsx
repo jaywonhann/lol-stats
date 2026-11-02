@@ -80,6 +80,9 @@ export default async function RootLayout({
                 <Link href="/matchup" className="rounded px-3 py-2 text-sm hover:bg-panel-2">
                   {lang === "ko" ? "상성 비교" : "Matchup lookup"}
                 </Link>
+                <Link href="/duo" className="rounded px-3 py-2 text-sm hover:bg-panel-2">
+                  {lang === "ko" ? "바텀 듀오 조합" : "Bot duo tier list"}
+                </Link>
                 <Link href="/items" className="rounded px-3 py-2 text-sm hover:bg-panel-2">
                   {lang === "ko" ? "아이템 통계" : "Item stats"}
                 </Link>
