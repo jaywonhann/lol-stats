@@ -1,0 +1,16 @@
+name: 페이지 점검
+# 사이트 주요 페이지와 공유 이미지가 실제로 열리는지 확인만 합니다 (시크릿 없음)
+on:
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch pages
+        run: |
+          SITE=https://lollive.vercel.app
+          for p in / /tier /duo /aram "/aram/Jinx?mode=aram" /champions/Jinx /tier/opengraph-image /champions/Jinx/opengraph-image "/api/aram-card?id=Jinx&mode=aram"; do
+            out=$(curl -s -o /tmp/body -w "%{http_code} %{content_type} %{size_download}" "$SITE$p")
+            echo "::notice title=$p::$out"
+          done
+          curl -s "$SITE/champions/Jinx" | grep -o '<meta property="og:image"[^>]*>' | head -2 | sed 's/^/::notice title=og-tag::/'
