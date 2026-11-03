@@ -3,6 +3,7 @@
 // 결과: data/aram/{server}/{patch}.json, data/aram/augments.json (증강 이름·아이콘)
 import fs from "node:fs";
 import path from "node:path";
+import { yieldToSite } from "./rate.mjs";
 
 const KEY = process.env.RIOT_API_KEY?.match(/RGAPI-[0-9a-f-]{36}/gi)?.at(-1) ?? process.env.RIOT_API_KEY?.trim();
 const MAX_MINUTES = Number(process.env.MAX_MINUTES ?? 40);
@@ -33,6 +34,7 @@ async function riot(url) {
     if (calls.length && now - calls[calls.length - 1] < 60) await sleep(60);
     calls.push(Date.now());
     const res = await fetch(url, { headers: { "X-Riot-Token": KEY } });
+    await yieldToSite(res);
     if (res.status === 429) {
       await sleep(Number(res.headers.get("retry-after") ?? 10) * 1000);
       continue;

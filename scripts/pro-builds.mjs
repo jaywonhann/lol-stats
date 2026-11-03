@@ -2,6 +2,7 @@
 // GitHub Actions(pro-builds.yml)에서 실행되고, 결과는 pro-data 브랜치의 builds.json 에 올라가요.
 // 윈도우 앱과 사이트의 /app 화면이 이 파일을 읽어요.
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { yieldToSite } from "./rate.mjs";
 
 const KEY = (process.env.RIOT_API_KEY ?? "").match(/RGAPI-[0-9a-f-]{36}/gi)?.at(-1) ?? process.env.RIOT_API_KEY?.trim();
 const OUT = process.env.OUT ?? "pro-data";
@@ -28,6 +29,7 @@ let saveNow = () => {};
 async function riot(url) {
   for (let i = 0; i < 5; i++) {
     const res = await fetch(url, { headers: { "X-Riot-Token": KEY } });
+    await yieldToSite(res);
     if (res.status === 429) {
       await sleep((Number(res.headers.get("retry-after")) || 10) * 1000);
       continue;

@@ -4,6 +4,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { yieldToSite } from "./rate.mjs";
 
 // 시크릿에 키 외의 글자(공백, 메모 등)가 같이 들어가도 키 부분만 사용
 const KEY = process.env.RIOT_API_KEY?.match(/RGAPI-[0-9a-f-]{36}/gi)?.at(-1) ?? process.env.RIOT_API_KEY?.trim();
@@ -35,6 +36,7 @@ async function riot(url) {
     if (calls.length && now - calls[calls.length - 1] < 60) await sleep(60);
     calls.push(Date.now());
     const res = await fetch(url, { headers: { "X-Riot-Token": KEY } });
+    await yieldToSite(res);
     if (res.status === 429) {
       await sleep(Number(res.headers.get("retry-after") ?? 10) * 1000);
       continue;
