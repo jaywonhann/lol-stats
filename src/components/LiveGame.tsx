@@ -4,7 +4,23 @@ import { Icon, Panel } from "@/components/ui";
 import { getChampions, img } from "@/lib/ddragon";
 import { ddLocale, type Lang } from "@/lib/i18n";
 import type { Server } from "@/lib/lanes";
-import { activeGame } from "@/lib/riot";
+import { activeGame, soloEntry, type LeagueEntry } from "@/lib/riot";
+
+const TIER_COLOR: Record<string, string> = {
+  IRON: "#7a6f69", BRONZE: "#a0623a", SILVER: "#9fb0bf", GOLD: "#e2b54a", PLATINUM: "#4fb8a8",
+  EMERALD: "#2fbf71", DIAMOND: "#6fa8ff", MASTER: "#b660e0", GRANDMASTER: "#e05555", CHALLENGER: "#f2c94c",
+};
+const APEX = ["MASTER", "GRANDMASTER", "CHALLENGER"];
+const ROMAN: Record<string, string> = { I: "1", II: "2", III: "3", IV: "4" };
+
+// "D2 54LP", "M 312LP" 처럼 짧게. 영문 첫 글자 + 단계 (GM은 두 글자)
+function tierShort(e: LeagueEntry, ko: boolean) {
+  const ab = e.tier === "GRANDMASTER" ? "GM" : e.tier[0];
+  const step = APEX.includes(e.tier) ? "" : (ROMAN[e.rank] ?? "");
+  const games = e.wins + e.losses;
+  const wr = games ? Math.round((e.wins / games) * 100) : 0;
+  return { label: `${ab}${step} ${e.leaguePoints}LP`, detail: games ? (ko ? `${games}판 ${wr}%` : `${games}G ${wr}%`) : "" };
+}
 
 const QUEUE: Record<number, [string, string]> = {
   420: ["솔로랭크", "Ranked Solo/Duo"],
@@ -38,6 +54,9 @@ export default async function LiveGame({
   const secs = g.gameStartTime > 0 ? Math.max(0, Math.round((Date.now() - g.gameStartTime) / 1000)) : g.gameLength;
   const mins = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`;
   const queue = QUEUE[g.gameQueueConfigId]?.[ko ? 0 : 1] ?? (ko ? "게임" : "Game");
+  // 각 플레이어 솔로랭크 티어 (10번 호출, 10분 캐시. 실패한 사람은 비워 둬요)
+  const ranks = new Map<string, LeagueEntry | null>();
+  await Promise.all(g.participants.filter((p) => p.puuid).map(async (p) => ranks.set(p.puuid, await soloEntry(server, p.puuid))));
   const teams = [100, 200].map((id) => g.participants.filter((p) => p.teamId === id));
 
   return (
@@ -76,6 +95,17 @@ export default async function LiveGame({
                     )}
                     <span className="block truncate text-xs text-muted">{c?.name ?? ""}</span>
                   </span>
+                  {(() => {
+                    const e = ranks.get(p.puuid);
+                    if (!e) return <span className="w-20 shrink-0 text-right text-xs text-muted">{ko ? "언랭" : "Unranked"}</span>;
+                    const r = tierShort(e, ko);
+                    return (
+                      <span className="w-20 shrink-0 text-right leading-tight">
+                        <span className="block text-xs font-bold tabular-nums" style={{ color: TIER_COLOR[e.tier] ?? "inherit" }}>{r.label}</span>
+                        <span className="block text-[11px] tabular-nums text-muted">{r.detail}</span>
+                      </span>
+                    );
+                  })()}
                 </li>
               );
             })}

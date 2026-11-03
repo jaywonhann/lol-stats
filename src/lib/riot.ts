@@ -255,3 +255,13 @@ export async function activeGame(server: Server, puuid: string, tags?: string[])
     return null;
   }
 }
+
+// 인게임 칸에 쓰는 솔로랭크 티어 (없거나 실패하면 null)
+export async function soloEntry(server: Server, puuid: string): Promise<LeagueEntry | null> {
+  try {
+    const list = await get<LeagueEntry[]>(server, `/lol/league/v4/entries/by-puuid/${encodeURIComponent(puuid)}`, SHORT);
+    return list.find((e) => e.queueType === "RANKED_SOLO_5x5") ?? null;
+  } catch {
+    return null;
+  }
+}
