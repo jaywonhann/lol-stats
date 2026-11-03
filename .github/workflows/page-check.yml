@@ -34,5 +34,5 @@ jobs:
             lp=$(echo "$html" | grep -o '[A-Z][A-Z1-4]* [0-9]*LP' | head -10 | tr '\n' ',')
             echo "::notice title=summoner live game::${who//%/pct} ($srv): ${flag:-panel missing} / ranks: ${lp:-none}"
           else
-            echo "::notice title=summoner live game::no live pro found to test. pros-live said: $(echo "$j" | jq -c '{available,reason,total,checked,live:(.live|length)}')"
+            echo "::notice title=summoner live game::no live pro found to test. pros-live said: $(echo "$j" | jq -c '{available,reason,total,checked,live:(.live|length),lastStatus}')"
           fi

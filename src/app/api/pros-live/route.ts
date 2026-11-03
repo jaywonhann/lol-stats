@@ -16,6 +16,8 @@ const key = () =>
 let accounts: { at: number; list: Acc[] } | null = null;
 const seen = new Map<string, Seen>();
 let lastBatch = 0;
+// 마지막 확인 묶음의 응답 코드별 개수 (문제 진단용, 키 값은 담지 않아요)
+let lastStatus: Record<string, number> = {};
 
 async function loadAccounts(): Promise<Acc[]> {
   if (accounts && Date.now() - accounts.at < 30 * 60_000) return accounts.list;
@@ -46,6 +48,7 @@ export async function GET() {
     // 45초에 한 번만 새로 확인하고, 가장 오래 확인 안 한 계정부터
     if (Date.now() - lastBatch > 45_000) {
       lastBatch = Date.now();
+      lastStatus = {};
       const batch = [...list].sort((a, b) => (seen.get(a.puuid)?.at ?? 0) - (seen.get(b.puuid)?.at ?? 0)).slice(0, BATCH);
       await Promise.all(
         batch.map(async (a) => {
@@ -53,6 +56,7 @@ export async function GET() {
             `https://${a.server}.api.riotgames.com/lol/spectator/v5/active-games/by-summoner/${a.puuid}`,
             { headers: { "X-Riot-Token": key()! }, cache: "no-store" },
           );
+          lastStatus[res.status] = (lastStatus[res.status] ?? 0) + 1;
           if (res.status === 401 || res.status === 403) throw new Error("key");
           if (res.status === 200) {
             const g = (await res.json()) as {
@@ -73,7 +77,7 @@ export async function GET() {
     });
     const checked = list.filter((a) => Date.now() - (seen.get(a.puuid)?.at ?? 0) < FRESH_MS).length;
     return NextResponse.json(
-      { available: true, total: list.length, checked, live, at: new Date().toISOString() },
+      { available: true, total: list.length, checked, live, lastStatus, at: new Date().toISOString() },
       { headers: { "Cache-Control": "public, s-maxage=45, stale-while-revalidate=30" } },
     );
   } catch (e) {
