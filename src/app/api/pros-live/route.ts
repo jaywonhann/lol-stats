@@ -27,10 +27,13 @@ async function loadAccounts(): Promise<Acc[]> {
   if (!res.ok) return accounts?.list ?? [];
   const data = (await res.json()) as {
     builds: { who: string; label: string; kind: string; s: string }[];
-    accounts: Record<string, { puuid: string }>;
+    accounts: Record<string, { puuid: string; ok?: boolean }>;
   };
   const meta = new Map(data.builds.map((b) => [`${b.s}|${b.who}`, b]));
-  const list: Acc[] = Object.entries(data.accounts).flatMap(([k, v]) => {
+  // 수집기가 지금 키로 확인한(ok) 계정만 써요. 예전 키의 계정 ID는 Riot이 400으로 거절해요
+  const entries = Object.entries(data.accounts);
+  const checkedOk = entries.some(([, v]) => v.ok !== undefined);
+  const list: Acc[] = entries.filter(([, v]) => !checkedOk || v.ok).flatMap(([k, v]) => {
     const [server, who] = [k.split("|")[0], k.slice(k.indexOf("|") + 1)];
     const m = meta.get(k);
     return v?.puuid ? [{ server, who, puuid: v.puuid, label: m?.label ?? who, kind: m?.kind ?? "pro" }] : [];

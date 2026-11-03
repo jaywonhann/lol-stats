@@ -66,10 +66,14 @@ const TAG = { kr: "KR1", na1: "NA1", euw1: "EUW" };
 const SERVER_OF = { KR: "kr", NA: "na1", EUW: "euw1" };
 let lookups = 0;
 
-async function account(server, riotId) {
+// valid: 지금 키로 받은 마스터+ 명단. Riot 앱 키가 바뀌면 예전에 저장한 puuid 가 통하지 않아서(400),
+// 명단에 없는 저장 puuid 는 3일이 지나면 다시 조회합니다.
+async function account(server, riotId, valid) {
   const k = `${server}|${riotId}`;
   const c = db.accounts[k];
-  if (c && (c.puuid || Date.now() - c.at < 3 * 86_400_000)) return c.puuid ?? null;
+  const fresh = c && Date.now() - c.at < 3 * 86_400_000;
+  if (c?.puuid && (valid?.has(c.puuid) || fresh)) return c.puuid;
+  if (c && !c.puuid && fresh) return null;
   if (lookups >= LOOKUPS) return null;
   lookups++;
   const [name, tag] = riotId.split("#");
@@ -186,7 +190,10 @@ for (const server of Object.keys(SERVERS)) {
 const known = [];
 for (const p of pros) {
   if (!SERVERS[p.server]) continue;
-  const puuid = await account(p.server, p.riotId);
+  const puuid = await account(p.server, p.riotId, ladder[p.server].set);
+  // 사이트의 '프로 라이브'는 ok 표시된 계정만 확인해요 (지금 키로 확인된 계정)
+  const acc = db.accounts[`${p.server}|${p.riotId}`];
+  if (acc) acc.ok = !!puuid && (!!p.manual || ladder[p.server].set.has(puuid));
   // data/pros.json 에 직접 넣은 계정은 그대로 믿어요
   if (!puuid || (!p.manual && !ladder[p.server].set.has(puuid))) continue;
   if (!known.some((x) => x.puuid === puuid)) known.push({ puuid, server: p.server, who: p.riotId, label: p.label, kind: p.kind });
