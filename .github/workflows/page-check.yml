@@ -20,7 +20,7 @@ jobs:
             imgs="$imgs | $p $(curl -s -o /dev/null -w '%{http_code} %{content_type} %{size_download}' "$SITE$p")"
           done
           echo "::notice title=share images::$imgs"
-          pros=$(curl -s "$SITE/champions/Jinx" | grep -o 'builds from pros and challengers\|빌드</h2>' | head -1)
+          pros=$(curl -s "$SITE/champions/Riven" | grep -o 'builds from pros and challengers\|빌드</h2>' | head -1)
           echo "::notice title=champion pro builds::${pros:-panel missing}"
           # 지금 게임 중인 프로 한 명을 찾아 소환사 페이지의 인게임 칸을 확인해요
           who=""; srv=""
@@ -34,7 +34,8 @@ jobs:
             html=$(curl -s "$SITE/summoner?id=$enc&s=$srv")
             flag=$(echo "$html" | grep -o 'In game now\|지금 게임 중' | head -1)
             lp=$(echo "$html" | grep -o '[A-Z][A-Z1-4]* [0-9]*LP' | head -10 | tr '\n' ',')
-            echo "::notice title=summoner live game::${who//%/pct} ($srv): ${flag:-panel missing} / ranks: ${lp:-none}"
+            err=$(echo "$html" | grep -o 'role="alert"[^<]*<' | head -1)
+            echo "::notice title=summoner live game::${who//%/pct} ($srv): ${flag:-panel missing} / ranks: ${lp:-none} / error: ${err:-none} / bytes: ${#html}"
           else
             echo "::notice title=summoner live game::no live pro found to test. pros-live said: $(echo "$j" | jq -c '{available,reason,total,checked,live:(.live|length),lastStatus}')"
           fi
