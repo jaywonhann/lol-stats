@@ -5,6 +5,8 @@ import { Icon, Panel, Tabs, TierBadge, WinRate, pct } from "@/components/ui";
 import TrendChart from "@/components/TrendChart";
 import WinRateGrid from "@/components/WinRateGrid";
 import HiddenTips from "@/components/HiddenTips";
+import ChampionPros from "@/components/ChampionPros";
+import { Suspense } from "react";
 import MultiLineChart from "@/components/MultiLineChart";
 import { buildSeries, dayLabel, loadDaily, WINDOW } from "@/lib/daily";
 import {
@@ -458,6 +460,9 @@ export default async function ChampionPage({ params, searchParams }: Props) {
           </p>
         </Panel>
       )}
+      <Suspense fallback={null}>
+        <ChampionPros champKey={champion.key} champName={champion.name} lane={lane} lang={lang} version={version} items={items} trees={trees} spells={spells} />
+      </Suspense>
     </div>
   );
 }
