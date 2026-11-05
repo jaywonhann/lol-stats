@@ -1,0 +1,23 @@
+name: 속도 점검
+# 페이지마다 서버가 응답하는 데 걸리는 시간을 잽니다 (시크릿 없음). 두 번째 값은 같은 페이지를 다시 열었을 때.
+on:
+  workflow_dispatch:
+    inputs:
+      site:
+        description: 점검할 사이트 주소
+        default: https://livelol.onrender.com
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          SITE=${{ inputs.site || 'https://livelol.onrender.com' }}
+          curl -s -o /dev/null -m 120 "$SITE/robots.txt"
+          out=""
+          for p in / /tier "/tier?lane=top" "/tier?rank=master" /duo /aram /champions/Jinx /champions/Ahri /items /matchup /meta /trends /ranking /pros /tools; do
+            a=$(curl -s -o /dev/null -m 60 -w '%{time_starttransfer}/%{time_total}' "$SITE$p")
+            b=$(curl -s -o /dev/null -m 60 -w '%{time_total}' "$SITE$p")
+            r=$(curl -s -o /dev/null -m 60 -H 'RSC: 1' -w '%{time_total}' "$SITE$p")
+            out="$out | $p $a $b rsc $r"
+          done
+          echo "::notice title=speed::$out"
