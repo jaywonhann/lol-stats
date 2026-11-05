@@ -98,16 +98,15 @@ export function loadRealData(filter: Filter): Map<string, PatchData> {
     return hit.data;
   }
 
-  const byPatch = new Map<string, PatchData[]>();
+  // 무료 서버 메모리가 작아서 파일을 하나씩 읽어 바로 합쳐요 (한꺼번에 다 읽어 두지 않게)
+  const acc = new Map<string, PatchData>();
   for (const f of files) {
     const d = readJson<PatchData>(f);
-    byPatch.set(d.patch, [...(byPatch.get(d.patch) ?? []), d]);
+    const prev = acc.get(d.patch);
+    acc.set(d.patch, prev ? merge([prev, d]) : d);
   }
   const out = new Map<string, PatchData>();
-  for (const [patch, list] of byPatch) {
-    const d = merge(list);
-    if (d.matches >= MIN_PATCH_MATCHES) out.set(patch, d);
-  }
+  for (const [patch, d] of acc) if (d.matches >= MIN_PATCH_MATCHES) out.set(patch, d);
   // 무료 서버 메모리(512MB)가 작아서 최근에 쓴 2개(서버·랭크 조합)만 기억해요
   cache.delete(key);
   cache.set(key, { stamp, data: out });

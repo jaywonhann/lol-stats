@@ -42,20 +42,28 @@ const cmpPatch = (a: string, b: string) => {
 };
 
 // 3개 서버를 합친 최신 패치 데이터 (게임이 너무 적으면 직전 패치까지 합칩니다)
-export function loadAram(): { patch: string | null; updatedAt: string | null; matches: Record<string, number>; champs: Record<string, AramChamp> } {
-  const files: AramFile[] = [];
+type AramData = { patch: string | null; updatedAt: string | null; matches: Record<string, number>; champs: Record<string, AramChamp> };
+let aramCache: { stamp: string; data: AramData } | null = null;
+
+export function loadAram(): AramData {
+  // 파일 이름이 패치 번호라서, JSON을 열기 전에 필요한 패치만 고를 수 있어요
+  const files: { file: string; patch: string }[] = [];
   for (const s of SERVERS) {
     const dir = path.join(ROOT, s);
     if (!fs.existsSync(dir)) continue;
-    for (const f of fs.readdirSync(dir)) if (/^\d+\.\d+\.json$/.test(f)) files.push(JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")));
+    for (const f of fs.readdirSync(dir)) if (/^\d+\.\d+\.json$/.test(f)) files.push({ file: path.join(dir, f), patch: f.slice(0, -5) });
   }
+  const stamp = files.map((f) => `${f.file}:${fs.statSync(f.file).mtimeMs}`).join("|");
+  if (aramCache?.stamp === stamp) return aramCache.data;
   const patches = [...new Set(files.map((f) => f.patch))].sort(cmpPatch).reverse();
-  const out = { patch: patches[0] ?? null, updatedAt: null as string | null, matches: {} as Record<string, number>, champs: {} as Record<string, AramChamp> };
+  const out: AramData = { patch: patches[0] ?? null, updatedAt: null, matches: {}, champs: {} };
   let used = 0;
   for (const p of patches) {
     if (used >= 2 || (used === 1 && Object.values(out.matches).reduce((a, b) => a + b, 0) >= 1500)) break;
     used++;
-    for (const f of files.filter((x) => x.patch === p)) {
+    // 무료 서버 메모리가 작아서 파일을 하나씩 읽고 바로 합쳐요
+    for (const { file } of files.filter((x) => x.patch === p)) {
+      const f = JSON.parse(fs.readFileSync(file, "utf8")) as AramFile;
       if (!out.updatedAt || f.updatedAt > out.updatedAt) out.updatedAt = f.updatedAt;
       for (const [m, n] of Object.entries(f.matches)) out.matches[m] = (out.matches[m] ?? 0) + n;
       for (const [k, c] of Object.entries(f.champs)) {
@@ -67,6 +75,7 @@ export function loadAram(): { patch: string | null; updatedAt: string | null; ma
       }
     }
   }
+  aramCache = { stamp, data: out };
   return out;
 }
 
