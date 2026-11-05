@@ -17,7 +17,7 @@ const CACHE_MB = Number(process.env.PAGE_CACHE_MB ?? 40);
 const CACHEABLE = /^\/(|tier|duo|aram|aram\/[^/]+|champions\/[^/]+|items|matchup|meta|trends|ranking|pros|tools|predict|faq|community|privacy)$/;
 const pageCache = new Map(); // key -> { at, status, headers, body }
 let cacheBytes = 0;
-const ttl = (pathname) => (pathname === "/" || pathname === "/pros" ? 3 : 10) * 60_000;
+const ttl = (pathname) => (pathname === "/" || pathname === "/pros" ? 5 : 30) * 60_000;
 const cookieOf = (req, name) => (req.headers.cookie ?? "").match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`))?.[1] ?? "";
 function cacheKey(req) {
   if (req.method !== "GET") return null;
@@ -26,14 +26,15 @@ function cacheKey(req) {
   const h = req.headers;
   return [
     req.url,
-    cookieOf(req, "lang"),
-    cookieOf(req, "server"),
+    // 사이트와 같은 규칙으로 정리 (쿠키가 없으면 영어·KR)
+    cookieOf(req, "lang") === "ko" ? "ko" : "en",
+    ["kr", "na1", "euw1"].includes(cookieOf(req, "server")) ? cookieOf(req, "server") : "kr",
     /gzip/.test(h["accept-encoding"] ?? "") ? "gz" : "",
     h["rsc"] ?? "",
     h["next-router-prefetch"] ?? "",
     h["next-router-segment-prefetch"] ?? "",
-    h["next-router-state-tree"] ?? "",
-    h["next-url"] ?? "",
+    // 레이아웃이 맨 위 하나뿐이라, 페이지 이동 응답은 어느 페이지에서 왔든 같아요.
+    // 그래서 지금 보고 있는 페이지 정보(next-router-state-tree)는 열쇠에서 뺍니다.
   ].join("\u0001");
 }
 function remember(key, pathname, res, chunks) {
@@ -122,4 +123,24 @@ createServer((req, res) => {
   }
   // 기다리다 접속을 끊은 요청은 건너뛰어요
   queue.push(() => (req.destroyed || res.destroyed ? (queue.shift()?.(), undefined) : run(req, res)));
-}).listen(port, "0.0.0.0", () => console.log(`> Ready on port ${port} (pages ${MAX} at a time)`));
+}).listen(port, "0.0.0.0", () => {
+  console.log(`> Ready on port ${port} (pages ${MAX} at a time)`);
+  setTimeout(warm, 5_000);
+});
+
+// 서버가 켜지면 자주 가는 페이지를 미리 한 번씩 만들어 둬요 (한 번에 하나씩, 방문자 요청과 같이 줄 서요)
+const WARM = ["/", "/tier", "/tier?lane=top", "/tier?lane=jungle", "/tier?lane=bottom", "/tier?lane=support", "/aram", "/duo", "/meta"];
+async function warm() {
+  if (process.env.PAGE_CACHE_MB === "0") return;
+  for (const lang of ["ko", "en"])
+    for (const p of WARM)
+      for (const rsc of [false, true]) {
+        try {
+          await fetch(`http://127.0.0.1:${port}${p}`, {
+            headers: { cookie: `lang=${lang}`, "accept-encoding": "gzip", ...(rsc ? { rsc: "1" } : {}) },
+          }).then((r) => r.arrayBuffer());
+        } catch {
+          // 미리 만들기는 실패해도 괜찮아요
+        }
+      }
+}
