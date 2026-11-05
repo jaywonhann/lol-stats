@@ -101,8 +101,13 @@ export function loadRealData(filter: Filter): Map<string, PatchData> {
   const files = tiers.flatMap((t) =>
     fs.readdirSync(path.join(dir, t)).filter((f) => f.endsWith(".json")).map((f) => path.join(dir, t, f)),
   );
-  const stamp = files.map((f) => `${f}:${fs.statSync(f).mtimeMs}`).join("|");
   const key = `${filter.server}/${filter.rank}`;
+  // 빌드 때 합쳐서 작게 줄여 둔 파일이 있으면 그걸 씁니다 (scripts/precompute.ts, 무료 서버 메모리 절약)
+  const slim = path.join(DERIVED, `real-${filter.server}-${filter.rank}.json`);
+  const useSlim = fs.existsSync(slim);
+  const stamp = useSlim
+    ? `${slim}:${fs.statSync(slim).mtimeMs}`
+    : files.map((f) => `${f}:${fs.statSync(f).mtimeMs}`).join("|");
   const hit = cache.get(key);
   if (hit?.stamp === stamp) {
     cache.delete(key);
@@ -110,6 +115,11 @@ export function loadRealData(filter: Filter): Map<string, PatchData> {
     return hit.data;
   }
 
+  if (useSlim) {
+    const out = new Map(readJson<PatchData[]>(slim).map((d) => [d.patch, d] as const));
+    remember(key, stamp, out);
+    return out;
+  }
   // 무료 서버 메모리가 작아서 파일을 하나씩 읽어 바로 합쳐요 (한꺼번에 다 읽어 두지 않게)
   const acc = new Map<string, PatchData>();
   for (const f of files) {
@@ -119,11 +129,30 @@ export function loadRealData(filter: Filter): Map<string, PatchData> {
   }
   const out = new Map<string, PatchData>();
   for (const [patch, d] of acc) if (d.matches >= MIN_PATCH_MATCHES) out.set(patch, d);
-  // 무료 서버 메모리(512MB)가 작아서 최근에 쓴 1개(서버·랭크 조합)만 기억해요
-  cache.delete(key);
-  cache.set(key, { stamp, data: out });
-  while (cache.size > 1) cache.delete(cache.keys().next().value!);
+  remember(key, stamp, out);
   return out;
+}
+
+// 무료 서버(512MB)라서 최근에 쓴 3개(서버·랭크 조합)만 기억해요
+function remember(key: string, stamp: string, data: Map<string, PatchData>) {
+  cache.delete(key);
+  cache.set(key, { stamp, data });
+  while (cache.size > 3) cache.delete(cache.keys().next().value!);
+}
+
+// 표본이 너무 적은(3게임 미만) 룬·아이템·상성 기록은 빼서 데이터를 1/3 크기로 줄여요. 화면에는 원래 안 나오는 것들이에요.
+export function slimPatch(d: PatchData, min = 3): PatchData {
+  const cut = (o?: Counts) => o && Object.fromEntries(Object.entries(o).filter(([, [g]]) => g >= min));
+  const champs: PatchData["champs"] = {};
+  for (const [k, c] of Object.entries(d.champs)) {
+    const t = { ...c } as Record<string, unknown>;
+    for (const key of ["runes", "spells", "starters", "core", "boots", "skills", "vs", "core4", "slots", "shards", "duo"] as const) {
+      const v = (c as Record<string, unknown>)[key];
+      if (v && typeof v === "object" && !Array.isArray(v)) t[key] = cut(v as Counts);
+    }
+    champs[k] = t as unknown as PatchData["champs"][string];
+  }
+  return { ...d, champs };
 }
 
 // 서버에 실제 수집 데이터가 하나라도 있는지만 가볍게 확인합니다 (JSON을 읽지 않아서 모든 페이지에서 써도 빨라요)
