@@ -7,14 +7,14 @@ services:
     region: oregon
     branch: main
     buildCommand: npm ci && NODE_OPTIONS=--max-old-space-size=350 npm run build
-    startCommand: NODE_OPTIONS=--max-old-space-size=200 node node_modules/next/dist/bin/next start
+    startCommand: NODE_OPTIONS=--max-old-space-size=200 node server.mjs
     # 수집 데이터만 바뀐 푸시로는 배포하지 않아요 (무료 빌드 시간이 한 달 500분이라서).
     # 데이터는 render-deploy.yml 이 하루 두 번 배포 훅으로 반영합니다.
     buildFilter:
       ignoredPaths:
         - data/**
         - promo/**
-    healthCheckPath: /
+    healthCheckPath: /robots.txt
     envVars:
       - key: NODE_VERSION
         value: "20.18.1"
