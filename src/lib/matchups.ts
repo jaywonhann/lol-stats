@@ -1,10 +1,13 @@
-import { loadRealData } from "@/lib/real";
-import type { Lane } from "@/lib/lanes";
+import { derived, loadRealData } from "./real";
+import type { Lane } from "./lanes";
 
 export type TopMatchup = { a: string; b: string; lane: Lane; games: number; wins: number };
 
 // 세 서버 최신 패치에서 표본이 많은 상성 조합 (a, b는 챔피언 key 숫자 문자열)
 export function topMatchups(minGames = 10): TopMatchup[] {
+  return derived(`top-matchups-${minGames}`, () => computeTopMatchups(minGames));
+}
+export function computeTopMatchups(minGames = 10): TopMatchup[] {
   const map = new Map<string, TopMatchup>();
   for (const server of ["kr", "na1", "euw1"] as const) {
     const real = loadRealData({ server, rank: "all" });

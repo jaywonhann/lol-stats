@@ -78,6 +78,18 @@ function merge(list: PatchData[]): PatchData {
 
 const cache = new Map<string, { stamp: string; data: Map<string, PatchData> }>();
 
+// 세 서버를 다 열어야 하는 합계(상성·듀오)는 빌드할 때 data/derived/ 에 미리 계산해 둬요 (scripts/precompute.ts).
+// 무료 서버(512MB)에서 요청마다 세 서버 데이터를 한꺼번에 읽으면 메모리가 넘쳐요. 파일이 없으면 그때 계산합니다.
+export const DERIVED = path.join(process.cwd(), "data", "derived");
+const derivedMem = new Map<string, unknown>();
+export function derived<T>(name: string, compute: () => T): T {
+  if (derivedMem.has(name)) return derivedMem.get(name) as T;
+  const file = path.join(DERIVED, `${name}.json`);
+  const value = fs.existsSync(file) ? (JSON.parse(fs.readFileSync(file, "utf8")) as T) : compute();
+  derivedMem.set(name, value);
+  return value;
+}
+
 // data/patches/{서버}/{랭크 구간}/{패치}.json. "전체"는 모든 구간(예전 수집분 포함)을 합칩니다.
 export function loadRealData(filter: Filter): Map<string, PatchData> {
   const dir = path.join(ROOT, filter.server);
@@ -391,7 +403,11 @@ export type QuickBuild = ReturnType<typeof quickBuild>;
 
 // 바텀 듀오 조합 순위: 3개 서버의 최근 2개 패치에서 원딜 기준으로 기록한 서포터 짝을 모읍니다
 export type DuoPair = { adc: string; sup: string; games: number; wins: number };
-export function realDuoPairs(rank: Filter["rank"], servers: Filter["server"][]): { pairs: DuoPair[]; patch?: string; games: number } {
+export type DuoResult = { pairs: DuoPair[]; patch?: string; games: number };
+export function realDuoPairs(rank: Filter["rank"], servers: Filter["server"][]): DuoResult {
+  return derived(`duo-${rank}-${servers.join("-")}`, () => computeDuoPairs(rank, servers));
+}
+export function computeDuoPairs(rank: Filter["rank"], servers: Filter["server"][]): DuoResult {
   const pairs = new Map<string, DuoPair>();
   let latest: string | undefined;
   let games = 0;

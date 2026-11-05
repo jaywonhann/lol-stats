@@ -41,3 +41,6 @@ yarn-error.log*
 next-env.d.ts
 /desktop/node_modules
 /desktop/dist
+
+# 빌드할 때 만드는 합계 (scripts/precompute.ts)
+/data/derived/
