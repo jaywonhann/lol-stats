@@ -17,7 +17,7 @@ services:
     healthCheckPath: /
     envVars:
       - key: NODE_VERSION
-        value: "22"
+        value: "20.18.1"
       - key: NODE_OPTIONS
         value: "--max-old-space-size=400"
       - key: RIOT_API_KEY
