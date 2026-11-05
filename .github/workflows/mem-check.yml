@@ -1,0 +1,25 @@
+name: 메모리 점검
+# Render 무료 서버(512MB)에서처럼 사이트를 띄우고, 페이지마다 서버 메모리(RSS)를 잽니다. 시크릿 없음.
+on:
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci && npm run build
+      - name: Start and measure
+        run: |
+          NODE_OPTIONS=--max-old-space-size=400 PORT=3999 npm start > server.log 2>&1 &
+          for i in $(seq 1 30); do curl -s -o /dev/null http://localhost:3999/robots.txt && break; sleep 1; done
+          rss() { ps -o rss= -C next-server | awk '{s+=$1} END {print int(s/1024)"MB"}'; }
+          out="start $(rss)"
+          for p in / /tier /duo /aram /champions/Jinx /meta /trends; do
+            t=$( { /usr/bin/time -f %e curl -s -o /dev/null -w '%{http_code}' "http://localhost:3999$p"; } 2>&1 | tr '\n' ' ')
+            out="$out | $p $t $(rss)"
+          done
+          echo "::notice title=memory::$out"
+          echo "::notice title=log::$(grep -iE 'error|memory|killed' server.log | head -5 | tr '\n' ' ' | cut -c1-900)"
