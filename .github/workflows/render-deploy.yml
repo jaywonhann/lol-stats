@@ -1,0 +1,19 @@
+name: Render 배포 (데이터 반영)
+# 수집 데이터 푸시로는 Render가 배포하지 않게 해 두었어요(빌드 시간 절약).
+# 그래서 하루 두 번 배포 훅을 불러 최신 데이터를 사이트에 반영합니다.
+# 필요한 것: GitHub 시크릿 RENDER_DEPLOY_HOOK (Render > livelol > Settings > Deploy Hook 주소)
+on:
+  schedule:
+    - cron: "40 1,13 * * *"
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call deploy hook
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then echo "::warning::RENDER_DEPLOY_HOOK 시크릿이 없어서 건너뜁니다."; exit 0; fi
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$HOOK")
+          echo "::notice::Render 배포 요청 결과 $code"

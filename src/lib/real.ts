@@ -92,7 +92,11 @@ export function loadRealData(filter: Filter): Map<string, PatchData> {
   const stamp = files.map((f) => `${f}:${fs.statSync(f).mtimeMs}`).join("|");
   const key = `${filter.server}/${filter.rank}`;
   const hit = cache.get(key);
-  if (hit?.stamp === stamp) return hit.data;
+  if (hit?.stamp === stamp) {
+    cache.delete(key);
+    cache.set(key, hit);
+    return hit.data;
+  }
 
   const byPatch = new Map<string, PatchData[]>();
   for (const f of files) {
@@ -104,7 +108,10 @@ export function loadRealData(filter: Filter): Map<string, PatchData> {
     const d = merge(list);
     if (d.matches >= MIN_PATCH_MATCHES) out.set(patch, d);
   }
+  // 무료 서버 메모리(512MB)가 작아서 최근에 쓴 2개(서버·랭크 조합)만 기억해요
+  cache.delete(key);
   cache.set(key, { stamp, data: out });
+  while (cache.size > 2) cache.delete(cache.keys().next().value!);
   return out;
 }
 
