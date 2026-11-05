@@ -11,6 +11,19 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
+      - name: Burst (many pages at once, like a real visitor)
+        run: |
+          SITE=${{ inputs.site || 'https://livelol.onrender.com' }}
+          curl -s -o /dev/null -m 120 "$SITE/"
+          for round in 1 2; do
+            for s in kr na1 euw1; do
+              for p in / /tier "/tier?rank=master" "/tier?rank=diamond" /duo /aram /champions/Jinx "/champions/Ahri?rank=master" /items /matchup /meta /trends /ranking /pros; do
+                (curl -s -o /dev/null -b "server=$s" -m 90 -w '%{http_code}\n' "$SITE$p" >> codes.txt) &
+              done
+            done
+            wait
+          done
+          echo "::notice title=burst::$(sort codes.txt | uniq -c | tr '\n' ' ')"
       - name: Fetch pages
         run: |
           SITE=${{ inputs.site || 'https://livelol.onrender.com' }}
