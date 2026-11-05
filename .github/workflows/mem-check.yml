@@ -22,8 +22,8 @@ jobs:
           rss() { ps aux | grep next-server | grep -v grep | awk '{s+=$6} END {print int(s/1024)"MB"}'; }
           out="node $(node -v) start $(rss)"
           for p in / /tier /duo /aram /champions/Jinx "/tier?s=na1" "/tier?s=euw1" "/champions/Ahri?s=euw1" /meta /trends /aram/Jinx /tier/opengraph-image /; do
-            r=$(curl -s -o /dev/null -m 60 -w '%{http_code} %{time_total}s' "http://localhost:3999$p")
+            r=$(curl -s -o /dev/null -m 60 -w '%{http_code} %{time_total}s' "http://localhost:3999$p" || echo " curl$?")
             out="$out | $p $r $(rss)"
           done
           echo "::notice title=memory::$out"
-          echo "::notice title=log::$(grep -iE 'error|memory|killed|⨯' server.log | head -5 | tr '\n' ' ' | cut -c1-900)"
+          echo "::notice title=log::$(grep -iE 'error|memory|killed|⨯|heap' server.log | sort | uniq -c | head -6 | tr '\n' ' ' | cut -c1-900)"
