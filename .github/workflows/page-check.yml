@@ -3,13 +3,17 @@ name: 페이지 점검
 # 결과는 알림(notice)으로 남겨요. 단계당 알림이 10개까지라 한 줄에 여러 개를 묶어요.
 on:
   workflow_dispatch:
+    inputs:
+      site:
+        description: 점검할 사이트 주소
+        default: https://livelol.onrender.com
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
       - name: Fetch pages
         run: |
-          SITE=https://lollive.vercel.app
+          SITE=${{ inputs.site || 'https://livelol.onrender.com' }}
           pages=""
           for p in / /tier /duo /aram "/aram/Jinx?mode=aram" /champions/Jinx "/summoner?id=Hide%20on%20bush%23KR1&s=kr"; do
             pages="$pages | $p $(curl -s -o /dev/null -w '%{http_code}' "$SITE$p")"
