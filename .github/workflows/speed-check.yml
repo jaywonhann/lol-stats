@@ -12,12 +12,12 @@ jobs:
     steps:
       - run: |
           SITE=${{ inputs.site || 'https://livelol.onrender.com' }}
-          curl -s -o /dev/null -m 120 "$SITE/robots.txt"
+          curl -s -o /dev/null -m 120 "$SITE/robots.txt" || true
           out=""
           for p in / /tier "/tier?lane=top" "/tier?rank=master" /duo /aram /champions/Jinx /champions/Ahri /items /matchup /meta /trends /ranking /pros /tools; do
-            a=$(curl -s -o /dev/null -m 60 -w '%{time_starttransfer}/%{time_total}' "$SITE$p")
-            b=$(curl -s -o /dev/null -m 60 -w '%{time_total}' "$SITE$p")
-            r=$(curl -s -o /dev/null -m 60 -H 'RSC: 1' -w '%{time_total}' "$SITE$p")
+            a=$(curl -s -o /dev/null -m 60 -w '%{http_code} %{time_starttransfer}/%{time_total}' "$SITE$p" || true)
+            b=$(curl -s -o /dev/null -m 60 -w '%{time_total}' "$SITE$p" || true)
+            r=$(curl -s -o /dev/null -m 60 -H 'RSC: 1' -w '%{time_total}' "$SITE$p" || true)
             out="$out | $p $a $b rsc $r"
           done
           echo "::notice title=speed::$out"
