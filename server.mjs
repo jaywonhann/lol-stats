@@ -11,12 +11,86 @@ const MAX_QUEUE = Number(process.env.MAX_QUEUE ?? 100);
 const app = next({ dev: false, hostname: "0.0.0.0", port });
 const handle = app.getRequestHandler();
 
+// 한 번 만든 페이지는 잠깐 저장해 두고 같은 요청이 오면 바로 보내요 (데이터는 배포할 때만 바뀌어요).
+// 언어·서버 쿠키와 Next가 페이지 이동 때 보내는 헤더까지 같아야 같은 요청으로 봐요.
+const CACHE_MB = Number(process.env.PAGE_CACHE_MB ?? 40);
+const CACHEABLE = /^\/(|tier|duo|aram|aram\/[^/]+|champions\/[^/]+|items|matchup|meta|trends|ranking|pros|tools|predict|faq|community|privacy)$/;
+const pageCache = new Map(); // key -> { at, status, headers, body }
+let cacheBytes = 0;
+const ttl = (pathname) => (pathname === "/" || pathname === "/pros" ? 3 : 10) * 60_000;
+const cookieOf = (req, name) => (req.headers.cookie ?? "").match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`))?.[1] ?? "";
+function cacheKey(req) {
+  if (req.method !== "GET") return null;
+  const pathname = (req.url ?? "/").split("?")[0];
+  if (!CACHEABLE.test(pathname)) return null;
+  const h = req.headers;
+  return [
+    req.url,
+    cookieOf(req, "lang"),
+    cookieOf(req, "server"),
+    /gzip/.test(h["accept-encoding"] ?? "") ? "gz" : "",
+    h["rsc"] ?? "",
+    h["next-router-prefetch"] ?? "",
+    h["next-router-segment-prefetch"] ?? "",
+    h["next-router-state-tree"] ?? "",
+    h["next-url"] ?? "",
+  ].join("\u0001");
+}
+function remember(key, pathname, res, chunks) {
+  const headers = res.getHeaders();
+  if (res.statusCode !== 200 || headers["set-cookie"]) return;
+  const body = Buffer.concat(chunks);
+  if (body.length > 3_000_000) return;
+  delete headers["transfer-encoding"];
+  delete headers["connection"];
+  headers["content-length"] = String(body.length);
+  const old = pageCache.get(key);
+  if (old) cacheBytes -= old.body.length;
+  pageCache.delete(key);
+  pageCache.set(key, { at: Date.now(), ttl: ttl(pathname), status: res.statusCode, headers, body });
+  cacheBytes += body.length;
+  while (cacheBytes > CACHE_MB * 1_000_000 && pageCache.size) {
+    const [k, v] = pageCache.entries().next().value;
+    pageCache.delete(k);
+    cacheBytes -= v.body.length;
+  }
+}
+function fromCache(key, res) {
+  const hit = key && pageCache.get(key);
+  if (!hit) return false;
+  if (Date.now() - hit.at > hit.ttl) {
+    pageCache.delete(key);
+    cacheBytes -= hit.body.length;
+    return false;
+  }
+  res.writeHead(hit.status, { ...hit.headers, "x-page-cache": "hit" });
+  res.end(hit.body);
+  return true;
+}
+function record(key, req, res) {
+  const chunks = [];
+  const write = res.write.bind(res);
+  const end = res.end.bind(res);
+  res.write = (chunk, ...rest) => {
+    if (chunk) chunks.push(Buffer.from(chunk, typeof rest[0] === "string" ? rest[0] : undefined));
+    return write(chunk, ...rest);
+  };
+  res.end = (chunk, ...rest) => {
+    if (chunk && typeof chunk !== "function") chunks.push(Buffer.from(chunk, typeof rest[0] === "string" ? rest[0] : undefined));
+    return end(chunk, ...rest);
+  };
+  res.on("finish", () => remember(key, (req.url ?? "/").split("?")[0], res, chunks));
+}
+
 let active = 0;
 const queue = [];
 const light = (url = "") =>
   url.startsWith("/_next/static") || url.startsWith("/emblems/") || /\.(png|jpg|svg|ico|txt|webp|css|js|woff2?)$/.test(url.split("?")[0]);
 
 function run(req, res) {
+  const key = cacheKey(req);
+  if (fromCache(key, res)) return void queue.shift()?.();
+  if (key) record(key, req, res);
   active++;
   let done = false;
   const finish = () => {
@@ -38,6 +112,8 @@ function run(req, res) {
 await app.prepare();
 createServer((req, res) => {
   if (light(req.url)) return void handle(req, res);
+  // 저장해 둔 페이지는 줄을 안 서고 바로 보내요
+  if (fromCache(cacheKey(req), res)) return;
   if (active < MAX) return run(req, res);
   if (queue.length >= MAX_QUEUE) {
     res.statusCode = 503;

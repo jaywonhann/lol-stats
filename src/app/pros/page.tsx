@@ -14,14 +14,19 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getLang()) === "ko" ? "프로 핫한 클립" : "Hot pro clips" };
 }
 
+// 유튜브·전적 불러오기가 늦어지면 페이지가 한참 멈춰서, 6초가 지나면 그 칸은 비워 두고 먼저 보여 줘요
+function within<T>(p: Promise<T>, fallback: T, ms = 6000): Promise<T> {
+  return Promise.race([p.catch(() => fallback), new Promise<T>((r) => setTimeout(() => r(fallback), ms))]);
+}
+
 export default async function ProsPage() {
   const lang = await getLang();
   const ko = lang === "ko";
   const [{ version, champions }, recent, streams, videos] = await Promise.all([
     getChampions(ddLocale(lang)),
-    recentProGames(),
-    liveStreams(lang).catch(() => []),
-    recentVideos(lang).catch(() => []),
+    within(recentProGames(), []),
+    within(liveStreams(lang), []),
+    within(recentVideos(lang), []),
   ]);
   const ytLive = `https://www.youtube.com/results?search_query=${encodeURIComponent(ko ? "리그오브레전드 라이브" : "league of legends live")}&sp=EgJAAQ%253D%253D`;
   const champs = Object.fromEntries(

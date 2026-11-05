@@ -28,6 +28,7 @@ export async function proBuilds(champKey: string, lane?: string, n = 12): Promis
   try {
     const res = await fetch("https://raw.githubusercontent.com/jaywonhann/lol-stats/pro-data/builds.json", {
       next: { revalidate: 600 },
+      signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return { list: [], updatedAt: null };
     const data = (await res.json()) as { builds: ProBuild[]; updatedAt?: string };
@@ -46,6 +47,7 @@ export async function recentProGames(days = 7, n = 30) {
   try {
     const res = await fetch("https://raw.githubusercontent.com/jaywonhann/lol-stats/pro-data/builds.json", {
       next: { revalidate: 600 },
+      signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return [];
     const data = (await res.json()) as { builds: ProBuild[] };
@@ -73,6 +75,7 @@ export async function proStyles(): Promise<ProStyle[]> {
   try {
     const res = await fetch("https://raw.githubusercontent.com/jaywonhann/lol-stats/pro-data/builds.json", {
       next: { revalidate: 600 },
+      signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return [];
     const data = (await res.json()) as { builds: ProBuild[] };
