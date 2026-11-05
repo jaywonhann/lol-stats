@@ -19,7 +19,7 @@ services:
       - key: NODE_VERSION
         value: "20.18.1"
       - key: NODE_OPTIONS
-        value: "--max-old-space-size=300"
+        value: "--max-old-space-size=240"
       - key: RIOT_API_KEY
         sync: false
       - key: FEEDBACK_TOKEN
