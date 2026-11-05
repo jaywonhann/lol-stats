@@ -17,11 +17,11 @@ jobs:
       - run: npm ci && npm run build
       - name: Start and measure
         run: |
-          NODE_OPTIONS=--max-old-space-size=400 PORT=3999 npm start > server.log 2>&1 &
+          NODE_OPTIONS=--max-old-space-size=256 PORT=3999 node node_modules/next/dist/bin/next start > server.log 2>&1 &
           for i in $(seq 1 30); do curl -s -o /dev/null http://localhost:3999/robots.txt && break; sleep 1; done
-          rss() { ps aux | grep -E 'next|node' | grep -v grep | awk '{s+=$6} END {print int(s/1024)"MB"}'; }
+          rss() { ps aux | grep next-server | grep -v grep | awk '{s+=$6} END {print int(s/1024)"MB"}'; }
           out="node $(node -v) start $(rss)"
-          for p in / /tier /duo /aram /champions/Jinx /meta /trends; do
+          for p in / /tier /duo /aram /champions/Jinx "/tier?s=na1" "/tier?s=euw1" "/champions/Ahri?s=euw1" /meta /trends /aram/Jinx /tier/opengraph-image /; do
             r=$(curl -s -o /dev/null -m 60 -w '%{http_code} %{time_total}s' "http://localhost:3999$p")
             out="$out | $p $r $(rss)"
           done

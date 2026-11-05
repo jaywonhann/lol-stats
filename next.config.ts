@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [{ source: "/download", destination: "/", permanent: false }];
   },
+  // 무료 서버(512MB)라서 페이지 캐시는 메모리 대신 디스크(.next/cache)에 둬요
+  cacheMaxMemorySize: 0,
   outputFileTracingIncludes: { "/**": ["./data/**/*"] },
 };
 
