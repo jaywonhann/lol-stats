@@ -11,6 +11,8 @@ import GrowthCard from "@/components/GrowthCard";
 import ProMatch from "@/components/ProMatch";
 import MatchList from "@/components/MatchList";
 import LiveGame from "@/components/LiveGame";
+import Achievements from "@/components/Achievements";
+import { badges, bestGame, rankVsLobby } from "@/lib/achievements";
 import { Suspense } from "react";
 import { growth } from "@/lib/growth";
 import { rateMatch, scoreReport } from "@/lib/score";
@@ -638,6 +640,13 @@ function Analysis({
   return (
     <>
       {profileHeader(glance)}
+      <Achievements
+        badges={badges(result.matches, account.puuid)}
+        best={bestGame(result.matches, account.puuid)}
+        ranks={rankVsLobby(result.matches, account.puuid)}
+        lang={lang}
+        version={version}
+      />
       <div className="grid items-start gap-4 lg:grid-cols-[19rem_minmax(0,1fr)]">
         <aside className="space-y-4">
           {positionsPanel}

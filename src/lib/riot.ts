@@ -104,6 +104,12 @@ export type Participant = {
   summoner1Id?: number;
   summoner2Id?: number;
   perks?: { styles: { style: number; selections: { perk: number }[] }[] };
+  // 업적 배지용 (Riot 경기 기록에 원래 있는 값들)
+  pentaKills?: number;
+  quadraKills?: number;
+  largestKillingSpree?: number;
+  firstBloodKill?: boolean;
+  challenges?: { soloKills?: number; teamDamagePercentage?: number };
 };
 
 export type Match = {
