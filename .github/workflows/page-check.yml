@@ -28,6 +28,9 @@ jobs:
         run: |
           SITE=${{ inputs.site || 'https://livelol.onrender.com' }}
           pages=""
+          # 502일 때 누가 막는지(Render 안내 페이지인지) 제목과 헤더 몇 줄을 남겨요
+          curl -s --max-time 90 -D h.txt -o b.html "$SITE/tier"
+          echo "::notice title=tier response::$(head -1 h.txt) $(grep -i '^x-render\|^server\|^rndr' h.txt | tr '\r\n' '  ') title=$(grep -o '<title>[^<]*' b.html | head -1)"
           for p in / /tier /duo /aram "/aram/Jinx?mode=aram" /champions/Jinx "/summoner?id=Hide%20on%20bush%23KR1&s=kr"; do
             pages="$pages | $p $(curl -s --max-time 90 -o /dev/null -w '%{http_code}' "$SITE$p")"
           done
