@@ -8,7 +8,7 @@ import { loadAram, MIN_ARAM_GAMES } from "@/lib/aram";
 
 export const revalidate = 86400;
 
-const PAGES = ["", "/tier", "/trends", "/meta", "/champions", "/matchup", "/items", "/summoner", "/ranking", "/aram", "/duo", "/pros", "/predict", "/tools", "/community", "/faq"];
+const PAGES = ["", "/tier", "/trends", "/meta", "/champions", "/matchup", "/items", "/summoner", "/ranking", "/aram?mode=mayhem", "/aram?mode=aram", "/duo", "/pros", "/predict", "/tools", "/community", "/faq"];
 
 // 실제 데이터에서 표본이 많은 상성 조합 상위 N개 ("야스오 vs 요네" 같은 검색 유입용)
 function matchupUrls(byKey: Map<string, string>, limit = 400): string[] {
@@ -60,9 +60,12 @@ async function entries(): Promise<MetadataRoute.Sitemap> {
     return [
       ...pages,
       ...champions.map((c) => ({ url: `${SITE}/champions/${c.id}`, lastModified: now, changeFrequency: "daily" as const, priority: 0.6 })),
-      ...champions
-        .filter((c) => Math.max(aram.champs[`mayhem:${c.key}`]?.games ?? 0, aram.champs[`aram:${c.key}`]?.games ?? 0) >= MIN_ARAM_GAMES)
-        .map((c) => ({ url: `${SITE}/aram/${c.id}`, lastModified: now, changeFrequency: "daily" as const, priority: 0.6 })),
+      // 칼바람·증바람은 페이지가 ?mode= 로 갈려서(canonical도 그 주소) 모드마다 따로 올려요
+      ...(["mayhem", "aram"] as const).flatMap((mode) =>
+        champions
+          .filter((c) => (aram.champs[`${mode}:${c.key}`]?.games ?? 0) >= MIN_ARAM_GAMES)
+          .map((c) => ({ url: `${SITE}/aram/${c.id}?mode=${mode}`, lastModified: now, changeFrequency: "daily" as const, priority: 0.6 })),
+      ),
       ...offLanes(champions).map((q) => ({ url: `${SITE}/champions/${q}`, lastModified: now, changeFrequency: "daily" as const, priority: 0.55 })),
       ...matchupUrls(new Map(champions.map((c) => [c.key, c.id]))).map((q) => ({
         url: `${SITE}/matchup?${q.replaceAll("&", "&amp;")}`,

@@ -16,7 +16,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const mode = parseMode((await searchParams).mode, !!loadAram().matches.mayhem);
   const name = modeName(mode, ko);
   return {
-    title: ko ? `${name} 챔피언 티어 · 템트리 · 증강 승률` : `${name} tier list, builds and augments`,
+    title: ko ? `${name} 챔피언 티어 · 템트리 · ${mode === "mayhem" ? "증강 승률" : "룬"}` : `${name} tier list, builds${mode === "mayhem" ? " and augments" : " and runes"}`,
     description: ko
       ? `실제 ${name} 게임으로 집계한 챔피언 승률 순위와 챔피언별 템트리, 증강 추천.`
       : `Champion win rates from real ${name} games, with item builds and augment picks for every champion.`,
