@@ -646,6 +646,8 @@ function Analysis({
         ranks={rankVsLobby(result.matches, account.puuid)}
         lang={lang}
         version={version}
+        shareUrl={`/summoner?id=${encodeURIComponent(`${account.gameName}#${account.tagLine}`)}&s=${server}`}
+        shareTitle={t.metaTitle(`${account.gameName}#${account.tagLine}`)}
       />
       <div className="grid items-start gap-4 lg:grid-cols-[19rem_minmax(0,1fr)]">
         <aside className="space-y-4">

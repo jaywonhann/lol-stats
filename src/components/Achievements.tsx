@@ -1,12 +1,13 @@
 import { Icon, Panel } from "@/components/ui";
 import { img } from "@/lib/ddragon";
+import ShareButton from "@/components/ShareButton";
 import type { Badge, BestGame, Rank } from "@/lib/achievements";
 import { numLocale, timeAgo, type Lang } from "@/lib/i18n";
 
 // 전적 검색 첫 화면의 "내 업적": 딴 배지, 최고의 한 판, 같이 게임한 사람들 사이 순위를 한 칸에 모아요.
 export default function Achievements({
-  badges, best, ranks, lang, version,
-}: { badges: Badge[]; best: BestGame | null; ranks: Rank[]; lang: Lang; version: string | null }) {
+  badges, best, ranks, lang, version, shareUrl, shareTitle,
+}: { badges: Badge[]; best: BestGame | null; ranks: Rank[]; lang: Lang; version: string | null; shareUrl?: string; shareTitle?: string }) {
   const ko = lang === "ko";
   const nl = numLocale(lang);
   const earned = badges.filter((b) => b.have >= b.need);
@@ -23,7 +24,13 @@ export default function Achievements({
 
   return (
     <Panel>
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-accent">{ko ? "내 업적" : "My achievements"}</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-accent">{ko ? "내 업적" : "My achievements"}</h2>
+        {/* 링크 미리보기 카드에도 딴 배지가 나와서, 친구에게 바로 자랑할 수 있어요 */}
+        {shareUrl && earned.length > 0 && (
+          <ShareButton url={shareUrl} title={shareTitle ?? ""} label={ko ? "업적 자랑하기" : "Show off my badges"} copied={ko ? "링크를 복사했어요!" : "Link copied!"} />
+        )}
+      </div>
       <div className="mt-3 grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="min-w-0 space-y-4">
           {/* 딴 배지 */}

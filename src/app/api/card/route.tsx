@@ -4,6 +4,7 @@ import { parseRiotId, lookupSummoner } from "@/lib/riot";
 import { scoreReport } from "@/lib/score";
 import { tilt, titles, toGames } from "@/lib/summoner";
 import { dict } from "@/lib/i18n";
+import { badges } from "@/lib/achievements";
 import { parseServer } from "@/lib/lanes";
 
 // 소환사 공유 카드(링크 미리보기용 이미지). 글꼴 문제로 영문만 씁니다.
@@ -34,7 +35,9 @@ export async function GET(req: Request) {
     const tl = tilt(games);
     const en = dict("en").summoner;
     const lvl = tl ? (tl.score < 15 ? 0 : tl.score < 35 ? 1 : tl.score < 55 ? 2 : tl.score < 75 ? 3 : 4) : 0;
-    const myTitles = titles(games).slice(0, 3).map((id) => en.titleNames[id][0]);
+    // 딴 업적 배지(금색)를 먼저, 남는 자리에 칭호(회색)를 채워 최대 4개
+    const earned = badges(r.matches, r.account.puuid).filter((b) => b.have >= b.need).slice(0, 3).map((b) => b.name.en);
+    const myTitles = titles(games).slice(0, Math.max(1, 4 - earned.length)).map((id) => en.titleNames[id][0]);
     const rank = r.solo ? `${r.solo.tier} ${r.solo.rank} · ${r.solo.leaguePoints} LP` : "Unranked";
     return new ImageResponse(
       (
@@ -55,8 +58,13 @@ export async function GET(req: Request) {
                 Mind meter {tl.score}/100 · {en.tiltLevels[lvl]}
               </div>
             )}
-            {myTitles.length > 0 && (
-              <div style={{ display: "flex", marginTop: 16, gap: 10 }}>
+            {(earned.length > 0 || myTitles.length > 0) && (
+              <div style={{ display: "flex", flexWrap: "wrap", maxWidth: 640, marginTop: 16, gap: 10 }}>
+                {earned.map((n) => (
+                  <div key={n} style={{ display: "flex", fontSize: 22, fontWeight: 800, padding: "6px 14px", borderRadius: 999, border: "2px solid #c8aa6e", background: "rgba(200,170,110,0.18)", color: "#ffe9b0" }}>
+                    {n}
+                  </div>
+                ))}
                 {myTitles.map((n) => (
                   <div key={n} style={{ display: "flex", fontSize: 22, fontWeight: 700, padding: "6px 14px", borderRadius: 999, border: "2px solid #5b6b8c", color: "#e6e9f0" }}>
                     {n}
