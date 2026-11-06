@@ -3,6 +3,8 @@
 // 그래서 페이지는 한 번에 MAX_CONCURRENT개씩만 만들고, 나머지는 줄 세워 차례로 처리합니다.
 // 정적 파일(/_next/static, 이미지 등)은 가벼워서 줄을 서지 않아요.
 import { createServer } from "node:http";
+import fs from "node:fs";
+import path from "node:path";
 import next from "next";
 
 const port = Number(process.env.PORT ?? 3000);
@@ -84,6 +86,42 @@ function record(key, req, res) {
   res.on("finish", () => remember(key, (req.url ?? "/").split("?")[0], res, chunks));
 }
 
+// 사이트 파일(/_next/static, public)은 서버가 켜질 때 메모리에 올려 두고 Next를 거치지 않고 바로 보내요.
+// JS·CSS는 빌드 때 미리 압축한 것(.br/.gz, scripts/precompress.mjs)을 보내서 요청마다 압축하지 않아요.
+const TYPES = { js: "application/javascript; charset=utf-8", css: "text/css; charset=utf-8", png: "image/png", jpg: "image/jpeg", webp: "image/webp", svg: "image/svg+xml", ico: "image/x-icon", woff2: "font/woff2", woff: "font/woff", json: "application/json", txt: "text/plain; charset=utf-8", webmanifest: "application/manifest+json" };
+const files = new Map(); // url -> { type, raw, br, gz, immutable }
+function load(dir, prefix, immutable) {
+  if (!fs.existsSync(dir)) return;
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const f = path.join(dir, e.name);
+    if (e.isDirectory()) load(f, `${prefix}/${e.name}`, immutable);
+    else if (!/\.(br|gz|map)$/.test(e.name)) {
+      const ext = e.name.split(".").pop();
+      if (!TYPES[ext]) continue;
+      const read = (x) => (fs.existsSync(x) ? fs.readFileSync(x) : null);
+      files.set(encodeURI(`${prefix}/${e.name}`).replace(/\[/g, "%5B").replace(/\]/g, "%5D"), { type: TYPES[ext], raw: fs.readFileSync(f), br: read(`${f}.br`), gz: read(`${f}.gz`), immutable });
+    }
+  }
+}
+load(path.join(process.cwd(), ".next", "static"), "/_next/static", true);
+load(path.join(process.cwd(), "public"), "", false);
+function sendFile(req, res) {
+  const url = (req.url ?? "").split("?")[0];
+  const f = files.get(url) ?? files.get(encodeURI(decodeURI(url)));
+  if (!f || (req.method !== "GET" && req.method !== "HEAD")) return false;
+  const ae = req.headers["accept-encoding"] ?? "";
+  const [body, enc] = f.br && /\bbr\b/.test(ae) ? [f.br, "br"] : f.gz && /gzip/.test(ae) ? [f.gz, "gzip"] : [f.raw, null];
+  res.writeHead(200, {
+    "content-type": f.type,
+    "content-length": body.length,
+    "cache-control": f.immutable ? "public, max-age=31536000, immutable" : "public, max-age=86400",
+    vary: "Accept-Encoding",
+    ...(enc ? { "content-encoding": enc } : {}),
+  });
+  res.end(req.method === "HEAD" ? undefined : body);
+  return true;
+}
+
 let active = 0;
 const queue = [];
 const light = (url = "") =>
@@ -112,7 +150,10 @@ function run(req, res) {
 }
 
 await app.prepare();
+let lastVisit = 0; // 방문자 요청이 마지막으로 온 시각 (미리 만들기는 그 뒤 45초 동안 쉬어요)
 createServer((req, res) => {
+  if (req.socket.remoteAddress !== "127.0.0.1" && req.socket.remoteAddress !== "::ffff:127.0.0.1") lastVisit = Date.now();
+  if (sendFile(req, res)) return;
   if (light(req.url)) return void handle(req, res);
   // 저장해 둔 페이지는 줄을 안 서고 바로 보내요
   if (fromCache(cacheKey(req), res)) return;
@@ -162,7 +203,8 @@ async function idleWarm() {
     const started = Date.now();
     for (const id of ids)
       for (const [lang, rsc] of [["ko", true], ["en", true], ["en", false]]) {
-        while (active > 0 || queue.length > 0) await sleep(1_000);
+        // 서버는 한 번에 한 가지 계산만 해서, 방문자가 둘러보는 동안 미리 만들기를 하면 그 사람이 기다려요
+        while (active > 0 || queue.length > 0 || Date.now() - lastVisit < 45_000) await sleep(1_000);
         try {
           await fetch(`http://127.0.0.1:${port}/champions/${id}`, {
             headers: { cookie: `lang=${lang}`, "accept-encoding": "gzip", ...(rsc ? { rsc: "1" } : {}) },
