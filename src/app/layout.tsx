@@ -2,7 +2,7 @@ import { SITE } from "@/lib/site";
 import type { Metadata } from "next";
 import Link from "@/components/Link";
 import { hasRealData } from "@/lib/real";
-import { getLang, getServer } from "@/lib/server";
+import { getLang, getServer, homeLangLinks, langAlternates } from "@/lib/server";
 import { dict } from "@/lib/i18n";
 import ServerSelect from "@/components/ServerSelect";
 import LangSelect from "@/components/LangSelect";
@@ -18,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = dict(await getLang());
   return {
     metadataBase: new URL(SITE),
-    alternates: { canonical: "./" },
+    alternates: await langAlternates("./"),
     title: { default: t.siteTitle, template: "%s - livelol.stats" },
     description: t.siteDescription,
     manifest: "/manifest.webmanifest",
@@ -31,12 +31,20 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const [server, lang] = await Promise.all([getServer(), getLang()]);
+  const [server, lang, home] = await Promise.all([getServer(), getLang(), homeLangLinks(SITE)]);
   const t = dict(lang);
   const source = hasRealData(server) ? ("real" as const) : ("mock" as const);
   return (
     <html lang={lang}>
       <head>
+        {home && (
+          <>
+            <link rel="canonical" href={home.canonical} />
+            <link rel="alternate" hrefLang="en" href={home.en} />
+            <link rel="alternate" hrefLang="ko" href={home.ko} />
+            <link rel="alternate" hrefLang="x-default" href={home.en} />
+          </>
+        )}
         {/* 한글·영문 모두 같은 인상으로 보이도록 Pretendard 를 실제로 불러와요 (필요한 글자만 나눠 받음) */}
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="" />
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
