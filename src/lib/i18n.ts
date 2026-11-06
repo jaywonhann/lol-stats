@@ -609,7 +609,7 @@ const ko: Dict = {
   falling: "떨어지는 챔피언",
   sparkCaption: (n, a, b) => `그래프: 최근 ${n}개 패치(${a}~${b}) 승률 흐름`,
   noMatches: "해당하는 챔피언이 없어요.",
-  champMetaTitle: (name) => `${name} 빌드, 룬, 카운터`,
+  champMetaTitle: (name) => `${name} 빌드, 룬, 템트리, 카운터`,
   sourceReal: " 솔로랭크 실제 게임",
   sourceMock: " · 승률·픽률은 예시 데이터",
   patchTrend: (n) => `패치별 추이 (최근 ${n}개 패치)`,

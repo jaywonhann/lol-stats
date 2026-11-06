@@ -6,7 +6,7 @@ import { LANES, laneLabel, parseLane } from "@/lib/lanes";
 import { loadRealData } from "@/lib/real";
 import { topMatchups } from "@/lib/matchups";
 import { ddLocale } from "@/lib/i18n";
-import { getLang, getServer } from "@/lib/server";
+import { getLang, getServer, langAlternates } from "@/lib/server";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +24,8 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
       const ln = laneLabel(parseLane(sp.lane), lang);
       const card = `/api/matchup-card?a=${A.id}&b=${B.id}&lane=${parseLane(sp.lane)}`;
       return {
+        // 상성 주소마다 따로 검색에 잡히게 (전엔 전부 /matchup 하나로 묶였어요)
+        alternates: await langAlternates(`/matchup?a=${A.id}&b=${B.id}&lane=${parseLane(sp.lane)}`),
         openGraph: { images: card },
         twitter: { card: "summary_large_image", images: card },
         title: ko ? `${A.name} vs ${B.name} 상성 승률 (${ln})` : `${A.name} vs ${B.name} matchup win rate (${ln})`,

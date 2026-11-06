@@ -29,7 +29,7 @@ import {
   serverLabel,
   type Lane,
 } from "@/lib/lanes";
-import { getLang, getServer } from "@/lib/server";
+import { getLang, getServer, langAlternates } from "@/lib/server";
 import { ddLocale, dict, numLocale, timeAgo, type Lang } from "@/lib/i18n";
 import type { Matchup, RunePage } from "@/lib/mock";
 import {
@@ -62,6 +62,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const ln = LANES.find((l) => l.id === sp.lane)?.id;
   const n = ln ? `${data.champion.name} ${laneLabel(ln, lang)}` : data.champion.name;
   return {
+    // 레이아웃의 canonical은 주소의 ?뒤를 버려서, 라인별 페이지("야스오 탑")가 검색엔진에 따로 안 잡혔어요
+    alternates: await langAlternates(`/champions/${data.champion.id}${ln ? `?lane=${ln}` : ""}`),
     title: t.champMetaTitle(n),
     description:
       lang === "ko"
