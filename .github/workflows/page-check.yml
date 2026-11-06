@@ -52,7 +52,8 @@ jobs:
             flag=$(echo "$html" | grep -o 'In game now\|지금 게임 중' | head -1)
             lp=$(echo "$html" | grep -o '[A-Z][A-Z1-4]* [0-9]*LP' | head -10 | tr '\n' ',')
             err=$(echo "$html" | grep -o 'role="alert"[^<]*<' | head -1)
-            echo "::notice title=summoner live game::${who//%/pct} ($srv): ${flag:-panel missing} / ranks: ${lp:-none} / error: ${err:-none} / bytes: ${#html}"
+            ach=$(echo "$html" | grep -o 'My achievements\|내 업적' | head -1)
+            echo "::notice title=summoner live game::${who//%/pct} ($srv): ${flag:-panel missing} / ranks: ${lp:-none} / achievements: ${ach:-missing} / error: ${err:-none} / bytes: ${#html}"
           else
             echo "::notice title=summoner live game::no live pro found to test. pros-live said: $(echo "$j" | jq -c '{available,reason,total,checked,live:(.live|length),lastStatus}')"
           fi
