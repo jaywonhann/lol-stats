@@ -1,7 +1,7 @@
 // 실제 사이트 홍보용 스크린샷 (GitHub Actions에서 실행). 결과는 shots/ 에 저장.
 import { chromium } from "playwright";
 
-const B = process.env.SITE ?? "https://lol-stats-one.vercel.app";
+const B = process.env.SITE ?? "https://livelol.onrender.com";
 const LANG = process.env.SHOT_LANG ?? "ko";
 const shots = [
   { name: "1-home", path: "/", wait: 9000 },

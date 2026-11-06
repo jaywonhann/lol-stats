@@ -13,11 +13,12 @@ const handle = app.getRequestHandler();
 
 // 한 번 만든 페이지는 잠깐 저장해 두고 같은 요청이 오면 바로 보내요 (데이터는 배포할 때만 바뀌어요).
 // 언어·서버 쿠키와 Next가 페이지 이동 때 보내는 헤더까지 같아야 같은 요청으로 봐요.
-const CACHE_MB = Number(process.env.PAGE_CACHE_MB ?? 40);
+const CACHE_MB = Number(process.env.PAGE_CACHE_MB ?? 56);
 const CACHEABLE = /^\/(|tier|duo|aram|aram\/[^/]+|champions\/[^/]+|items|matchup|meta|trends|ranking|pros|tools|predict|faq|community|privacy)$/;
 const pageCache = new Map(); // key -> { at, status, headers, body }
 let cacheBytes = 0;
-const ttl = (pathname) => (pathname === "/" || pathname === "/pros" ? 5 : 30) * 60_000;
+const ttl = (pathname) =>
+  (pathname === "/" || pathname === "/pros" ? 5 : pathname.startsWith("/champions/") ? 120 : 30) * 60_000;
 const cookieOf = (req, name) => (req.headers.cookie ?? "").match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`))?.[1] ?? "";
 function cacheKey(req) {
   if (req.method !== "GET") return null;
@@ -143,4 +144,34 @@ async function warm() {
           // 미리 만들기는 실패해도 괜찮아요
         }
       }
+  idleWarm();
+}
+
+// 챔피언 페이지는 종류가 많아서, 방문자가 아무도 없을 때만 하나씩 미리 만들어 둬요 (100분마다 한 바퀴)
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function idleWarm() {
+  for (;;) {
+    let ids = [];
+    try {
+      const dd = process.env.DDRAGON_BASE ?? "https://ddragon.leagueoflegends.com";
+      const [v] = await fetch(`${dd}/api/versions.json`).then((r) => r.json());
+      ids = Object.keys((await fetch(`${dd}/cdn/${v}/data/en_US/champion.json`).then((r) => r.json())).data);
+    } catch {
+      // 다음 바퀴에 다시
+    }
+    const started = Date.now();
+    for (const id of ids)
+      for (const [lang, rsc] of [["ko", true], ["en", true], ["en", false]]) {
+        while (active > 0 || queue.length > 0) await sleep(1_000);
+        try {
+          await fetch(`http://127.0.0.1:${port}/champions/${id}`, {
+            headers: { cookie: `lang=${lang}`, "accept-encoding": "gzip", ...(rsc ? { rsc: "1" } : {}) },
+          }).then((r) => r.arrayBuffer());
+        } catch {
+          // 괜찮아요
+        }
+        await sleep(300);
+      }
+    await sleep(Math.max(60_000, 100 * 60_000 - (Date.now() - started)));
+  }
 }

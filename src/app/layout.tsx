@@ -1,3 +1,4 @@
+import { SITE } from "@/lib/site";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { hasRealData } from "@/lib/real";
@@ -16,7 +17,7 @@ import "./globals.css";
 export async function generateMetadata(): Promise<Metadata> {
   const t = dict(await getLang());
   return {
-    metadataBase: new URL("https://lollive.vercel.app"),
+    metadataBase: new URL(SITE),
     alternates: { canonical: "./" },
     title: { default: t.siteTitle, template: "%s - livelol.stats" },
     description: t.siteDescription,
@@ -146,10 +147,10 @@ export default async function RootLayout({
               "@context": "https://schema.org",
               "@type": "WebSite",
               name: "livelol.stats",
-              url: "https://lollive.vercel.app",
+              url: SITE,
               potentialAction: {
                 "@type": "SearchAction",
-                target: "https://lollive.vercel.app/summoner?id={search_term_string}",
+                target: `${SITE}/summoner?id={search_term_string}`,
                 "query-input": "required name=search_term_string",
               },
             }),

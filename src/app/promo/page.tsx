@@ -1,3 +1,4 @@
+import { SITE_HOST } from "@/lib/site";
 // 광고용 이미지 캡처 페이지 (검색에 노출되지 않음). 실제 챔피언·아이템·룬·엠블럼 이미지로 포스터를 그립니다.
 // 사용: /promo (콜라주), /promo?p=2 (히어로). 브라우저에서 1600×1000으로 화면 캡처하세요.
 import type { Metadata } from "next";
@@ -60,7 +61,7 @@ export default async function PromoPage({ searchParams }: { searchParams: Promis
               <img key={t} src={`/emblems/${t}.png`} alt={t} width={84} height={84} />
             ))}
           </div>
-          <div style={{ position: "absolute", left: 560, top: 860, background: "linear-gradient(90deg,#c8aa6e,#e3c98a)", color: "#04201b", fontWeight: 900, fontSize: 40, borderRadius: 999, padding: "20px 44px", boxShadow: "0 0 40px #c8aa6e88" }}>lollive.vercel.app</div>
+          <div style={{ position: "absolute", left: 560, top: 860, background: "linear-gradient(90deg,#c8aa6e,#e3c98a)", color: "#04201b", fontWeight: 900, fontSize: 40, borderRadius: 999, padding: "20px 44px", boxShadow: "0 0 40px #c8aa6e88" }}>{SITE_HOST}</div>
         </div>
       </div>
     );
@@ -94,7 +95,7 @@ export default async function PromoPage({ searchParams }: { searchParams: Promis
             <img key={t} src={`/emblems/${t}.png`} alt={t} width={72} height={72} />
           ))}
         </div>
-        <div style={{ position: "absolute", left: 560, top: 872, background: "linear-gradient(90deg,#c8aa6e,#e3c98a)", color: "#04201b", fontWeight: 900, fontSize: 34, borderRadius: 999, padding: "16px 36px", boxShadow: "0 0 40px #c8aa6e88" }}>lollive.vercel.app</div>
+        <div style={{ position: "absolute", left: 560, top: 872, background: "linear-gradient(90deg,#c8aa6e,#e3c98a)", color: "#04201b", fontWeight: 900, fontSize: 34, borderRadius: 999, padding: "16px 36px", boxShadow: "0 0 40px #c8aa6e88" }}>{SITE_HOST}</div>
 
         {champs.slice(0, 4).map((c, i) => (
           <div key={c.id} style={{ position: "absolute", left: 880 + (i % 2) * 330 - (i >= 2 ? 40 : 0), top: 70 + Math.floor(i / 2) * 410 + (i % 2) * 40, width: 300, height: 380, borderRadius: 26, overflow: "hidden", border: "3px solid #c8aa6e66", boxShadow: "0 30px 80px #000c", transform: `rotate(${[-4, 3, 3, -3][i]}deg)` }}>
