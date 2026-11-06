@@ -6,7 +6,7 @@ import { getChampions, img } from "@/lib/ddragon";
 import { ddLocale } from "@/lib/i18n";
 import { RANKS, SERVERS, parseRank, rankLabel } from "@/lib/lanes";
 import { realDuoPairs } from "@/lib/real";
-import { getLang } from "@/lib/server";
+import { getLang, langAlternates } from "@/lib/server";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
     description: ko
       ? "실제 랭크 게임으로 집계한 원딜·서포터 조합별 승률 순위. 내 원딜과 잘 맞는 서포터를 찾아보세요."
       : "ADC and support pairs ranked by win rate from real ranked games. Find the best support for your ADC.",
-    alternates: { canonical: "/duo" },
+    alternates: await langAlternates("/duo"),
   };
 }
 
