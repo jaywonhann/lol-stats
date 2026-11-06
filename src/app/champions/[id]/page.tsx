@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "@/components/Link";
 import { notFound } from "next/navigation";
 import { Icon, Panel, Tabs, TierBadge, WinRate, pct } from "@/components/ui";
+import BuildIcons from "@/components/BuildIcons";
 import TrendChart from "@/components/TrendChart";
 import WinRateGrid from "@/components/WinRateGrid";
 import HiddenTips from "@/components/HiddenTips";
@@ -33,6 +34,7 @@ import { ddLocale, dict, numLocale, timeAgo, type Lang } from "@/lib/i18n";
 import type { Matchup, RunePage } from "@/lib/mock";
 import {
   loadRealData,
+  quickBuild,
   realBuild,
   realChamp,
   realCorePath,
@@ -115,6 +117,8 @@ export default async function ChampionPage({ params, searchParams }: Props) {
   const mu = allAgg ? realMatchups(allAgg, champion, champions) : null;
   const duos = allAgg && (lane === "bottom" || lane === "support") ? realDuos(allAgg, champions) : [];
   const cp = agg ? realCorePath(agg, items) : null;
+  // 휴대폰에서 첫 화면에 한 줄로 보이는 대표 빌드 (룬·스펠·코어템·스킬 순서)
+  const qb = agg ? quickBuild(agg, items, trees, spells) : null;
   const wr = agg ? realWinRates(agg, items, trees, spells) : null;
   const updatedAt = source === "real" ? real.get(patch)!.updatedAt : null;
   const daily = loadDaily(server);
@@ -199,6 +203,24 @@ export default async function ChampionPage({ params, searchParams }: Props) {
       </Panel>
 
       {/* 처음 화면에 바로 보이게 룬·아이템·스펠·스킬 빌드를 맨 위에 둬요 */}
+      {qb && b && (qb.keystone || qb.core.length > 0) && (
+        <section className="rounded-xl border border-line bg-panel p-3 lg:hidden" aria-label={lang === "ko" ? "한눈에 보는 빌드" : "Build at a glance"}>
+          <p className="mb-2 text-xs font-semibold text-muted">{lang === "ko" ? "한눈에 보는 빌드" : "Build at a glance"}</p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <BuildIcons qb={qb} version={version} size={32} />
+            {b.skillOrder[0] && (
+              <span className="flex items-center gap-1 text-sm font-bold" title={lang === "ko" ? "스킬 마스터 순서" : "Skill max order"}>
+                {b.skillOrder[0].value.map((k, j) => (
+                  <span key={k} className="flex items-center gap-1">
+                    {j > 0 && <span className="text-muted">›</span>}
+                    <span className="rounded bg-panel-2 px-1.5 py-0.5">{k}</span>
+                  </span>
+                ))}
+              </span>
+            )}
+          </div>
+        </section>
+      )}
       {b && mu ? (
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="space-y-4 lg:col-span-2">
