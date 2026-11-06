@@ -29,26 +29,8 @@ function offLanes(champions: Parameters<typeof realLanes>[1][]): string[] {
   return [...out];
 }
 
-type Entry = MetadataRoute.Sitemap[number];
-// 모든 주소를 영어(그대로)와 한국어(?lang=ko) 두 벌로 올리고 hreflang으로 서로 이어요.
-// 쿠키로만 언어를 바꾸면 검색엔진은 영어만 보게 돼서, "야스오 카운터" 같은 한글 검색에 안 걸려요.
-function bilingual(list: Entry[]): MetadataRoute.Sitemap {
-  return list.flatMap((e) => {
-    const ko = e.url === SITE ? `${SITE}/?lang=ko` : `${e.url}${e.url.includes("?") ? "&amp;" : "?"}lang=ko`;
-    const languages = { en: e.url, ko };
-    return [
-      { ...e, alternates: { languages } },
-      { ...e, url: ko, alternates: { languages } },
-    ];
-  });
-}
-
 // 검색엔진용: 주요 페이지 + 모든 챔피언 페이지 + 인기 상성 조합
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  return bilingual(await entries());
-}
-
-async function entries(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   const pages = PAGES.map((p) => ({ url: `${SITE}${p}`, lastModified: now, changeFrequency: "daily" as const, priority: p === "" ? 1 : 0.7 }));
   try {

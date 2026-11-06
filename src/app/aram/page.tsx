@@ -3,7 +3,7 @@ import Link from "@/components/Link";
 import { Icon, Panel } from "@/components/ui";
 import { getChampions, img } from "@/lib/ddragon";
 import { ddLocale } from "@/lib/i18n";
-import { getLang, langAlternates } from "@/lib/server";
+import { getLang } from "@/lib/server";
 import RowFilter from "@/components/RowFilter";
 import { ARAM_MODES, loadAram, MIN_ARAM_GAMES, modeName, parseMode, type AramMode } from "@/lib/aram";
 
@@ -20,7 +20,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     description: ko
       ? `실제 ${name} 게임으로 집계한 챔피언 승률 순위와 챔피언별 템트리, 증강 추천.`
       : `Champion win rates from real ${name} games, with item builds and augment picks for every champion.`,
-    alternates: await langAlternates(`/aram?mode=${mode}`),
+    alternates: { canonical: `/aram?mode=${mode}` },
   };
 }
 

@@ -153,14 +153,6 @@ function run(req, res) {
 await app.prepare();
 let lastVisit = 0; // 방문자 요청이 마지막으로 온 시각 (미리 만들기는 그 뒤 45초 동안 쉬어요)
 createServer((req, res) => {
-  // ?lang=ko|en 주소(검색엔진이 언어별로 따로 담는 주소)는 쿠키보다 먼저 써요: 쿠키의 lang 값을 바꿔 넘깁니다
-  const lp = /[?&]lang=(ko|en)(?:&|$)/.exec(req.url ?? "")?.[1];
-  if (lp) {
-    const rest = (req.headers.cookie ?? "").split(/;\s*/).filter((c) => c && !c.startsWith("lang="));
-    req.headers.cookie = [...rest, `lang=${lp}`].join("; ");
-    req.headers["x-lang-url"] = lp;
-  }
-  req.headers["x-pathname"] = (req.url ?? "/").split("?")[0];
   if (req.socket.remoteAddress !== "127.0.0.1" && req.socket.remoteAddress !== "::ffff:127.0.0.1") lastVisit = Date.now();
   if (sendFile(req, res)) return;
   if (light(req.url)) return void handle(req, res);

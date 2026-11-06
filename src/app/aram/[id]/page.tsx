@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Icon, Panel } from "@/components/ui";
 import { getChampions, getItems, getRuneTrees, getSummonerSpells, img } from "@/lib/ddragon";
 import { ddLocale } from "@/lib/i18n";
-import { getLang, langAlternates } from "@/lib/server";
+import { getLang } from "@/lib/server";
 import { ARAM_MODES, loadAram, loadAugments, MIN_ARAM_GAMES, modeName, parseMode, ranked, rankedLow, type Row } from "@/lib/aram";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +31,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     description: ko
       ? `실제 ${name} 게임으로 집계한 ${champ.name} 승률 높은 템트리${mode === "mayhem" ? ", 증강" : ""}, 신발, 룬, 스펠.`
       : `${champ.name} best items${mode === "mayhem" ? ", augments" : ""}, boots, runes and spells from real ${name} games.`,
-    alternates: await langAlternates(`/aram/${champ.id}?mode=${mode}`),
+    alternates: { canonical: `/aram/${champ.id}?mode=${mode}` },
     openGraph: { images: [{ url: `/api/aram-card?id=${champ.id}&mode=${mode}`, width: 1200, height: 630 }] },
     twitter: { card: "summary_large_image", images: [`/api/aram-card?id=${champ.id}&mode=${mode}`] },
   };
