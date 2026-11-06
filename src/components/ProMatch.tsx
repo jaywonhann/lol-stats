@@ -1,5 +1,5 @@
 // 프로 프로필(이 사람이 프로면) + 나와 닮은 프로 선수: 같은 라인 프로들의 평균 스타일과 비교해요
-import Link from "next/link";
+import Link from "@/components/Link";
 import { Panel } from "@/components/ui";
 import type { Lang } from "@/lib/i18n";
 import { proStyles, similarPros, STYLE_KEYS, type Style } from "@/lib/pro-builds";

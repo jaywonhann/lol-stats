@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { Icon, Panel } from "@/components/ui";
 import { getChampions, getPatches, img } from "@/lib/ddragon";
 import { LANES, laneLabel, parseLane } from "@/lib/lanes";

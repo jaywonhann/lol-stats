@@ -1,6 +1,6 @@
 import TrendTabs from "@/components/TrendTabs";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import AutoRefresh from "@/components/AutoRefresh";
 import { StockLine } from "@/components/charts";
 import { LiveBadge } from "@/components/LivePanel";

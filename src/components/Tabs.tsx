@@ -1,11 +1,12 @@
 "use client";
 
-import Link, { useLinkStatus } from "next/link";
+import { useLinkStatus } from "next/link";
+import Link from "@/components/Link";
 import { useEffect, useState } from "react";
 
 type Item = { id: string; label: string; href: string };
 
-// 탭(라인·랭크·패치)은 화면에 보이면 미리 불러와 두고, 누르는 즉시 선택 표시를 옮겨요.
+// 탭(라인·랭크·패치)은 누르는 즉시 선택 표시를 옮겨요 (무료 서버라 미리 불러오기는 꺼 뒀어요).
 // 서버 응답을 기다리는 동안에도 반응이 바로 보여서 멈춘 것처럼 느껴지지 않아요
 export default function Tabs({ items, active }: { items: Item[]; active: string }) {
   const [picked, setPicked] = useState(active);
@@ -16,7 +17,7 @@ export default function Tabs({ items, active }: { items: Item[]; active: string 
         <Link
           key={t.id}
           href={t.href}
-          prefetch
+          prefetch={false}
           scroll={false}
           onClick={() => setPicked(t.id)}
           aria-current={t.id === active ? "page" : undefined}

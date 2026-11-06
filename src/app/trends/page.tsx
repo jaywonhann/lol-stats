@@ -1,6 +1,6 @@
 import TrendTabs from "@/components/TrendTabs";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { DivergingBars, Sparkline } from "@/components/charts";
 import { Icon, Panel, Tabs, TierBadge, WinRate } from "@/components/ui";
 import { getChampions, getPatches, img } from "@/lib/ddragon";

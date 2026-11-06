@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/Link";
 import { useEffect, useState } from "react";
 
 // 첫 화면 검색창 아래에 최근에 본 전적을 바로가기로 보여줘요. 두 번째 방문부터는 한 번 눌러서 내 전적으로 가요

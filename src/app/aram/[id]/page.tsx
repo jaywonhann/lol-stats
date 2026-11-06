@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { notFound } from "next/navigation";
 import { Icon, Panel } from "@/components/ui";
 import { getChampions, getItems, getRuneTrees, getSummonerSpells, img } from "@/lib/ddragon";

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/Link";
 import { dict } from "@/lib/i18n";
 import { getLang } from "@/lib/server";
 

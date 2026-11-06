@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/Link";
 import { useEffect, useState } from "react";
 
 type Row = { key: string; id: string; name: string; icon: string; n: number };

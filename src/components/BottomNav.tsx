@@ -1,6 +1,6 @@
 "use client";
 // 폰 화면 하단 탭 메뉴: 자주 쓰는 5곳은 한 번에, 나머지는 "더보기"에 모아 둡니다
-import Link from "next/link";
+import Link from "@/components/Link";
 import { usePathname } from "next/navigation";
 
 const T = {

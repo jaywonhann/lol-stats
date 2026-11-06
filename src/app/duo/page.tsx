@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { Icon, Panel } from "@/components/ui";
 import RowFilter from "@/components/RowFilter";
 import { getChampions, img } from "@/lib/ddragon";

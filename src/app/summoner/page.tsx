@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import ShareButton from "@/components/ShareButton";
 import SinceLastVisit from "@/components/SinceLastVisit";
 import { Icon, Panel } from "@/components/ui";

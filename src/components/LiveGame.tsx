@@ -1,5 +1,5 @@
 // 소환사가 지금 게임 중이면 양 팀 10명과 챔피언·주문·경과 시간을 보여줘요 (op.gg 인게임 정보처럼)
-import Link from "next/link";
+import Link from "@/components/Link";
 import { Icon, Panel } from "@/components/ui";
 import { getChampions, img } from "@/lib/ddragon";
 import { ddLocale, type Lang } from "@/lib/i18n";

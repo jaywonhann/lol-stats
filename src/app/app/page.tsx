@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import ApplyButtons from "@/components/ApplyButtons";
 import AutoRefresh from "@/components/AutoRefresh";
 import ChampionSearch from "@/components/ChampionSearch";

@@ -1,5 +1,5 @@
 // 챔피언 페이지: 이 챔피언을 최근에 한 프로·스트리머·챌린저의 실제 솔로랭크 빌드 (op.gg·probuilds 처럼)
-import Link from "next/link";
+import Link from "@/components/Link";
 import { Icon, Panel } from "@/components/ui";
 import { img, type Item, type RuneTree, type SummonerSpell } from "@/lib/ddragon";
 import { timeAgo, type Lang } from "@/lib/i18n";

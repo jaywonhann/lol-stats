@@ -1,6 +1,6 @@
 import { SITE } from "@/lib/site";
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { hasRealData } from "@/lib/real";
 import { getLang, getServer } from "@/lib/server";
 import { dict } from "@/lib/i18n";

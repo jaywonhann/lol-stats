@@ -28,7 +28,8 @@ function cacheKey(req) {
   if (!CACHEABLE.test(pathname)) return null;
   const h = req.headers;
   return [
-    req.url,
+    // _rsc 값은 보고 있던 페이지에 따라 달라지는 표시일 뿐이라 열쇠에서 빼요
+    (req.url ?? "/").replace(/([?&])_rsc=[^&]*&?/, "$1").replace(/[?&]$/, ""),
     // 사이트와 같은 규칙으로 정리 (쿠키가 없으면 영어·KR)
     cookieOf(req, "lang") === "ko" ? "ko" : "en",
     ["kr", "na1", "euw1"].includes(cookieOf(req, "server")) ? cookieOf(req, "server") : "kr",
@@ -171,7 +172,7 @@ createServer((req, res) => {
 });
 
 // 서버가 켜지면 자주 가는 페이지를 미리 한 번씩 만들어 둬요 (한 번에 하나씩, 방문자 요청과 같이 줄 서요)
-const WARM = ["/", "/tier", "/tier?lane=top", "/tier?lane=jungle", "/tier?lane=bottom", "/tier?lane=support", "/aram", "/duo", "/meta"];
+const WARM = ["/", "/tier", ...["top", "jungle", "mid", "bottom", "support"].map((l) => `/tier?lane=${l}&rank=all`), "/aram", "/duo", "/meta"];
 async function warm() {
   if (process.env.PAGE_CACHE_MB === "0") return;
   for (const lang of ["ko", "en"])

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { Icon, Tabs, TierBadge, WinRate, pct } from "@/components/ui";
 import { getChampions, getItems, getPatches, getRuneTrees, getSummonerSpells, img } from "@/lib/ddragon";
 import BuildIcons from "@/components/BuildIcons";

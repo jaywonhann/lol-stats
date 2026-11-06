@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import CommunityForm from "@/components/CommunityForm";
 import { Panel } from "@/components/ui";
 import { CATS, listPosts, type Cat } from "@/lib/community";

@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { useEffect, useState } from "react";
 
 type Live = { server: string; who: string; label: string; kind: string; champ: number; start: number; queue: number };

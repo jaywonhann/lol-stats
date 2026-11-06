@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/Link";
 
 // 트렌드와 메타는 메뉴 하나로 합치고, 페이지 위 탭으로 오가요
 export default function TrendTabs({ active, lang }: { active: "trends" | "meta"; lang: "ko" | "en" }) {

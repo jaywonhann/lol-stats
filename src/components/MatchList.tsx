@@ -1,5 +1,5 @@
 // 최근 게임 목록: 한 줄 요약을 누르면 10명 전체 KDA·딜량·아이템·인분이 펼쳐져요
-import Link from "next/link";
+import Link from "@/components/Link";
 import { Icon, Panel } from "@/components/ui";
 import { img, type Champion } from "@/lib/ddragon";
 import type { Lang } from "@/lib/i18n";

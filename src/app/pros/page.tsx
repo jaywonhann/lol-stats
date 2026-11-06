@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import ProsLive from "@/components/ProsLive";
 import { getChampions, img } from "@/lib/ddragon";
 import { ddLocale } from "@/lib/i18n";

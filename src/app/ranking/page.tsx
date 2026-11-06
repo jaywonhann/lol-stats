@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { Panel } from "@/components/ui";
 import { ladder, RiotError, type LadderTier } from "@/lib/riot";
 import { getLang, getServer } from "@/lib/server";
