@@ -1,4 +1,5 @@
 import { SITE } from "@/lib/site";
+import { LANES } from "@/lib/lanes";
 import type { MetadataRoute } from "next";
 import { getChampions } from "@/lib/ddragon";
 import { loadRealData, realLanes } from "@/lib/real";
@@ -51,6 +52,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 async function entries(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   const pages = PAGES.map((p) => ({ url: `${SITE}${p}`, lastModified: now, changeFrequency: "daily" as const, priority: p === "" ? 1 : 0.7 }));
+  // 라인별 티어표 ("탑 티어" 검색용)
+  pages.push(...LANES.map((l) => ({ url: `${SITE}/tier?lane=${l.id}`, lastModified: now, changeFrequency: "daily" as const, priority: 0.7 })));
   try {
     const { champions } = await getChampions();
     const aram = loadAram();

@@ -14,17 +14,28 @@ import {
   serverLabel,
 } from "@/lib/lanes";
 import { ddLocale, dict, numLocale } from "@/lib/i18n";
-import { getLang, getServer } from "@/lib/server";
+import { getLang, getServer, langAlternates } from "@/lib/server";
 import LivePanel from "@/components/LivePanel";
 import AutoRefresh from "@/components/AutoRefresh";
 import { boards } from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
-export async function generateMetadata(): Promise<Metadata> {
-  const ko = (await getLang()) === "ko";
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  const [lang, sp] = await Promise.all([getLang(), searchParams]);
+  const ko = lang === "ko";
+  // ?lane= 이 있으면 "탑 티어"처럼 라인별 검색어에 맞춘 제목과 제 주소(canonical)를 써요
+  const ln = LANES.find((l) => l.id === sp.lane)?.id;
+  const name = ln ? laneLabel(ln, lang) : "";
   return {
-    title: dict(await getLang()).tierTitle,
-    description: ko ? "라인별 챔피언 티어표. 승률, 픽률, 밴률을 이번 패치 기준으로 보여줘요." : "Champion tier list by lane with win, pick and ban rates for the current patch.",
+    title: ln ? (ko ? `${name} 티어 리스트 (롤 ${name} 티어 순위)` : `${name} Tier List - best ${name} champions`) : dict(lang).tierTitle,
+    description: ln
+      ? ko
+        ? `이번 패치 ${name} 챔피언 티어 순위. 실제 랭크 게임 승률, 픽률, 밴률과 추천 룬·코어템을 한 줄에 보여줘요.`
+        : `Best ${name} champions this patch, ranked from real ranked games with win, pick and ban rates plus runes and core items.`
+      : ko
+        ? "라인별 챔피언 티어표. 승률, 픽률, 밴률을 이번 패치 기준으로 보여줘요."
+        : "Champion tier list by lane with win, pick and ban rates for the current patch.",
+    alternates: await langAlternates(ln ? `/tier?lane=${ln}` : "/tier"),
   };
 }
 
