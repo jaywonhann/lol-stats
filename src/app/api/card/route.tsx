@@ -73,18 +73,21 @@ export async function GET(req: Request) {
               </div>
             )}
           </div>
-          <svg width="420" height="420" viewBox="0 0 400 400">
-            {[0.33, 0.66, 1].map((v) => (
-              <polygon key={v} points={poly(HEX.map((_, i) => pt(i, v)))} fill="none" stroke="#5b6b8c" strokeWidth="2" />
-            ))}
-            <polygon points={poly(val)} fill="rgba(200,170,110,0.4)" stroke="#f0e6d2" strokeWidth="6" strokeLinejoin="round" />
-            <circle cx={val[weakIdx][0]} cy={val[weakIdx][1]} r="12" fill="#ff4d5e" stroke="#fff" strokeWidth="3" />
-            {outer.map((p, i) => (
-              <text key={i} x={pt(i, 1.2)[0]} y={pt(i, 1.2)[1] + 6} textAnchor="middle" fontSize="17" fontWeight="800" fill={i === weakIdx ? "#ff5d6c" : "#a09b8c"}>
+          {/* satori는 SVG <text>를 못 그려서 꼭짓점 이름은 svg 위에 div로 얹어요 (420/400 배율) */}
+          <div style={{ display: "flex", position: "relative", width: 420, height: 420 }}>
+            <svg width="420" height="420" viewBox="0 0 400 400">
+              {[0.33, 0.66, 1].map((v) => (
+                <polygon key={v} points={poly(HEX.map((_, i) => pt(i, v)))} fill="none" stroke="#5b6b8c" strokeWidth="2" />
+              ))}
+              <polygon points={poly(val)} fill="rgba(200,170,110,0.4)" stroke="#f0e6d2" strokeWidth="6" strokeLinejoin="round" />
+              <circle cx={val[weakIdx][0]} cy={val[weakIdx][1]} r="12" fill="#ff4d5e" stroke="#fff" strokeWidth="3" />
+            </svg>
+            {outer.map((_, i) => (
+              <div key={i} style={{ position: "absolute", left: pt(i, 1.2)[0] * 1.05 - 60, top: pt(i, 1.2)[1] * 1.05 - 12, width: 120, display: "flex", justifyContent: "center", fontSize: 17, fontWeight: 800, color: i === weakIdx ? "#ff5d6c" : "#a09b8c" }}>
                 {LABEL[HEX[i]]}
-              </text>
+              </div>
             ))}
-          </svg>
+          </div>
         </div>
       ),
       { width: 1200, height: 630, headers: { "Cache-Control": "public, s-maxage=600, stale-while-revalidate=3600" } },
