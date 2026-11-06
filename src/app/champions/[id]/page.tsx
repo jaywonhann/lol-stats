@@ -198,81 +198,7 @@ export default async function ChampionPage({ params, searchParams }: Props) {
         </p>
       </Panel>
 
-      {trend.length > 1 && (
-        <Panel title={t.patchTrend(trend.length)}>
-          <div className="grid gap-6 md:grid-cols-2">
-            <TrendChart
-              title={t.winRate}
-              suffix="%"
-              baseline={50}
-              points={trend.map((p) => ({ label: p.patch, value: p.winRate }))}
-            />
-            <TrendChart
-              title={t.laneRank(laneLabel(lane, lang))}
-              suffix={t.rankSuffix}
-              decimals={0}
-              invert
-              points={trend.map((p) => ({
-                label: p.patch,
-                value: p.rank,
-                note: t.tier(p.tier),
-              }))}
-            />
-          </div>
-        </Panel>
-      )}
-
-      {wr && (
-        <Panel title={t.topBuilds}>
-          <p className="mb-4 text-xs text-muted">
-            {t.topBuildsNote(
-              agg!.games.toLocaleString(nl),
-              updatedAt ? t.updated(timeAgo(updatedAt, lang)) : null,
-            )}
-          </p>
-          <WinRateGrid wr={wr} version={version} lang={lang} />
-        </Panel>
-      )}
-
-      {wr && <HiddenTips wr={wr} version={version} lang={lang} champName={champion.name} />}
-
-      {daily && builds.length > 0 && (
-        <Panel title={t.buildTrend}>
-          <p className="mb-3 text-xs text-muted">
-            {t.buildTrendNote(WINDOW, serverLabel(server, lang))}
-          </p>
-          <div className="mb-2 flex flex-wrap gap-4">
-            {builds.map((s, i) => (
-              <span key={s.pair} className="flex items-center gap-1.5 text-xs">
-                <span className="inline-block h-2.5 w-4 rounded-sm" style={{ background: SERIES_COLORS[i] }} />
-                {s.pair.split(",").map((id, j) => {
-                  const it = itemById.get(id);
-                  return it ? (
-                    <span key={id} className="flex items-center gap-1">
-                      {j > 0 && <span className="text-muted">›</span>}
-                      <Icon src={img.item(version, id)} alt={it.name} size={24} />
-                    </span>
-                  ) : null;
-                })}
-                <span className="text-muted">{t.games(s.total.toLocaleString(nl))}</span>
-              </span>
-            ))}
-          </div>
-          <MultiLineChart
-            labels={daily.days.map(dayLabel)}
-            baseline={50}
-            series={builds.map((s, i) => ({
-              name: s.pair
-                .split(",")
-                .map((id) => itemById.get(id)?.name ?? id)
-                .join(" › "),
-              color: SERIES_COLORS[i],
-              values: s.values,
-            }))}
-          />
-        </Panel>
-      )}
-
+      {/* 처음 화면에 바로 보이게 룬·아이템·스펠·스킬 빌드를 맨 위에 둬요 */}
       {b && mu ? (
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="space-y-4 lg:col-span-2">
@@ -460,6 +386,82 @@ export default async function ChampionPage({ params, searchParams }: Props) {
           </p>
         </Panel>
       )}
+
+      {trend.length > 1 && (
+        <Panel title={t.patchTrend(trend.length)}>
+          <div className="grid gap-6 md:grid-cols-2">
+            <TrendChart
+              title={t.winRate}
+              suffix="%"
+              baseline={50}
+              points={trend.map((p) => ({ label: p.patch, value: p.winRate }))}
+            />
+            <TrendChart
+              title={t.laneRank(laneLabel(lane, lang))}
+              suffix={t.rankSuffix}
+              decimals={0}
+              invert
+              points={trend.map((p) => ({
+                label: p.patch,
+                value: p.rank,
+                note: t.tier(p.tier),
+              }))}
+            />
+          </div>
+        </Panel>
+      )}
+
+      {wr && (
+        <Panel title={t.topBuilds}>
+          <p className="mb-4 text-xs text-muted">
+            {t.topBuildsNote(
+              agg!.games.toLocaleString(nl),
+              updatedAt ? t.updated(timeAgo(updatedAt, lang)) : null,
+            )}
+          </p>
+          <WinRateGrid wr={wr} version={version} lang={lang} />
+        </Panel>
+      )}
+
+      {wr && <HiddenTips wr={wr} version={version} lang={lang} champName={champion.name} />}
+
+      {daily && builds.length > 0 && (
+        <Panel title={t.buildTrend}>
+          <p className="mb-3 text-xs text-muted">
+            {t.buildTrendNote(WINDOW, serverLabel(server, lang))}
+          </p>
+          <div className="mb-2 flex flex-wrap gap-4">
+            {builds.map((s, i) => (
+              <span key={s.pair} className="flex items-center gap-1.5 text-xs">
+                <span className="inline-block h-2.5 w-4 rounded-sm" style={{ background: SERIES_COLORS[i] }} />
+                {s.pair.split(",").map((id, j) => {
+                  const it = itemById.get(id);
+                  return it ? (
+                    <span key={id} className="flex items-center gap-1">
+                      {j > 0 && <span className="text-muted">›</span>}
+                      <Icon src={img.item(version, id)} alt={it.name} size={24} />
+                    </span>
+                  ) : null;
+                })}
+                <span className="text-muted">{t.games(s.total.toLocaleString(nl))}</span>
+              </span>
+            ))}
+          </div>
+          <MultiLineChart
+            labels={daily.days.map(dayLabel)}
+            baseline={50}
+            series={builds.map((s, i) => ({
+              name: s.pair
+                .split(",")
+                .map((id) => itemById.get(id)?.name ?? id)
+                .join(" › "),
+              color: SERIES_COLORS[i],
+              values: s.values,
+            }))}
+          />
+        </Panel>
+      )}
+
       <Suspense fallback={null}>
         <ChampionPros champKey={champion.key} champName={champion.name} lane={lane} lang={lang} version={version} items={items} trees={trees} spells={spells} />
       </Suspense>
