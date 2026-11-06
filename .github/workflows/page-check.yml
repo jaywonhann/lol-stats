@@ -14,11 +14,11 @@ jobs:
       - name: Burst (many pages at once, like a real visitor)
         run: |
           SITE=${{ inputs.site || 'https://livelol.onrender.com' }}
-          curl -s -o /dev/null -m 120 "$SITE/"
+          curl -s --max-time 90 -o /dev/null -m 120 "$SITE/"
           for round in 1 2; do
             for s in kr na1 euw1; do
               for p in / /tier "/tier?rank=master" "/tier?rank=diamond" /duo /aram /champions/Jinx "/champions/Ahri?rank=master" /items /matchup /meta /trends /ranking /pros; do
-                (curl -s -o /dev/null -b "server=$s" -m 90 -w '%{http_code}\n' "$SITE$p" >> codes.txt) &
+                (curl -s --max-time 90 -o /dev/null -b "server=$s" -m 90 -w '%{http_code}\n' "$SITE$p" >> codes.txt) &
               done
             done
             wait
@@ -29,26 +29,26 @@ jobs:
           SITE=${{ inputs.site || 'https://livelol.onrender.com' }}
           pages=""
           for p in / /tier /duo /aram "/aram/Jinx?mode=aram" /champions/Jinx "/summoner?id=Hide%20on%20bush%23KR1&s=kr"; do
-            pages="$pages | $p $(curl -s -o /dev/null -w '%{http_code}' "$SITE$p")"
+            pages="$pages | $p $(curl -s --max-time 90 -o /dev/null -w '%{http_code}' "$SITE$p")"
           done
           echo "::notice title=pages::${pages//%/pct}"
           imgs=""
           for p in /tier/opengraph-image /duo/opengraph-image /champions/Jinx/opengraph-image "/api/aram-card?id=Jinx&mode=aram"; do
-            imgs="$imgs | $p $(curl -s -o /dev/null -w '%{http_code} %{content_type} %{size_download}' "$SITE$p")"
+            imgs="$imgs | $p $(curl -s --max-time 90 -o /dev/null -w '%{http_code} %{content_type} %{size_download}' "$SITE$p")"
           done
           echo "::notice title=share images::$imgs"
-          pros=$(curl -s "$SITE/champions/Riven" | grep -o 'builds from pros and challengers\|빌드</h2>' | head -1)
+          pros=$(curl -s --max-time 90 "$SITE/champions/Riven" | grep -o 'builds from pros and challengers\|빌드</h2>' | head -1)
           echo "::notice title=champion pro builds::${pros:-panel missing}"
           # 지금 게임 중인 프로 한 명을 찾아 소환사 페이지의 인게임 칸을 확인해요
           who=""; srv=""
           for i in 1 2 3 4 5 6; do
-            j=$(curl -s "$SITE/api/pros-live")
+            j=$(curl -s --max-time 90 "$SITE/api/pros-live")
             who=$(echo "$j" | jq -r '.live[0].who // empty'); srv=$(echo "$j" | jq -r '.live[0].server // empty')
             [ -n "$who" ] && break; sleep 20
           done
           if [ -n "$who" ]; then
             enc=$(jq -rn --arg v "$who" '$v|@uri')
-            html=$(curl -s "$SITE/summoner?id=$enc&s=$srv")
+            html=$(curl -s --max-time 90 "$SITE/summoner?id=$enc&s=$srv")
             flag=$(echo "$html" | grep -o 'In game now\|지금 게임 중' | head -1)
             lp=$(echo "$html" | grep -o '[A-Z][A-Z1-4]* [0-9]*LP' | head -10 | tr '\n' ',')
             err=$(echo "$html" | grep -o 'role="alert"[^<]*<' | head -1)
