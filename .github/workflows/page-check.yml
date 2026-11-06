@@ -33,10 +33,10 @@ jobs:
           done
           echo "::notice title=pages::${pages//%/pct}"
           imgs=""
-          for p in /tier/opengraph-image /duo/opengraph-image /champions/Jinx/opengraph-image "/api/aram-card?id=Jinx&mode=aram"; do
+          for p in /tier/opengraph-image /duo/opengraph-image /champions/Jinx/opengraph-image "/api/aram-card?id=Jinx&mode=aram" "/api/card?id=Hide%20on%20bush%23KR1&s=kr"; do
             imgs="$imgs | $p $(curl -s --max-time 90 -o /dev/null -w '%{http_code} %{content_type} %{size_download}' "$SITE$p")"
           done
-          echo "::notice title=share images::$imgs"
+          echo "::notice title=share images::${imgs//%/pct}"
           pros=$(curl -s --max-time 90 "$SITE/champions/Riven" | grep -o 'builds from pros and challengers\|빌드</h2>' | head -1)
           echo "::notice title=champion pro builds::${pros:-panel missing}"
           # 지금 게임 중인 프로 한 명을 찾아 소환사 페이지의 인게임 칸을 확인해요
