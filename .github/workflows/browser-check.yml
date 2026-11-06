@@ -1,0 +1,20 @@
+name: 브라우저 속도 점검
+# 실제 크롬으로 페이지를 열어 사람이 느끼는 속도를 잽니다 (시크릿 없음).
+on:
+  workflow_dispatch:
+    inputs:
+      pages:
+        description: 쉼표로 구분한 경로
+        default: /,/tier,/champions/Jinx
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm i --no-save playwright@1.49.1 && npx playwright install --with-deps chromium
+      - run: node scripts/browser-check.mjs
+        env:
+          PAGES: ${{ inputs.pages || '/,/tier,/champions/Jinx' }}
