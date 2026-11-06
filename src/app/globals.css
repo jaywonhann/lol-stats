@@ -176,3 +176,16 @@ textarea:focus-visible {
     min-height: 36px;
   }
 }
+
+/* 새 배지 축하 배너: 살짝 튀어나오기 */
+@keyframes badge-pop {
+  0% { transform: scale(0.92); opacity: 0; }
+  60% { transform: scale(1.03); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.badge-pop {
+  animation: badge-pop 0.45s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .badge-pop { animation: none; }
+}

@@ -1,6 +1,7 @@
 import { Icon, Panel } from "@/components/ui";
 import { img } from "@/lib/ddragon";
 import ShareButton from "@/components/ShareButton";
+import NewBadges from "@/components/NewBadges";
 import type { Badge, BestGame, Rank } from "@/lib/achievements";
 import { numLocale, timeAgo, type Lang } from "@/lib/i18n";
 
@@ -35,6 +36,9 @@ export default function Achievements({
         <div className="min-w-0 space-y-4">
           {/* 딴 배지 */}
           <div>
+            {shareUrl && (
+              <NewBadges who={shareUrl} earned={earned.map((b) => ({ id: b.id, icon: b.icon, name: b.name[lang] }))} ko={ko} />
+            )}
             <p className="mb-2 text-xs text-muted">
               {ko ? `최근 경기에서 딴 배지 ${earned.length}개` : `${earned.length} badges earned in recent games`}
             </p>
