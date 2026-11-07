@@ -108,6 +108,11 @@ export default async function ChampionPage({ params, searchParams }: Props) {
     .map((b) => b.find((s) => s.champion.id === champion.id))
     .filter((s) => s !== undefined);
   const stat = trend.find((t) => t.patch === patch) ?? null;
+  // 바로 전 패치 대비 승률·픽률 변화 (버프/너프 체감용). 전 패치 표본이 적으면 안 보여요
+  const prevStat = trend.length > 1 ? trend[trend.length - 2] : null;
+  const delta = stat && prevStat && prevStat.patch !== patch && prevStat.games >= 200 && stat.games >= 200
+    ? { wr: stat.winRate - prevStat.winRate, pr: stat.pickRate - prevStat.pickRate, from: prevStat.patch }
+    : null;
   // 빌드·카운터는 실제 수집 데이터가 있을 때만 보여줍니다
   const agg =
     source === "real" ? realChamp(real.get(patch)!, champion, lane) : null;
@@ -172,8 +177,8 @@ export default async function ChampionPage({ params, searchParams }: Props) {
           {stat && (
             <dl className="grid grid-cols-4 gap-4 text-center">
               <Stat label={t.metaScore} value={stat.score.toFixed(1)} />
-              <Stat label={t.winRate} value={<WinRate value={stat.winRate} />} />
-              <Stat label={t.pickRate} value={pct(stat.pickRate)} />
+              <Stat label={t.winRate} value={<><WinRate value={stat.winRate} />{delta && <Delta v={delta.wr} from={delta.from} lang={lang} />}</>} />
+              <Stat label={t.pickRate} value={<>{pct(stat.pickRate)}{delta && <Delta v={delta.pr} from={delta.from} lang={lang} />}</>} />
               <Stat label={t.banRate} value={pct(stat.banRate)} />
             </dl>
           )}
@@ -490,6 +495,19 @@ export default async function ChampionPage({ params, searchParams }: Props) {
         <ChampionPros champKey={champion.key} champName={champion.name} lane={lane} lang={lang} version={version} items={items} trees={trees} spells={spells} />
       </Suspense>
     </div>
+  );
+}
+
+// 숫자 아래 작게: "▲1.2%p 16.21 대비"
+function Delta({ v, from, lang }: { v: number; from: string; lang: Lang }) {
+  const flat = Math.abs(v) < 0.1;
+  return (
+    <span
+      className={`block text-[11px] font-semibold tabular-nums ${flat ? "text-muted" : v > 0 ? "text-[var(--chart-up)]" : "text-[var(--chart-down)]"}`}
+      title={lang === "ko" ? `${from} 패치 대비` : `vs patch ${from}`}
+    >
+      {flat ? "–" : `${v > 0 ? "▲" : "▼"}${Math.abs(v).toFixed(1)}%p`} <span className="font-normal text-muted">{lang === "ko" ? `${from} 대비` : `vs ${from}`}</span>
+    </span>
   );
 }
 
