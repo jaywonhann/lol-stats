@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "@/components/Link";
 import ShareButton from "@/components/ShareButton";
+import SinceLast from "@/components/SinceLast";
 import SinceLastVisit from "@/components/SinceLastVisit";
 import { Icon, Panel } from "@/components/ui";
 import { DivergingBars } from "@/components/charts";
@@ -246,7 +247,7 @@ function Analysis({
           </div>
         </div>
         <div className="hidden self-stretch border-l border-line md:block" aria-hidden />
-        <RankBox solo={solo} lang={lang} />
+        <RankBox solo={solo} lang={lang} who={`${account.puuid}`} />
         {glance && (
           <>
             <div className="hidden self-stretch border-l border-line lg:block" aria-hidden />
@@ -782,7 +783,7 @@ const TIER_HEX: Record<string, string> = {
 };
 
 // 헤더 안에 들어가는 솔랭 티어 (엠블럼 + 티어·LP + 전적)
-function RankBox({ solo, lang }: { solo: LeagueEntry | null; lang: Lang }) {
+function RankBox({ solo, lang, who }: { solo: LeagueEntry | null; lang: Lang; who: string }) {
   const t = dict(lang).summoner;
   const nl = numLocale(lang);
   if (!solo)
@@ -815,6 +816,7 @@ function RankBox({ solo, lang }: { solo: LeagueEntry | null; lang: Lang }) {
           <span className={`font-semibold ${wr >= 50 ? "text-win" : "text-lose"}`}>{wr.toFixed(0)}%</span>{" "}
           ({t.record(solo.wins.toLocaleString(nl), solo.losses.toLocaleString(nl))})
         </p>
+        <SinceLast who={who} tier={solo.tier} rank={solo.rank} lp={solo.leaguePoints} wins={solo.wins} losses={solo.losses} ko={lang === "ko"} />
       </div>
     </div>
   );
