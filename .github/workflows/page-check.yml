@@ -40,6 +40,8 @@ jobs:
             imgs="$imgs | $p $(curl -s --max-time 90 -o /dev/null -w '%{http_code} %{content_type} %{size_download}' "$SITE$p")"
           done
           echo "::notice title=share images::${imgs//%/pct}"
+          comm=$(curl -s --max-time 90 "$SITE/community" | grep -o 'community is unavailable\|커뮤니티를 지금 쓸 수 없' | head -1)
+          echo "::notice title=community::${comm:-ok}"
           pros=$(curl -s --max-time 90 "$SITE/champions/Riven" | grep -o 'builds from pros and challengers\|빌드</h2>' | head -1)
           echo "::notice title=champion pro builds::${pros:-panel missing}"
           # 지금 게임 중인 프로 한 명을 찾아 소환사 페이지의 인게임 칸을 확인해요
