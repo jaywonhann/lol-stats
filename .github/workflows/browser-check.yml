@@ -6,6 +6,9 @@ on:
       pages:
         description: 쉼표로 구분한 경로
         default: /,/tier,/champions/Jinx
+      nav:
+        description: 홈에서 차례로 눌러 볼 경로 (비우면 건너뜀)
+        default: ''
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -18,3 +21,4 @@ jobs:
       - run: node scripts/browser-check.mjs
         env:
           PAGES: ${{ inputs.pages || '/,/tier,/champions/Jinx' }}
+          NAV: ${{ inputs.nav }}

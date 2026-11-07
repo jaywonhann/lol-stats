@@ -29,3 +29,30 @@ for (const p of pages) {
   }
 }
 await b.close();
+
+// 페이지 넘기기: 처음 연 페이지에서 링크를 눌러 다음 페이지가 다 그려질 때까지의 시간 (사람이 실제로 느끼는 이동 속도)
+if (process.env.NAV) {
+  const b2 = await chromium.launch();
+  const ctx = await b2.newContext({ viewport: { width: 390, height: 844 }, locale: "ko-KR" });
+  const page = await ctx.newPage();
+  const rsc = [];
+  page.on("response", async (r) => {
+    if (!r.url().includes("_rsc") && r.request().headers()["rsc"] !== "1") return;
+    const h = r.headers();
+    rsc.push(`${r.url().replace(SITE, "").split("?_rsc")[0].slice(0, 50)} ${r.status()} cache=${h["x-page-cache"] ?? "-"} ${Math.round(r.request().timing().responseEnd)}ms`);
+  });
+  await page.goto(SITE + "/", { waitUntil: "load", timeout: 120000 }).catch(() => {});
+  for (const path of process.env.NAV.split(",")) {
+    rsc.length = 0;
+    const t0 = Date.now();
+    const link = page.locator(`a[href="${path}"]`).first();
+    const visible = await link.count();
+    if (visible) await link.evaluate((a) => a.click());
+    else await page.evaluate((p) => { const a = document.createElement("a"); a.href = p; document.body.appendChild(a); a.click(); }, path);
+    await page.waitForURL((u) => u.pathname + u.search === path, { timeout: 60000 }).catch(() => {});
+    const urlMs = Date.now() - t0;
+    await page.waitForLoadState("networkidle", { timeout: 30000 }).catch(() => {});
+    console.log(`::notice title=nav ${path}::url ${urlMs}ms idle ${Date.now() - t0}ms link=${visible ? "real" : "synthetic"} | ${rsc.join(" ; ")}`);
+  }
+  await b2.close();
+}
