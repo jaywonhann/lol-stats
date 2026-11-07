@@ -269,7 +269,9 @@ for (const p of people) {
     db.builds.push({
       m: id,
       s: p.server,
+      // 경기 기록의 지금 닉네임 (프로가 닉네임을 바꿔도 전적 링크가 열리게)
       who: p.who,
+      now: me.riotIdGameName && me.riotIdTagline ? `${me.riotIdGameName}#${me.riotIdTagline}` : undefined,
       label: p.label,
       kind: p.kind,
       champ: me.championId,

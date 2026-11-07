@@ -65,7 +65,7 @@ export default function ProsLive({ champs, ko }: { champs: Record<string, Champ>
                   <img src={c.icon} alt={c.name} width={40} height={40} className="rounded-md" />
                 )}
                 <div className="min-w-0 flex-1">
-                  <Link href={`/summoner?id=${encodeURIComponent(p.who)}`} className="block truncate font-semibold hover:underline">
+                  <Link href={`/summoner?id=${encodeURIComponent(p.who)}&s=${p.server}`} className="block truncate font-semibold hover:underline">
                     <span className="live-dot mr-1 inline-block h-1.5 w-1.5 rounded-full bg-red-500" aria-hidden />
                     {p.label}
                   </Link>

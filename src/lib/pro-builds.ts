@@ -8,6 +8,8 @@ export type ProBuild = {
   m: string;
   s: Server;
   who: string;
+  // 경기 기록에 찍힌 그 당시 닉네임 (명단의 who 가 옛 닉네임이어도 전적 링크가 열리게)
+  now?: string;
   label: string;
   kind: "pro" | "streamer" | "challenger";
   champ: number;
@@ -68,7 +70,7 @@ export async function recentProGames(days = 7, n = 30) {
   }
 }
 
-export type ProStyle = { who: string; s: Server; label: string; kind: ProBuild["kind"]; lane: string | null; n: number; avg: Style };
+export type ProStyle = { who: string; now?: string; s: Server; label: string; kind: ProBuild["kind"]; lane: string | null; n: number; avg: Style };
 
 // 프로·스트리머별 평균 플레이 스타일 (스타일 값이 있는 게임 3판 이상)
 export async function proStyles(): Promise<ProStyle[]> {
@@ -95,7 +97,7 @@ export async function proStyles(): Promise<ProStyle[]> {
       const avg = Object.fromEntries(
         STYLE_KEYS.map((k) => [k, mine.reduce((a, g) => a + g.st![k], 0) / mine.length]),
       ) as Style;
-      out.push({ who: gs[0].who, s: gs[0].s, label: gs[0].label, kind: gs[0].kind, lane, n: mine.length, avg });
+      out.push({ who: gs[0].who, now: gs.reduce((a, g) => (g.at > a.at ? g : a)).now, s: gs[0].s, label: gs[0].label, kind: gs[0].kind, lane, n: mine.length, avg });
     }
     return out;
   } catch {
@@ -117,7 +119,7 @@ export function similarPros(me: Style, lane: string | null, pros: ProStyle[], ex
   const z = (st: Style) => STYLE_KEYS.map((k) => (st[k] - mean[k]) / sd[k]);
   const zm = z(me);
   const ranked = pool
-    .filter((p) => p.who.toLowerCase() !== (excludeWho ?? "").toLowerCase())
+    .filter((p) => ![p.who, p.now].some((x) => x?.toLowerCase() === (excludeWho ?? "").toLowerCase()))
     .map((p) => {
       const d = Math.sqrt(z(p.avg).reduce((a, v, i) => a + (v - zm[i]) ** 2, 0) / STYLE_KEYS.length);
       return { pro: p, sim: Math.round(100 / (1 + d)) };

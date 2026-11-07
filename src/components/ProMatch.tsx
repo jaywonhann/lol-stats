@@ -48,7 +48,7 @@ export default async function ProMatch({
 }) {
   const t = T[lang];
   const pros = await proStyles();
-  const self = pros.find((p) => p.who.toLowerCase() === who.toLowerCase());
+  const self = pros.find((p) => [p.who, p.now].some((x) => x?.toLowerCase() === who.toLowerCase()));
   const res = similarPros(me, lane, pros, who);
   if (!res && !self) return null;
   const selfEmph = self && res ? res.emphasis(self.avg).slice(0, 2).map((e) => t.names[e.k]) : null;
@@ -82,7 +82,7 @@ export default async function ProMatch({
               return (
                 <li key={`${pro.s}-${pro.who}`} className="flex items-center gap-3 rounded-lg bg-panel-2 p-3">
                   <div className="min-w-0 flex-1">
-                    <Link href={`/summoner?id=${encodeURIComponent(pro.who)}`} className="block truncate font-semibold hover:underline">
+                    <Link href={`/summoner?id=${encodeURIComponent(pro.now ?? pro.who)}&s=${pro.s}`} className="block truncate font-semibold hover:underline">
                       {pro.label}
                     </Link>
                     {common.length > 0 && (

@@ -107,7 +107,7 @@ export default async function ProsPage() {
                     <img src={c.icon} alt={c.name} width={40} height={40} className="rounded-md" />
                   )}
                   <div className="min-w-0 flex-1">
-                    <Link href={`/summoner?id=${encodeURIComponent(b.who)}`} className="block truncate font-semibold hover:underline">
+                    <Link href={`/summoner?id=${encodeURIComponent(b.now ?? b.who)}&s=${b.s}`} className="block truncate font-semibold hover:underline">
                       {b.label}
                     </Link>
                     <span className="text-xs text-muted">
