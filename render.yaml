@@ -15,6 +15,13 @@ services:
         - data/**
         - promo/**
         - .github/**
+        - scripts/aram.mjs
+        - scripts/browser-check.mjs
+        - scripts/collect.mjs
+        - scripts/live-sample.mjs
+        - scripts/pro-builds.mjs
+        - scripts/rate.mjs
+        - scripts/screenshots.mjs
     healthCheckPath: /robots.txt
     envVars:
       - key: NODE_VERSION

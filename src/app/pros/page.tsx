@@ -14,8 +14,9 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getLang()) === "ko" ? "프로 핫한 클립" : "Hot pro clips" };
 }
 
-// 유튜브·전적 불러오기가 늦어지면 페이지가 한참 멈춰서, 6초가 지나면 그 칸은 비워 두고 먼저 보여 줘요
-function within<T>(p: Promise<T>, fallback: T, ms = 6000): Promise<T> {
+// 유튜브·전적 불러오기가 늦어지면 페이지가 한참 멈춰서, 2.5초가 지나면 그 칸은 비워 두고 먼저 보여 줘요
+// (비운 칸은 서버가 뒤에서 페이지를 새로 만들 때 채워져요)
+function within<T>(p: Promise<T>, fallback: T, ms = 2500): Promise<T> {
   return Promise.race([p.catch(() => fallback), new Promise<T>((r) => setTimeout(() => r(fallback), ms))]);
 }
 

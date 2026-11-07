@@ -189,3 +189,18 @@ textarea:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .badge-pop { animation: none; }
 }
+
+/* 페이지를 옮기는 동안 맨 위 진행 막대: 빠르게 70%까지 갔다가 천천히 끝으로 */
+@keyframes nav-progress {
+  0% { width: 0; }
+  20% { width: 45%; }
+  60% { width: 75%; }
+  100% { width: 92%; }
+}
+.nav-progress {
+  animation: nav-progress 6s cubic-bezier(0.1, 0.7, 0.3, 1) forwards;
+  box-shadow: 0 0 8px var(--color-accent, currentColor);
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-progress { animation: none; width: 70%; }
+}

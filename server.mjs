@@ -169,7 +169,7 @@ function run(req, res) {
 }
 
 await app.prepare();
-let lastVisit = 0; // 방문자 요청이 마지막으로 온 시각 (미리 만들기는 그 뒤 45초 동안 쉬어요)
+let lastVisit = 0; // 방문자 페이지 요청이 마지막으로 온 시각 (미리 만들기는 그 뒤 잠깐 쉬어요)
 createServer((req, res) => {
   // ?lang=ko|en 주소(검색엔진이 언어별로 따로 담는 주소)는 쿠키보다 먼저 써요: 쿠키의 lang 값을 바꿔 넘깁니다
   const lp = /[?&]lang=(ko|en)(?:&|$)/.exec(req.url ?? "")?.[1];
@@ -179,9 +179,10 @@ createServer((req, res) => {
     req.headers["x-lang-url"] = lp;
   }
   req.headers["x-pathname"] = (req.url ?? "/").split("?")[0];
-  if (req.socket.remoteAddress !== "127.0.0.1" && req.socket.remoteAddress !== "::ffff:127.0.0.1") lastVisit = Date.now();
   if (sendFile(req, res)) return;
   if (light(req.url)) return void handle(req, res);
+  // 그림·파일·robots.txt(서버 깨우기)는 빼고 페이지 요청만 방문으로 쳐요
+  if (req.socket.remoteAddress !== "127.0.0.1" && req.socket.remoteAddress !== "::ffff:127.0.0.1") lastVisit = Date.now();
   // 저장해 둔 페이지는 줄을 안 서고 바로 보내요
   if (fromCache(cacheKey(req), res, req)) return;
   if (active < MAX) return run(req, res);
@@ -215,23 +216,39 @@ async function warm() {
   idleWarm();
 }
 
-// 챔피언 페이지는 종류가 많아서, 방문자가 아무도 없을 때만 하나씩 미리 만들어 둬요 (100분마다 한 바퀴)
+// 챔피언 페이지는 종류가 많아서, 서버가 쉬는 틈마다 하나씩 미리 만들어 둬요.
+// 배포하면 저장해 둔 페이지가 다 사라지니까, 많이 하는 챔피언부터 (한국어 페이지 이동 → 한국어 첫 방문 → 영어) 순서로 채워요.
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// 우리 수집 데이터(KR 에메랄드+, 최신 패치)에서 판수가 많은 챔피언 순서
+function popularOrder(byKey) {
+  try {
+    const d = JSON.parse(fs.readFileSync(path.join(process.cwd(), "data/derived/real-kr-all.json"), "utf8"));
+    const games = new Map();
+    for (const [k, v] of Object.entries(d[d.length - 1]?.champs ?? {})) {
+      const id = byKey[k.split(":")[0]];
+      if (id) games.set(id, (games.get(id) ?? 0) + (v.games ?? 0));
+    }
+    return Object.values(byKey).sort((a, b) => (games.get(b) ?? 0) - (games.get(a) ?? 0));
+  } catch {
+    return Object.values(byKey);
+  }
+}
 async function idleWarm() {
   for (;;) {
     let ids = [];
     try {
       const dd = process.env.DDRAGON_BASE ?? "https://ddragon.leagueoflegends.com";
       const [v] = await fetch(`${dd}/api/versions.json`).then((r) => r.json());
-      ids = Object.keys((await fetch(`${dd}/cdn/${v}/data/en_US/champion.json`).then((r) => r.json())).data);
+      const data = (await fetch(`${dd}/cdn/${v}/data/en_US/champion.json`).then((r) => r.json())).data;
+      ids = popularOrder(Object.fromEntries(Object.values(data).map((c) => [c.key, c.id])));
     } catch {
       // 다음 바퀴에 다시
     }
     const started = Date.now();
-    for (const id of ids)
-      for (const [lang, rsc] of [["ko", true], ["en", true], ["en", false]]) {
-        // 서버는 한 번에 한 가지 계산만 해서, 방문자가 둘러보는 동안 미리 만들기를 하면 그 사람이 기다려요
-        while (active > 0 || queue.length > 0 || Date.now() - lastVisit < 45_000) await sleep(1_000);
+    for (const [lang, rsc] of [["ko", true], ["ko", false], ["en", true], ["en", false]])
+      for (const id of ids) {
+        // 방문자가 기다리지 않게: 만들고 있는 페이지가 없고, 마지막 방문 뒤 8초가 지났을 때만
+        while (active > 0 || queue.length > 0 || Date.now() - lastVisit < 8_000) await sleep(1_000);
         try {
           await fetch(`http://127.0.0.1:${port}/champions/${id}`, {
             headers: { cookie: `lang=${lang}`, "accept-encoding": "gzip", ...(rsc ? { rsc: "1" } : {}) },
@@ -239,7 +256,7 @@ async function idleWarm() {
         } catch {
           // 괜찮아요
         }
-        await sleep(300);
+        await sleep(200);
       }
     await sleep(Math.max(60_000, 100 * 60_000 - (Date.now() - started)));
   }

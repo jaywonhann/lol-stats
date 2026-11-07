@@ -11,6 +11,8 @@ import { ADSENSE_CLIENT } from "@/lib/ads";
 import AdSlot from "@/components/AdSlot";
 import BottomNav from "@/components/BottomNav";
 import SlashSearch from "@/components/SlashSearch";
+import NavProgress from "@/components/NavProgress";
+import { Suspense } from "react";
 import { Analytics } from "@vercel/analytics/next";
 import { token as communityOn } from "@/lib/community";
 import "./globals.css";
@@ -51,6 +53,9 @@ export default async function RootLayout({
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
       </head>
       <body className="min-h-screen antialiased">
+        <Suspense>
+          <NavProgress />
+        </Suspense>
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-accent focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:text-bg"
