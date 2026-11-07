@@ -64,6 +64,10 @@ export default async function TierPage({ searchParams }: Props) {
   const patch =
     params.patch && patches.includes(params.patch) ? params.patch : latest;
   const rows = bs[patches.indexOf(patch)];
+  // 바로 전 패치 승률 (버프·너프 체감용). 두 패치 모두 200판 이상일 때만 화살표를 보여요
+  const prevRows = patches.indexOf(patch) > 0 ? bs[patches.indexOf(patch) - 1] : [];
+  const prevWr = new Map(prevRows.filter((s) => s.games >= 200).map((s) => [s.champion.id, s.winRate] as const));
+  const prevPatch = patches.indexOf(patch) > 0 ? patches[patches.indexOf(patch) - 1] : null;
   // 표 오른쪽에 "지금 이 챔피언이 가는 룬·스펠·코어템"을 같이 보여줍니다 (lol.ps처럼 한 줄에 다 보이게)
   const [items, trees, spells] =
     source === "real"
@@ -182,6 +186,19 @@ export default async function TierPage({ searchParams }: Props) {
                 </td>
                 <td className="px-3 py-2 text-right">
                   <WinRate value={s.winRate} />
+                  {s.games >= 200 && prevWr.has(s.champion.id) && (() => {
+                    const d = s.winRate - prevWr.get(s.champion.id)!;
+                    if (Math.abs(d) < 0.5) return null;
+                    return (
+                      <span
+                        className={`block text-[11px] tabular-nums ${d > 0 ? "text-[var(--chart-up)]" : "text-[var(--chart-down)]"}`}
+                        title={lang === "ko" ? `${prevPatch} 패치 대비` : `vs patch ${prevPatch}`}
+                      >
+                        {d > 0 ? "▲" : "▼"}
+                        {Math.abs(d).toFixed(1)}
+                      </span>
+                    );
+                  })()}
                 </td>
                 <td className="px-3 py-2 text-right">{pct(s.pickRate)}</td>
                 <td className="px-3 py-2 text-right">{pct(s.banRate)}</td>
