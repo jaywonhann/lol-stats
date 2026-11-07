@@ -60,15 +60,33 @@ function remember(key, pathname, res, chunks) {
     cacheBytes -= v.body.length;
   }
 }
-function fromCache(key, res) {
-  const hit = key && pageCache.get(key);
+// 시간이 지난 페이지도 12시간까지는 일단 바로 보내고, 뒤에서 새로 만들어 바꿔 넣어요 (첫 방문자가 5~8초 기다리지 않게)
+const STALE_MAX = 12 * 60 * 60_000;
+const refreshing = new Set();
+function refresh(key, req) {
+  if (refreshing.has(key)) return;
+  refreshing.add(key);
+  const headers = { ...req.headers, "x-refresh": "1" };
+  delete headers.host;
+  delete headers.connection;
+  fetch(`http://127.0.0.1:${port}${req.url}`, { headers })
+    .then((r) => r.arrayBuffer())
+    .catch(() => {})
+    .finally(() => refreshing.delete(key));
+}
+function fromCache(key, res, req) {
+  if (!key || req?.headers["x-refresh"]) return false;
+  const hit = pageCache.get(key);
   if (!hit) return false;
-  if (Date.now() - hit.at > hit.ttl) {
+  const age = Date.now() - hit.at;
+  if (age > STALE_MAX) {
     pageCache.delete(key);
     cacheBytes -= hit.body.length;
     return false;
   }
-  res.writeHead(hit.status, { ...hit.headers, "x-page-cache": "hit" });
+  const stale = age > hit.ttl;
+  if (stale && req) refresh(key, req);
+  res.writeHead(hit.status, { ...hit.headers, "x-page-cache": stale ? "stale" : "hit" });
   res.end(hit.body);
   return true;
 }
@@ -130,7 +148,7 @@ const light = (url = "") =>
 
 function run(req, res) {
   const key = cacheKey(req);
-  if (fromCache(key, res)) return void queue.shift()?.();
+  if (fromCache(key, res, req)) return void queue.shift()?.();
   if (key) record(key, req, res);
   active++;
   let done = false;
@@ -165,7 +183,7 @@ createServer((req, res) => {
   if (sendFile(req, res)) return;
   if (light(req.url)) return void handle(req, res);
   // 저장해 둔 페이지는 줄을 안 서고 바로 보내요
-  if (fromCache(cacheKey(req), res)) return;
+  if (fromCache(cacheKey(req), res, req)) return;
   if (active < MAX) return run(req, res);
   if (queue.length >= MAX_QUEUE) {
     res.statusCode = 503;
