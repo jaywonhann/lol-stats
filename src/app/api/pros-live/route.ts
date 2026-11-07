@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 type Acc = { server: string; who: string; puuid: string; label: string; kind: string };
-type Seen = { at: number; live: null | { champ: number; start: number; queue: number } };
+type Seen = { at: number; live: null | { champ: number; start: number; queue: number }; riotId?: string };
 
 const BATCH = 30;
 const FRESH_MS = 10 * 60_000;
@@ -65,10 +65,11 @@ export async function GET() {
             const g = (await res.json()) as {
               gameStartTime: number;
               gameQueueConfigId: number;
-              participants: { puuid: string; championId: number }[];
+              participants: { puuid: string; championId: number; riotId?: string }[];
             };
             const me = g.participants.find((p) => p.puuid === a.puuid);
-            seen.set(a.puuid, { at: Date.now(), live: me ? { champ: me.championId, start: g.gameStartTime, queue: g.gameQueueConfigId } : null });
+            // 관전 응답의 riotId는 지금 닉네임이에요. 프로가 닉네임을 바꿔도 전적 링크가 열리게 이걸 써요
+            seen.set(a.puuid, { at: Date.now(), live: me ? { champ: me.championId, start: g.gameStartTime, queue: g.gameQueueConfigId } : null, riotId: me?.riotId?.includes("#") ? me.riotId : undefined });
           } else if (res.status === 404) seen.set(a.puuid, { at: Date.now(), live: null });
         }),
       );
@@ -76,7 +77,7 @@ export async function GET() {
 
     const live = list.flatMap((a) => {
       const s = seen.get(a.puuid);
-      return s?.live && Date.now() - s.at < FRESH_MS ? [{ server: a.server, who: a.who, label: a.label, kind: a.kind, ...s.live }] : [];
+      return s?.live && Date.now() - s.at < FRESH_MS ? [{ server: a.server, who: s.riotId ?? a.who, label: a.label, kind: a.kind, ...s.live }] : [];
     });
     const checked = list.filter((a) => Date.now() - (seen.get(a.puuid)?.at ?? 0) < FRESH_MS).length;
     return NextResponse.json(
