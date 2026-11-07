@@ -21,3 +21,9 @@ jobs:
             out="$out | $p $a $b rsc $r"
           done
           echo "::notice title=speed::$out"
+          # 챔피언 페이지 이동(RSC, 한국어)이 저장된 걸 받는지, 새로 만드는지
+          c=""
+          for id in Aatrox Ahri Akali Ezreal Garen Jhin Kaisa LeeSin Lux Thresh Yasuo Yone Zed Viego Smolder; do
+            c="$c | $id $(curl -s -o /dev/null -D - -m 60 -H 'RSC: 1' -H 'Accept-Encoding: gzip' -b lang=ko -w 'T%{time_total}' "$SITE/champions/$id" | tr -d '\r' | grep -iE '^x-page-cache|^T' | sed 's/x-page-cache: //I' | tr '\n' ' ')"
+          done
+          echo "::notice title=champ-rsc::$c"
