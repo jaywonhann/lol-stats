@@ -12,6 +12,7 @@ import AdSlot from "@/components/AdSlot";
 import BottomNav from "@/components/BottomNav";
 import SlashSearch from "@/components/SlashSearch";
 import { Analytics } from "@vercel/analytics/next";
+import { token as communityOn } from "@/lib/community";
 import "./globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -95,9 +96,12 @@ export default async function RootLayout({
                 <Link href="/items" className="rounded px-3 py-2 text-sm hover:bg-panel-2">
                   {lang === "ko" ? "아이템 통계" : "Item stats"}
                 </Link>
-                <Link href="/community" className="rounded px-3 py-2 text-sm hover:bg-panel-2">
-                  {lang === "ko" ? "커뮤니티" : "Community"}
-                </Link>
+                {/* 글 저장소 토큰(FEEDBACK_TOKEN)이 서버에 없으면 커뮤니티가 안 열려서 메뉴에서 숨겨요 */}
+                {communityOn() && (
+                  <Link href="/community" className="rounded px-3 py-2 text-sm hover:bg-panel-2">
+                    {lang === "ko" ? "커뮤니티" : "Community"}
+                  </Link>
+                )}
                 <Link href="/faq" className="rounded px-3 py-2 text-sm hover:bg-panel-2">
                   {t.nav.faq}
                 </Link>
@@ -164,7 +168,7 @@ export default async function RootLayout({
             }),
           }}
         />
-        <BottomNav lang={lang} />
+        <BottomNav lang={lang} community={!!communityOn()} />
       </body>
     </html>
   );

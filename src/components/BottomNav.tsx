@@ -15,7 +15,7 @@ const MAIN = [
 ] as const;
 const MORE = ["champions", "matchup", "items", "trends", "community", "faq"] as const;
 
-export default function BottomNav({ lang }: { lang: "ko" | "en" }) {
+export default function BottomNav({ lang, community = true }: { lang: "ko" | "en"; community?: boolean }) {
   const path = usePathname();
   const t = T[lang];
   const on = (h: string) => (h === "/" ? path === "/" : path.startsWith(h));
@@ -38,7 +38,7 @@ export default function BottomNav({ lang }: { lang: "ko" | "en" }) {
           {t.more}
         </summary>
         <ul className="absolute bottom-full right-2 mb-2 w-44 rounded-lg border border-line bg-panel p-1 shadow-lg">
-          {MORE.map((k) => (
+          {MORE.filter((k) => community || k !== "community").map((k) => (
             <li key={k}>
               <Link href={`/${k}`} className="block rounded px-3 py-2 text-sm hover:bg-panel-2">
                 {t[k]}

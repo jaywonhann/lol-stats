@@ -2,16 +2,20 @@ import type { Metadata } from "next";
 import Link from "@/components/Link";
 import CommunityForm from "@/components/CommunityForm";
 import { Panel } from "@/components/ui";
-import { CATS, listPosts, type Cat } from "@/lib/community";
+import { CATS, listPosts, token, type Cat } from "@/lib/community";
 import { ct } from "@/lib/community-text";
 import { timeAgo } from "@/lib/i18n";
 import { getLang } from "@/lib/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = {
-  title: "커뮤니티 · livelol.stats",
-  description: "롤 유저들이 챔피언 팁과 빌드를 나누는 곳이에요. 의견을 남기고 다른 소환사의 이야기를 읽어보세요.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "커뮤니티 · livelol.stats",
+    description: "롤 유저들이 챔피언 팁과 빌드를 나누는 곳이에요. 의견을 남기고 다른 소환사의 이야기를 읽어보세요.",
+    // 열 수 없는 동안은 검색엔진에 빈 페이지가 담기지 않게
+    ...(!token() && { robots: { index: false } }),
+  };
+}
 
 export default async function CommunityPage({ searchParams }: { searchParams: Promise<{ c?: string }> }) {
   const lang = await getLang();

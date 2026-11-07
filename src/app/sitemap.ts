@@ -8,7 +8,11 @@ import { loadAram, MIN_ARAM_GAMES } from "@/lib/aram";
 
 export const revalidate = 86400;
 
-const PAGES = ["", "/tier", "/trends", "/meta", "/champions", "/matchup", "/items", "/summoner", "/ranking", "/aram?mode=mayhem", "/aram?mode=aram", "/duo", "/pros", "/predict", "/tools", "/community", "/faq"];
+import { token as communityOn } from "@/lib/community";
+
+const ALL_PAGES = ["", "/tier", "/trends", "/meta", "/champions", "/matchup", "/items", "/summoner", "/ranking", "/aram?mode=mayhem", "/aram?mode=aram", "/duo", "/pros", "/predict", "/tools", "/community", "/faq"];
+// 커뮤니티는 열 수 있을 때만 올려요
+const PAGES = ALL_PAGES.filter((p) => p !== "/community" || communityOn());
 
 // 실제 데이터에서 표본이 많은 상성 조합 상위 N개 ("야스오 vs 요네" 같은 검색 유입용)
 function matchupUrls(byKey: Map<string, string>, limit = 400): string[] {
