@@ -71,8 +71,8 @@ jobs:
         run: |
           SITE=${{ inputs.site || 'https://livelol.onrender.com' }}
           Q='Hide%20on%20bush%20%23KR1%EB%8B%98%EC%9D%B4%20%EB%A1%9C%EB%B9%84%EC%97%90%20%EC%B0%B8%EA%B0%80%ED%95%98%EC%85%A8%EC%8A%B5%EB%8B%88%EB%8B%A4.%0AT1%20Gumayusi%20%23KR1'
-          curl -s --max-time 90 -b lang=en "$SITE/multi?s=kr&q=$Q" -o m.html
+          t=$(curl -s --max-time 90 -b lang=en "$SITE/multi?s=kr&q=$Q" -o m.html -w "%{http_code} %{time_total}s" || echo "timeout")
           cards=$(grep -o 'block truncate font-bold">[^<]*' m.html | sed 's/.*">//' | tr '\n' ',')
           errs=$(grep -oE "(Summoner not found|Too many lookups|Riot lookups are unavailable|Couldn.t load)[^<]*" m.html | sort | uniq -c | tr '\n' ' ')
           recent=$(grep -oE '[0-9]+W [0-9]+L' m.html | head -4 | tr '\n' ' ')
-          bans=$(grep -c "Bans for your team" m.html); echo "::notice title=multi-search::cards=$cards records=$recent bansPanel=$bans errors=${errs:-none}"
+          bans=$(grep -c "Bans for your team" m.html || true); echo "::notice title=multi-search::$t cards=$cards records=$recent bansPanel=$bans errors=${errs:-none}"
