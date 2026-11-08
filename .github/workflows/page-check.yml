@@ -71,4 +71,4 @@ jobs:
           cards=$(grep -o 'block truncate font-bold">[^<]*' m.html | sed 's/.*">//' | tr '\n' ',')
           errs=$(grep -oE "(Summoner not found|Too many lookups|Riot lookups are unavailable|Couldn.t load)[^<]*" m.html | sort | uniq -c | tr '\n' ' ')
           recent=$(grep -oE '[0-9]+W [0-9]+L' m.html | head -4 | tr '\n' ' ')
-          echo "::notice title=multi-search::cards=$cards records=$recent errors=${errs:-none}"
+          bans=$(grep -c "Bans for your team" m.html); echo "::notice title=multi-search::cards=$cards records=$recent bansPanel=$bans errors=${errs:-none}"

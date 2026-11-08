@@ -4,7 +4,8 @@ import TierEmblem from "@/components/TierEmblem";
 import { Icon, Panel } from "@/components/ui";
 import { getChampions, img } from "@/lib/ddragon";
 import { dict, ddLocale } from "@/lib/i18n";
-import { laneLabel, parseServer, serverLabel, type Server } from "@/lib/lanes";
+import { laneLabel, parseServer, serverLabel, type Lane, type Server } from "@/lib/lanes";
+import { loadRealData } from "@/lib/real";
 import { lookupLite, parseRiotId, RiotError, type LeagueEntry, type LookupError } from "@/lib/riot";
 import { getLang, getServer, langAlternates } from "@/lib/server";
 import { roles, toGames } from "@/lib/summoner";
@@ -47,6 +48,34 @@ function parseLobby(text: string, server: Server) {
   return out;
 }
 
+// 우리 팀 각자 주 라인의 주 챔피언이 이번 패치에 어려워하는 상대를 모아 밴 후보로 (상대별 게임 수가 적어 내 평균 쪽으로 20판 가중, 15판 이상만)
+type Pick = { who: string; key: string; lane: Lane };
+function teamBans(picks: Pick[], server: Server) {
+  const real = loadRealData({ server, rank: "all" });
+  const patch = [...real.keys()].sort((x, y) => x.localeCompare(y, undefined, { numeric: true })).pop();
+  const data = patch ? real.get(patch) : undefined;
+  if (!data) return [];
+  const out = new Map<string, { key: string; edge: number; why: { who: string; mine: string; winRate: number; games: number }[] }>();
+  for (const p of picks) {
+    const c = data.champs[`${p.key}:${p.lane}`];
+    if (!c || c.games < 30) continue;
+    const base = c.wins / c.games;
+    const hard = Object.entries(c.vs)
+      .filter(([k, [g]]) => g >= 15 && k !== p.key)
+      .map(([k, [g, w]]) => ({ k, g, w, edge: base - (w + base * 20) / (g + 20) }))
+      .filter((m) => m.edge > 0.015)
+      .sort((a, b) => b.edge - a.edge)
+      .slice(0, 2);
+    for (const m of hard) {
+      const cur = out.get(m.k) ?? { key: m.k, edge: 0, why: [] };
+      cur.edge += m.edge;
+      cur.why.push({ who: p.who, mine: p.key, winRate: (m.w / m.g) * 100, games: m.g });
+      out.set(m.k, cur);
+    }
+  }
+  return [...out.values()].sort((a, b) => b.edge - a.edge).slice(0, 3);
+}
+
 const EXAMPLE = "Hide on bush #KR1님이 로비에 참가하셨습니다.\nT1 Gumayusi #KR1님이 로비에 참가하셨습니다.";
 
 export default async function MultiPage({ searchParams }: Props) {
@@ -69,6 +98,19 @@ export default async function MultiPage({ searchParams }: Props) {
       }
     }),
   );
+
+  const picks: Pick[] = [];
+  for (const r of results) {
+    if (!r.ok) continue;
+    const games = toGames(r.matches, r.account.puuid);
+    const lane = roles(games)[0]?.lane;
+    if (!lane) continue;
+    const counts = new Map<number, number>();
+    for (const g of games) if (g.lane === lane) counts.set(g.championId, (counts.get(g.championId) ?? 0) + 1);
+    const top = [...counts].sort((a, b) => b[1] - a[1])[0];
+    if (top) picks.push({ who: r.gameName, key: String(top[0]), lane });
+  }
+  const bans = picks.length ? teamBans(picks, server) : [];
 
   const errorText: Record<LookupError, string> = ko
     ? { "not-found": "소환사를 찾을 수 없어요. 이름과 태그를 확인해 주세요.", "rate-limited": "지금 조회가 몰려 있어요. 잠시 뒤 다시 눌러 주세요.", unavailable: "지금은 Riot 조회를 할 수 없어요.", error: "불러오지 못했어요. 다시 시도해 주세요." }
@@ -216,6 +258,37 @@ export default async function MultiPage({ searchParams }: Props) {
             );
           })}
         </div>
+      )}
+      {bans.length > 0 && (
+        <Panel title={ko ? "우리 팀 기준 밴 추천" : "Bans for your team"}>
+          <p className="mb-3 text-xs text-muted">
+            {ko
+              ? "팀원마다 주 라인에서 가장 많이 한 챔피언이 이번 패치 실제 게임에서 특히 약했던 상대예요."
+              : "Champions that each teammate's most-played pick in their main role struggles against this patch, from real games."}
+          </p>
+          <ol className="grid gap-3 sm:grid-cols-3">
+            {bans.map((b) => {
+              const enemy = byKey.get(b.key);
+              return (
+                <li key={b.key} className="flex gap-3 rounded-lg bg-panel-2 p-3">
+                  {enemy && <Icon src={img.champion(version, enemy.image.full)} alt={enemy.name} size={48} className="rounded-lg" />}
+                  <div className="min-w-0 text-sm">
+                    <p className="font-bold">{enemy?.name ?? b.key}</p>
+                    {b.why.map((w) => (
+                      <p key={w.who} className="text-xs text-muted">
+                        {ko
+                          ? `${w.who}의 ${byKey.get(w.mine)?.name ?? w.mine} 상대 승률 `
+                          : `${w.who}'s ${byKey.get(w.mine)?.name ?? w.mine} wins `}
+                        <span className="text-lose">{w.winRate.toFixed(0)}%</span>
+                        {ko ? ` (${w.games}판)` : ` (${w.games} games)`}
+                      </p>
+                    ))}
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </Panel>
       )}
       {results.length > 0 && (
         <p className="text-xs text-muted">
