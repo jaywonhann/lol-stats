@@ -15,7 +15,8 @@ const handle = app.getRequestHandler();
 
 // 한 번 만든 페이지는 잠깐 저장해 두고 같은 요청이 오면 바로 보내요 (데이터는 배포할 때만 바뀌어요).
 // 언어·서버 쿠키와 Next가 페이지 이동 때 보내는 헤더까지 같아야 같은 요청으로 봐요.
-const CACHE_MB = Number(process.env.PAGE_CACHE_MB ?? 56);
+// 512MB 서버라 저장 공간은 36MB까지 (챔피언 미리 만들기가 다 차면 56MB에선 메모리가 넘쳐 서버가 다시 켜졌어요)
+const CACHE_MB = Number(process.env.PAGE_CACHE_MB ?? 36);
 const CACHEABLE = /^\/(|tier|duo|aram|aram\/[^/]+|champions\/[^/]+|items|matchup|meta|trends|ranking|pros|tools|predict|faq|community|privacy)$/;
 const pageCache = new Map(); // key -> { at, status, headers, body }
 let cacheBytes = 0;
@@ -245,7 +246,8 @@ async function idleWarm() {
       // 다음 바퀴에 다시
     }
     const started = Date.now();
-    for (const [lang, rsc] of [["ko", true], ["ko", false], ["en", true], ["en", false]])
+    // 영어 첫 방문(HTML)은 드물어서 미리 만들지 않아요 (메모리 아끼기)
+    for (const [lang, rsc] of [["ko", true], ["ko", false], ["en", true]])
       for (const id of ids) {
         // 방문자가 기다리지 않게: 만들고 있는 페이지가 없고, 마지막 방문 뒤 8초가 지났을 때만
         while (active > 0 || queue.length > 0 || Date.now() - lastVisit < 8_000) await sleep(1_000);
