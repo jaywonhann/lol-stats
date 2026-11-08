@@ -17,7 +17,7 @@ jobs:
           curl -s --max-time 90 -o /dev/null -m 120 "$SITE/"
           for round in 1 2; do
             for s in kr na1 euw1; do
-              for p in / /tier "/tier?rank=master" "/tier?rank=diamond" /duo /aram /champions/Jinx "/champions/Ahri?rank=master" /items /matchup /meta /trends /ranking /pros; do
+              for p in / /tier "/tier?rank=master" "/tier?rank=diamond" /duo /aram /champions/Jinx "/champions/Ahri?rank=master" /items /matchup /meta /trends /ranking /pros /bans; do
                 (curl -s --max-time 90 -o /dev/null -b "server=$s" -m 90 -w '%{http_code}\n' "$SITE$p" >> codes.txt) &
               done
             done
@@ -36,7 +36,7 @@ jobs:
           done
           echo "::notice title=pages::${pages//%/pct}"
           imgs=""
-          for p in /tier/opengraph-image /duo/opengraph-image /champions/Jinx/opengraph-image "/api/aram-card?id=Jinx&mode=aram" "/api/card?id=Hide%20on%20bush%23KR1&s=kr"; do
+          for p in /tier/opengraph-image /duo/opengraph-image /bans/opengraph-image /champions/Jinx/opengraph-image "/api/aram-card?id=Jinx&mode=aram" "/api/card?id=Hide%20on%20bush%23KR1&s=kr"; do
             imgs="$imgs | $p $(curl -s --max-time 90 -o /dev/null -w '%{http_code} %{content_type} %{size_download}' "$SITE$p")"
           done
           echo "::notice title=share images::${imgs//%/pct}"
