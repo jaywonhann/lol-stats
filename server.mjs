@@ -17,7 +17,7 @@ const handle = app.getRequestHandler();
 // 언어·서버 쿠키와 Next가 페이지 이동 때 보내는 헤더까지 같아야 같은 요청으로 봐요.
 // 512MB 서버라 저장 공간은 36MB까지 (챔피언 미리 만들기가 다 차면 56MB에선 메모리가 넘쳐 서버가 다시 켜졌어요)
 const CACHE_MB = Number(process.env.PAGE_CACHE_MB ?? 36);
-const CACHEABLE = /^\/(|tier|duo|aram|aram\/[^/]+|champions\/[^/]+|items|matchup|meta|trends|ranking|pros|tools|predict|faq|community|privacy)$/;
+const CACHEABLE = /^\/(|tier|duo|aram|aram\/[^/]+|champions\/[^/]+|items|matchup|bans|meta|trends|ranking|pros|tools|predict|faq|community|privacy)$/;
 const pageCache = new Map(); // key -> { at, status, headers, body }
 let cacheBytes = 0;
 const ttl = (pathname) =>
@@ -200,7 +200,7 @@ createServer((req, res) => {
 });
 
 // 서버가 켜지면 자주 가는 페이지를 미리 한 번씩 만들어 둬요 (한 번에 하나씩, 방문자 요청과 같이 줄 서요)
-const WARM = ["/", "/tier", ...["top", "jungle", "mid", "bottom", "support"].map((l) => `/tier?lane=${l}&rank=all`), "/aram", "/duo", "/meta"];
+const WARM = ["/", "/tier", "/bans", ...["top", "jungle", "mid", "bottom", "support"].map((l) => `/tier?lane=${l}&rank=all`), "/aram", "/duo", "/meta"];
 async function warm() {
   if (process.env.PAGE_CACHE_MB === "0") return;
   for (const lang of ["ko", "en"])
