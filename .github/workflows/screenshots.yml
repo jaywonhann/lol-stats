@@ -23,7 +23,6 @@ jobs:
           mkdir -p shots && cp scripts/screenshots.mjs /tmp/pw/
           cd /tmp/pw
           OUT=$GITHUB_WORKSPACE/shots SHOT_LANG=ko node screenshots.mjs
-          OUT=$GITHUB_WORKSPACE/shots SHOT_LANG=en node screenshots.mjs
       - name: screenshots 브랜치에 올리기
         run: |
           cd shots

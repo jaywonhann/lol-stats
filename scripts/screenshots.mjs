@@ -4,12 +4,12 @@ import { chromium } from "playwright";
 const B = process.env.SITE ?? "https://livelol.onrender.com";
 const LANG = process.env.SHOT_LANG ?? "ko";
 const shots = [
+  // 블로그 글 [사진] 자리 순서대로
   { name: "1-home", path: "/", wait: 9000 },
-  { name: "2-summoner", path: "/summoner?id=Hide%20on%20bush%23KR1", wait: 4000 },
+  { name: "2-tier", path: "/tier", wait: 4000 },
   { name: "3-champion", path: "/champions/Ahri?lane=mid", wait: 4000 },
-  { name: "4-meta", path: "/meta?lane=jungle", wait: 4000 },
-  { name: "5-app", path: "/app?champ=103&lane=mid", wait: 4000 },
-  { name: "6-download", path: "/download", wait: 2000 },
+  { name: "4-summoner", path: "/summoner?id=Hide%20on%20bush%23KR1", wait: 5000 },
+  { name: "5-pros", path: "/pros", wait: 5000 },
 ];
 
 const browser = await chromium.launch();
