@@ -10,7 +10,7 @@ export const revalidate = 86400;
 
 import { token as communityOn } from "@/lib/community";
 
-const ALL_PAGES = ["", "/tier", "/trends", "/meta", "/champions", "/matchup", "/bans", "/items", "/summoner", "/ranking", "/aram?mode=mayhem", "/aram?mode=aram", "/duo", "/pros", "/predict", "/tools", "/community", "/faq"];
+const ALL_PAGES = ["", "/tier", "/trends", "/meta", "/champions", "/matchup", "/bans", "/items", "/summoner", "/multi", "/ranking", "/aram?mode=mayhem", "/aram?mode=aram", "/duo", "/pros", "/predict", "/tools", "/community", "/faq"];
 // 커뮤니티는 열 수 있을 때만 올려요
 const PAGES = ALL_PAGES.filter((p) => p !== "/community" || communityOn());
 

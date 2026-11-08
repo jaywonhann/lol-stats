@@ -271,3 +271,31 @@ export async function soloEntry(server: Server, puuid: string): Promise<LeagueEn
     return null;
   }
 }
+
+// 멀티서치용 가벼운 조회: 계정·솔로랭크·최근 솔로랭크 몇 게임만 (타임라인·숙련도 없이 호출 수를 아껴요)
+export async function lookupLite(server: Server, gameName: string, tagLine: string, count = 8) {
+  const region = REGION[server];
+  const tags = [summonerTag(server, gameName, tagLine)];
+  const account = await get<Account>(
+    region,
+    `/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`,
+    SHORT,
+    tags,
+  );
+  const puuid = encodeURIComponent(account.puuid);
+  const [entries, ids] = await Promise.all([
+    get<LeagueEntry[]>(server, `/lol/league/v4/entries/by-puuid/${puuid}`, SHORT, tags).catch((e) => {
+      if (e instanceof RiotError && (e.kind === "rate-limited" || e.kind === "unavailable")) throw e;
+      return null;
+    }),
+    get<string[]>(region, `/lol/match/v5/matches/by-puuid/${puuid}/ids?queue=420&start=0&count=${count}`, SHORT, tags),
+  ]);
+  const matches = await pool(ids, 3, (id) =>
+    get<Match>(region, `/lol/match/v5/matches/${encodeURIComponent(id)}`, LONG).catch(() => null),
+  );
+  return {
+    account,
+    solo: entries?.find((e) => e.queueType === "RANKED_SOLO_5x5") ?? null,
+    matches: matches.filter((m): m is Match => m !== null),
+  };
+}

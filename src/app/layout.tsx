@@ -95,6 +95,9 @@ export default async function RootLayout({
                 <Link href="/matchup" className="rounded px-3 py-2 text-sm hover:bg-panel-2">
                   {lang === "ko" ? "상성 비교" : "Matchup lookup"}
                 </Link>
+                <Link href="/multi" className="rounded px-3 py-2 text-sm hover:bg-panel-2">
+                  {lang === "ko" ? "멀티서치" : "Multi-search"}
+                </Link>
                 <Link href="/bans" className="rounded px-3 py-2 text-sm hover:bg-panel-2">
                   {lang === "ko" ? "밴 추천" : "Who to ban"}
                 </Link>
