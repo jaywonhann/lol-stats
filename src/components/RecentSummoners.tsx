@@ -2,14 +2,17 @@
 
 import Link from "@/components/Link";
 import { useEffect, useState } from "react";
+import { readRecentServers } from "./SummonerInput";
 
 // 첫 화면 검색창 아래에 최근에 본 전적을 바로가기로 보여줘요. 두 번째 방문부터는 한 번 눌러서 내 전적으로 가요
 export default function RecentSummoners({ label }: { label: string }) {
   const [list, setList] = useState<string[]>([]);
+  const [servers, setServers] = useState<Record<string, string>>({});
   useEffect(() => {
     try {
       const v = JSON.parse(localStorage.getItem("livelol.recent") ?? "[]");
       if (Array.isArray(v)) setList(v.filter((x) => typeof x === "string").slice(0, 3));
+      setServers(readRecentServers());
     } catch {
       // 저장소를 못 쓰면 숨겨요
     }
@@ -21,7 +24,7 @@ export default function RecentSummoners({ label }: { label: string }) {
       {list.map((id) => (
         <Link
           key={id}
-          href={`/summoner?id=${encodeURIComponent(id)}`}
+          href={`/summoner?id=${encodeURIComponent(id)}${servers[id.toLowerCase()] ? `&s=${servers[id.toLowerCase()]}` : ""}`}
           className="rounded-full border border-line bg-panel-2 px-3 py-1 font-semibold hover:border-accent"
         >
           {id}

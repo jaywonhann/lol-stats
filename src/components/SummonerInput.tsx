@@ -3,6 +3,16 @@ import { useEffect, useRef, useState } from "react";
 
 type Item = { who: string; label?: string; server?: string; recent?: boolean };
 const KEY = "livelol.recent";
+// 최근 검색한 소환사가 어느 서버였는지 (소문자 Riot ID -> kr/na1/euw1). 다른 서버 소환사도 한 번에 열리게
+export const SERVER_KEY = "livelol.recentServer";
+export function readRecentServers(): Record<string, string> {
+  try {
+    const v = JSON.parse(localStorage.getItem(SERVER_KEY) ?? "{}");
+    return v && typeof v === "object" && !Array.isArray(v) ? v : {};
+  } catch {
+    return {};
+  }
+}
 
 function readRecent(): string[] {
   try {
@@ -28,6 +38,8 @@ export default function SummonerInput({
   recentLabel: string;
 }) {
   const [value, setValue] = useState(defaultValue);
+  // 검색할 서버: 보통은 지금 고른 서버, 최근 검색을 고르면 그 소환사의 서버
+  const [picked, setPicked] = useState<string | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
@@ -40,8 +52,12 @@ export default function SummonerInput({
     try {
       const list = [defaultValue, ...readRecent().filter((x) => x.toLowerCase() !== defaultValue.toLowerCase())];
       localStorage.setItem(KEY, JSON.stringify(list.slice(0, 8)));
+      const servers = readRecentServers();
+      servers[defaultValue.toLowerCase()] = server;
+      const keep = new Set(list.slice(0, 8).map((x) => x.toLowerCase()));
+      localStorage.setItem(SERVER_KEY, JSON.stringify(Object.fromEntries(Object.entries(servers).filter(([k]) => keep.has(k)))));
     } catch {}
-  }, [defaultValue]);
+  }, [defaultValue, server]);
 
   // "/" 단축키로 검색 페이지에 오면 바로 입력할 수 있게 포커스
   useEffect(() => {
@@ -58,12 +74,13 @@ export default function SummonerInput({
 
   function update(v: string) {
     setValue(v);
+    setPicked(null);
     setActive(-1);
     const q = v.trim();
     const recent = readRecent()
       .filter((r) => r.toLowerCase().includes(q.toLowerCase()) && r.toLowerCase() !== q.toLowerCase())
       .slice(0, 4)
-      .map((who) => ({ who, recent: true }));
+      .map((who) => ({ who, recent: true, server: readRecentServers()[who.toLowerCase()] }));
     setItems(recent);
     setOpen(true);
     if (q.length < 2) return;
@@ -78,14 +95,16 @@ export default function SummonerInput({
       .catch(() => {});
   }
 
-  function pick(who: string) {
+  function pick(who: string, srv?: string) {
     setValue(who);
+    setPicked(srv ?? null);
     setOpen(false);
     requestAnimationFrame(() => (box.current?.closest("form") as HTMLFormElement | null)?.requestSubmit());
   }
 
   return (
     <div ref={box} className="relative min-w-0 flex-1">
+      <input type="hidden" name="s" value={picked ?? server} />
       <input
         id="summoner-id"
         name="id"
@@ -105,7 +124,7 @@ export default function SummonerInput({
             setActive((a) => (a <= 0 ? items.length - 1 : a - 1));
           } else if (e.key === "Enter" && active >= 0) {
             e.preventDefault();
-            pick(items[active].who);
+            pick(items[active].who, items[active].server);
           } else if (e.key === "Escape") {
             setOpen(false);
           }
@@ -129,7 +148,7 @@ export default function SummonerInput({
               <button
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => pick(it.who)}
+                onClick={() => pick(it.who, it.server)}
                 onMouseEnter={() => setActive(i)}
                 className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm ${i === active ? "bg-panel-2" : ""}`}
               >
