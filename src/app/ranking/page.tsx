@@ -59,7 +59,7 @@ export default async function RankingPage({ searchParams }: { searchParams: Prom
                   <span className="w-8 shrink-0 text-right font-bold text-muted">{r.rank}</span>
                   <span className="min-w-0 flex-1 truncate font-semibold">
                     {id ? (
-                      <Link href={`/summoner?id=${encodeURIComponent(id)}`} className="hover:underline">
+                      <Link href={`/summoner?id=${encodeURIComponent(id)}&s=${server}`} className="hover:underline">
                         {r.account!.gameName} <span className="font-normal text-muted">#{r.account!.tagLine}</span>
                       </Link>
                     ) : (

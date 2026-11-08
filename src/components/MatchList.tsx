@@ -59,6 +59,7 @@ export default function MatchList({
   version,
   champions,
   lang,
+  server,
   spellIcons = {},
   runeIcons = {},
 }: {
@@ -67,6 +68,8 @@ export default function MatchList({
   version: string | null;
   champions: Champion[];
   lang: Lang;
+  // 같은 판 사람들은 같은 서버라서, 누르면 그 서버로 찾아요 (지금 고른 서버가 달라도 열리게)
+  server?: string;
   spellIcons?: Record<number, string>;
   runeIcons?: Record<number, string>;
 }) {
@@ -196,7 +199,7 @@ export default function MatchList({
                                 {champIcon(p, 24)}
                                 <span className="min-w-0 flex-1">
                                   {id ? (
-                                    <Link href={`/summoner?id=${encodeURIComponent(id)}`} className="block truncate hover:underline">
+                                    <Link href={`/summoner?id=${encodeURIComponent(id)}${server ? `&s=${server}` : ""}`} className="block truncate hover:underline">
                                       {p.riotIdGameName}
                                     </Link>
                                   ) : (

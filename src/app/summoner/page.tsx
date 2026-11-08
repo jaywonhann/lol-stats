@@ -664,6 +664,7 @@ function Analysis({
             version={version}
             champions={champions}
             lang={lang}
+            server={server}
             spellIcons={spellIcons}
             runeIcons={runeIcons}
           />
