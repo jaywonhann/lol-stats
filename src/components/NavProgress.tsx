@@ -26,8 +26,25 @@ export default function NavProgress() {
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(() => setOn(false), 10_000);
     };
+    // 소환사 검색처럼 같은 사이트로 보내는 검색창을 제출할 때도 막대를 띄워요
+    const submit = (e: SubmitEvent) => {
+      const f = e.target as HTMLFormElement | null;
+      if (!f || f.target === "_blank") return;
+      const url = new URL(f.action, location.href);
+      if (url.origin !== location.origin) return;
+      url.search = new URLSearchParams(new FormData(f) as unknown as Record<string, string>).toString();
+      // 지금 보고 있는 결과를 다시 검색하면 주소가 안 바뀌어서 막대를 안 띄워요
+      if (url.pathname === location.pathname && url.search === location.search) return;
+      setOn(true);
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = setTimeout(() => setOn(false), 10_000);
+    };
     document.addEventListener("click", click, true);
-    return () => document.removeEventListener("click", click, true);
+    document.addEventListener("submit", submit, true);
+    return () => {
+      document.removeEventListener("click", click, true);
+      document.removeEventListener("submit", submit, true);
+    };
   }, []);
 
   // 주소가 바뀌면(새 페이지가 그려지면) 막대를 내려요

@@ -19,7 +19,8 @@ export default function SummonerSearch({
 }) {
   const t = dict(lang).summoner;
   return (
-    <Form action="/summoner" role="search" className="w-full">
+    // 미리 불러오기는 꺼요: 검색창이 보이는 모든 페이지에서 서버가 전적 페이지 뼈대를 따로 만들어서, 무료 서버의 줄이 길어져요
+    <Form action="/summoner" prefetch={false} role="search" className="w-full">
       <label htmlFor="summoner-id" className="sr-only">
         {t.inputLabel}
       </label>
