@@ -27,7 +27,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // 로비 채팅 줄("Name #KR1님이 로비에 참가하셨습니다." / "Name #NA1 joined the lobby")이나 쉼표로 나눈 Riot ID에서 최대 5명
 function parseLobby(text: string, server: Server) {
-  const parts = text.includes("\n") ? text.split(/\r?\n/) : text.split(/[,，]/);
+  // 한 줄 입력창에 붙여 넣으면 줄바꿈이 사라져서, 참가 문구 뒤에서 다시 나눠요
+  const lined = text.replace(/(참가하셨습니다\.?|참가했습니다\.?|joined the lobby\.?|left the lobby\.?|나갔습니다\.?)/gi, "$1\n");
+  const parts = lined.includes("\n") ? lined.split(/\r?\n/) : lined.split(/[,，]/);
   const out: { gameName: string; tagLine: string }[] = [];
   const seen = new Set<string>();
   for (const raw of parts) {

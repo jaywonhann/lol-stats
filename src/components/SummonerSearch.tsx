@@ -1,5 +1,6 @@
 // 소환사 검색창: next/form 이라 페이지를 새로 받지 않고 이동해서, 결과를 기다리는 동안 뼈대 화면이 바로 떠요 (자동완성은 클라이언트 입력창이 담당)
 import Form from "next/form";
+import Link from "./Link";
 import { dict, type Lang } from "@/lib/i18n";
 import { serverLabel, type Server } from "@/lib/lanes";
 import { DEFAULT_TAG } from "@/lib/riot";
@@ -40,7 +41,10 @@ export default function SummonerSearch({
         </button>
       </div>
       <p className="mt-2 text-xs text-muted">
-        {t.searching(serverLabel(server, lang))} {t.tagHint(DEFAULT_TAG[server])}
+        {t.searching(serverLabel(server, lang))} {t.tagHint(DEFAULT_TAG[server])}{" "}
+        <Link href="/multi" className="whitespace-nowrap text-accent hover:underline">
+          {lang === "ko" ? "로비 5명 한 번에 보기 (멀티서치) →" : "Whole lobby at once (multi-search) →"}
+        </Link>
       </p>
       {large && <RecentSummoners label={t.recentViewed} />}
     </Form>

@@ -15,6 +15,7 @@ import LiveGame from "@/components/LiveGame";
 import Achievements from "@/components/Achievements";
 import { badges, bestGame, rankVsLobby } from "@/lib/achievements";
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { growth } from "@/lib/growth";
 import { rateMatch, scoreReport } from "@/lib/score";
 import SummonerSearch from "@/components/SummonerSearch";
@@ -70,6 +71,8 @@ export default async function SummonerPage({ searchParams }: Props) {
   const server = sp.s ? parseServer(sp.s) : cookieServer;
   const t = dict(lang).summoner;
   const raw = rawId(sp.id);
+  // 로비 채팅이나 여러 명을 한 번에 붙여 넣으면 멀티서치로 보내요
+  if (raw && /로비에|joined the lobby|[,，]/i.test(raw)) redirect(`/multi?s=${server}&q=${encodeURIComponent(raw)}`);
   const parsed = raw ? parseRiotId(raw, server) : null;
 
   const header = (

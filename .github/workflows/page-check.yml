@@ -11,18 +11,16 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: Burst (many pages at once, like a real visitor)
+      - name: Burst (several visitors at once, 6 requests in flight)
+        # 한꺼번에 40개 넘게 열면 무료 서버(512MB)가 점검 때문에 넘어져서, 동시에 6개까지만 열어요
         run: |
           SITE=${{ inputs.site || 'https://livelol.onrender.com' }}
           curl -s --max-time 90 -o /dev/null -m 120 "$SITE/"
-          for round in 1 2; do
-            for s in kr na1 euw1; do
-              for p in / /tier "/tier?rank=master" "/tier?rank=diamond" /duo /aram /champions/Jinx "/champions/Ahri?rank=master" /items /matchup /meta /trends /ranking /pros /bans; do
-                (curl -s --max-time 90 -o /dev/null -b "server=$s" -m 90 -w '%{http_code}\n' "$SITE$p" >> codes.txt) &
-              done
+          for s in kr na1 euw1; do
+            for p in / /tier "/tier?rank=master" "/tier?rank=diamond" /duo /aram /champions/Jinx "/champions/Ahri?rank=master" /items /matchup /meta /trends /ranking /pros /bans; do
+              echo "$s $p"
             done
-            wait
-          done
+          done | xargs -P 6 -L 1 sh -c 'curl -s --max-time 90 -o /dev/null -b "server=$0" -w "%{http_code}\n" "'"$SITE"'$1"' > codes.txt
           echo "::notice title=burst::$(sort codes.txt | uniq -c | tr '\n' ' ')"
       - name: Fetch pages
         run: |
