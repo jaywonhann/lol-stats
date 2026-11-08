@@ -40,8 +40,14 @@ jobs:
           echo "::notice title=share images::${imgs//%/pct}"
           comm=$(curl -s --max-time 90 "$SITE/community" | grep -o 'community is unavailable\|커뮤니티를 지금 쓸 수 없' | head -1)
           echo "::notice title=community::${comm:-ok}"
-          pros=$(curl -s --max-time 90 "$SITE/champions/Riven" | grep -o 'builds from pros and challengers\|빌드</h2>' | head -1)
-          echo "::notice title=champion pro builds::${pros:-panel missing}"
+          pros=""
+          for c in Riven Jinx Ahri LeeSin; do
+            curl -s --max-time 90 -D ph.txt -b lang=en "$SITE/champions/$c" -o pc.html
+            hit=$(grep -c 'builds from pros and challengers' pc.html)
+            pros="$pros | $c panel=$hit cache=$(grep -i '^x-page-cache' ph.txt | tr -d '\r' | cut -d' ' -f2)"
+          done
+          echo "::notice title=champion pro builds::$pros"
+          case "$pros" in *"panel=0"*) echo "::warning title=champion pro builds::panel missing on some champion pages";; esac
           # 지금 게임 중인 프로 한 명을 찾아 소환사 페이지의 인게임 칸을 확인해요
           who=""; srv=""
           for i in 1 2 3 4 5 6; do
