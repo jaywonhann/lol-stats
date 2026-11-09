@@ -17,7 +17,13 @@ const handle = app.getRequestHandler();
 // 언어·서버 쿠키와 Next가 페이지 이동 때 보내는 헤더까지 같아야 같은 요청으로 봐요.
 // 512MB 서버라 저장 공간은 36MB까지 (챔피언 미리 만들기가 다 차면 56MB에선 메모리가 넘쳐 서버가 다시 켜졌어요)
 const CACHE_MB = Number(process.env.PAGE_CACHE_MB ?? 36);
-const CACHEABLE = /^\/(|tier|duo|aram|aram\/[^/]+|champions\/[^/]+|items|matchup|bans|meta|trends|ranking|pros|tools|predict|faq|community|privacy)$/;
+const CACHEABLE = /^\/(|tier|duo|aram|aram\/[^/]+|champions|champions\/[^/]+|items|matchup|bans|meta|trends|ranking|pros|tools|predict|multi|faq|community|privacy)$/;
+// 메뉴 페이지(아래 WARM 목록)는 챔피언 페이지가 저장 공간을 채워도 지우지 않아요. 메뉴를 누르면 늘 바로 오게.
+// (KR 서버 기준만 고정해서 메모리를 아껴요)
+const pinned = (key) => {
+  const [url, , server] = key.split("\u0001");
+  return server === "kr" && WARM_SET.has(url);
+};
 const pageCache = new Map(); // key -> { at, status, headers, body }
 let cacheBytes = 0;
 const ttl = (pathname) =>
@@ -27,6 +33,8 @@ function cacheKey(req) {
   if (req.method !== "GET") return null;
   const pathname = (req.url ?? "/").split("?")[0];
   if (!CACHEABLE.test(pathname)) return null;
+  // 멀티서치 검색 결과(소환사 이름이 들어간 주소)는 저장하지 않아요
+  if (pathname === "/multi" && /[?&]q=./.test(req.url ?? "")) return null;
   const h = req.headers;
   return [
     // _rsc 값은 보고 있던 페이지에 따라 달라지는 표시일 뿐이라 열쇠에서 빼요
@@ -55,8 +63,10 @@ function remember(key, pathname, res, chunks) {
   pageCache.delete(key);
   pageCache.set(key, { at: Date.now(), ttl: ttl(pathname), status: res.statusCode, headers, body });
   cacheBytes += body.length;
-  while (cacheBytes > CACHE_MB * 1_000_000 && pageCache.size) {
-    const [k, v] = pageCache.entries().next().value;
+  // 가장 오래 안 쓴 것부터 지우되, 메뉴 페이지는 건너뛰어요
+  for (const [k, v] of pageCache) {
+    if (cacheBytes <= CACHE_MB * 1_000_000) break;
+    if (pinned(k)) continue;
     pageCache.delete(k);
     cacheBytes -= v.body.length;
   }
@@ -87,6 +97,9 @@ function fromCache(key, res, req) {
   }
   const stale = age > hit.ttl;
   if (stale && req) refresh(key, req);
+  // 방금 쓴 페이지는 맨 뒤로 (자주 보는 페이지가 먼저 지워지지 않게)
+  pageCache.delete(key);
+  pageCache.set(key, hit);
   res.writeHead(hit.status, { ...hit.headers, "x-page-cache": stale ? "stale" : "hit" });
   res.end(hit.body);
   return true;
@@ -200,12 +213,16 @@ createServer((req, res) => {
 });
 
 // 서버가 켜지면 자주 가는 페이지를 미리 한 번씩 만들어 둬요 (한 번에 하나씩, 방문자 요청과 같이 줄 서요)
-const WARM = ["/", "/tier", "/bans", ...["top", "jungle", "mid", "bottom", "support"].map((l) => `/tier?lane=${l}&rank=all`), "/aram", "/duo", "/meta"];
-async function warm() {
+// 위쪽·아래쪽 메뉴에 있는 페이지는 전부 (누르면 바로 뜨게)
+const WARM = ["/", "/tier", "/champions", "/bans", "/meta", "/aram", "/duo", "/ranking", "/items", "/trends", "/pros", "/multi", "/tools", "/predict", "/matchup", ...["top", "jungle", "mid", "bottom", "support"].map((l) => `/tier?lane=${l}&rank=all`)];
+const WARM_SET = new Set(WARM);
+async function warm(again = false) {
   if (process.env.PAGE_CACHE_MB === "0") return;
   for (const lang of ["ko", "en"])
     for (const p of WARM)
       for (const rsc of [false, true]) {
+        // 다시 돌 때는 방문자가 없을 때만 (오래된 페이지는 이 요청이 뒤에서 새로 만들게 해요)
+        if (again) while (active > 0 || queue.length > 0 || Date.now() - lastVisit < 8_000) await sleep(1_000);
         try {
           await fetch(`http://127.0.0.1:${port}${p}`, {
             headers: { cookie: `lang=${lang}`, "accept-encoding": "gzip", ...(rsc ? { rsc: "1" } : {}) },
@@ -214,6 +231,9 @@ async function warm() {
           // 미리 만들기는 실패해도 괜찮아요
         }
       }
+  if (again) return;
+  // 메뉴 페이지는 20분마다 한 번씩 확인해서, 오래됐으면 새로 만들어 둬요 (12시간 지나 지워지지 않게)
+  setInterval(() => warm(true), 20 * 60_000);
   idleWarm();
 }
 
