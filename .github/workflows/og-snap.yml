@@ -6,6 +6,8 @@ on:
       paths:
         description: 쉼표로 구분한 이미지 경로
         default: /champions/Ahri/opengraph-image,/api/aram-card?id=Jinx&mode=aram
+permissions:
+  contents: write
 jobs:
   snap:
     runs-on: ubuntu-latest
@@ -18,7 +20,11 @@ jobs:
             r=$(curl -s --max-time 90 -o "out/$i.png" -w '%{http_code} %{size_download}' "https://livelol.onrender.com$p")
             echo "::notice title=$p::$r"
           done
-      - uses: actions/upload-artifact@v4
-        with:
-          name: og
-          path: out
+      - name: Push to og-snap branch (아티팩트는 컨테이너에서 못 받아서 브랜치로 남겨요)
+        run: |
+          cd out
+          git init -q -b og-snap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add . && git commit -qm "공유 이미지 $(date -u +%FT%TZ)"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" og-snap
