@@ -14,14 +14,20 @@ export const dynamic = "force-dynamic";
 
 type Props = { searchParams: Promise<{ q?: string | string[]; s?: string }> };
 
-export async function generateMetadata(): Promise<Metadata> {
-  const ko = (await getLang()) === "ko";
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  const [sp, lang, cookieServer] = await Promise.all([searchParams, getLang(), getServer()]);
+  const ko = lang === "ko";
+  const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q) ?? "";
+  const names = q ? parseLobby(q.slice(0, 2000), sp.s ? parseServer(sp.s) : cookieServer).map((p) => p.gameName) : [];
+  // 검색 결과 주소는 공유용 제목만 바꾸고 검색엔진에는 올리지 않아요 (빈 페이지만 색인)
+  const who = names.length > 2 ? (ko ? `${names.slice(0, 2).join(", ")} 외 ${names.length - 2}명` : `${names.slice(0, 2).join(", ")} +${names.length - 2}`) : names.join(", ");
   return {
-    title: ko ? "멀티서치 (로비 5명 전적 한 번에)" : "Multi-search - your whole lobby at once",
+    title: who ? (ko ? `${who} - 멀티서치` : `${who} - Multi-search`) : ko ? "멀티서치 (로비 5명 전적 한 번에)" : "Multi-search - your whole lobby at once",
     description: ko
-      ? "챔피언 선택 로비 채팅을 그대로 붙여 넣으면 우리 팀 5명의 솔로랭크 티어, 최근 승률, 주 라인, 주 챔피언을 한 번에 보여줘요."
-      : "Paste your champ select lobby chat and see all five teammates' solo queue rank, recent win rate, main role and champions at once.",
+      ? "챔피언 선택 로비 채팅을 그대로 붙여 넣으면 우리 팀 5명의 솔로랭크 티어, 최근 승률, 주 라인, 주 챔피언과 팀 맞춤 밴 추천을 한 번에 보여줘요."
+      : "Paste your champ select lobby chat and see all five teammates' solo queue rank, recent win rate, main role, champions and bans for your team at once.",
     alternates: await langAlternates("/multi"),
+    ...(names.length ? { robots: { index: false, follow: true } } : {}),
   };
 }
 
