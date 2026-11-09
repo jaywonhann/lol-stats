@@ -4,7 +4,7 @@ import TierEmblem from "@/components/TierEmblem";
 import { Icon, Panel } from "@/components/ui";
 import { getChampions, img } from "@/lib/ddragon";
 import { dict, ddLocale } from "@/lib/i18n";
-import { laneLabel, parseServer, serverLabel, type Lane, type Server } from "@/lib/lanes";
+import { laneLabel, parseServer, serverLabel, SERVERS, type Lane, type Server } from "@/lib/lanes";
 import { loadRealData } from "@/lib/real";
 import { lookupLite, parseRiotId, RiotError, type LeagueEntry, type LookupError } from "@/lib/riot";
 import { getLang, getServer, langAlternates } from "@/lib/server";
@@ -136,13 +136,24 @@ export default async function MultiPage({ searchParams }: Props) {
         <h1 className="text-2xl font-bold">{ko ? "멀티서치" : "Multi-search"}</h1>
         <p className="mt-1 text-sm text-muted">
           {ko
-            ? `챔피언 선택 창의 채팅을 그대로 복사해 붙여 넣으면 ${serverLabel(server, lang)} 서버에서 우리 팀 5명을 한 번에 찾아요. 서버는 맨 위에서 바꿀 수 있어요.`
-            : `Copy the chat from champ select and paste it here to look up all five teammates on ${serverLabel(server, lang)}. Change the server at the top of the page.`}
+            ? `챔피언 선택 창의 채팅을 그대로 복사해 붙여 넣으면 ${serverLabel(server, lang)} 서버에서 우리 팀 5명을 한 번에 찾아요. 서버는 아래에서 고를 수 있어요.`
+            : `Copy the chat from champ select and paste it here to look up all five teammates on ${serverLabel(server, lang)}. Pick the server below.`}
         </p>
       </div>
       <Panel>
         <form action="/multi" method="get" className="space-y-3">
-          <input type="hidden" name="s" value={server} />
+          <fieldset className="flex flex-wrap items-center gap-2">
+            <legend className="sr-only">{ko ? "서버" : "Server"}</legend>
+            <span className="text-xs text-muted">{ko ? "서버" : "Server"}</span>
+            {SERVERS.map(({ id }) => (
+              <label key={id} className="cursor-pointer">
+                <input type="radio" name="s" value={id} defaultChecked={id === server} className="peer sr-only" />
+                <span className="inline-block rounded-md border border-line px-3 py-1 text-sm peer-checked:border-accent peer-checked:bg-accent/15 peer-checked:font-semibold peer-focus-visible:ring-2 peer-focus-visible:ring-accent">
+                  {serverLabel(id, lang)}
+                </span>
+              </label>
+            ))}
+          </fieldset>
           <label htmlFor="multi-q" className="sr-only">
             {ko ? "로비 채팅 또는 Riot ID" : "Lobby chat or Riot IDs"}
           </label>
