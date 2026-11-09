@@ -76,3 +76,11 @@ jobs:
           errs=$(grep -oE "(Summoner not found|Too many lookups|Riot lookups are unavailable|Couldn.t load)[^<]*" m.html | sort | uniq -c | tr '\n' ' ')
           recent=$(grep -oE '[0-9]+W [0-9]+L' m.html | head -4 | tr '\n' ' ')
           bans=$(grep -c "Bans for your team" m.html || true); echo "::notice title=multi-search::$t cards=$cards records=$recent bansPanel=$bans errors=${errs:-none}"
+      - name: Summoner played-with
+        run: |
+          SITE=${{ inputs.site || 'https://livelol.onrender.com' }}
+          for id in "Hide%20on%20bush%23KR1" "T1%20Gumayusi%23KR1" "Peyz%23KR1"; do
+            t=$(curl -s --max-time 90 -b lang=en "$SITE/summoner?id=$id&s=kr" -o s.html -w "%{http_code}" || echo timeout)
+            n=$(grep -c "Recently played with" s.html || true)
+            echo "::notice title=played-with $id::$t panel=$n"
+          done

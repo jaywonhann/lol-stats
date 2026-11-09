@@ -444,6 +444,42 @@ function Analysis({
       </div>
     </Panel>
   );
+  // 최근 솔로랭크에서 2판 이상 같은 팀이었던 사람 (op.gg "최근 같이 플레이한 소환사")
+  const mates = new Map<string, { id: string; games: number; wins: number }>();
+  for (const m of result.matches) {
+    const me = m.info.participants.find((p) => p.puuid === account.puuid);
+    if (!me) continue;
+    for (const p of m.info.participants) {
+      if (p.puuid === account.puuid || p.teamId !== me.teamId || !p.riotIdGameName || !p.riotIdTagline) continue;
+      const cur = mates.get(p.puuid) ?? { id: `${p.riotIdGameName}#${p.riotIdTagline}`, games: 0, wins: 0 };
+      cur.games++;
+      if (me.win) cur.wins++;
+      mates.set(p.puuid, cur);
+    }
+  }
+  const mateRows = [...mates.values()].filter((m) => m.games >= 2).sort((a, b) => b.games - a.games || b.wins - a.wins).slice(0, 5);
+  const matesPanel = mateRows.length > 0 && (
+    <Panel title={lang === "ko" ? "최근 같이 플레이한 소환사" : "Recently played with"}>
+      <ul className="-mx-1 space-y-0.5">
+        {mateRows.map((m) => (
+          <li key={m.id}>
+            <Link
+              href={`/summoner?id=${encodeURIComponent(m.id)}&s=${server}`}
+              className="flex items-center gap-2 rounded-md px-1 py-1.5 text-sm hover:bg-panel-2"
+            >
+              <span className="min-w-0 flex-1 truncate font-semibold">{m.id}</span>
+              <span className="shrink-0 text-xs tabular-nums text-muted">
+                {lang === "ko" ? `${m.games}판 ${m.wins}승 ${m.games - m.wins}패` : `${m.games}g ${m.wins}W ${m.games - m.wins}L`}
+              </span>
+              <span className="w-10 shrink-0 text-right text-sm font-bold tabular-nums" style={{ color: m.wins * 2 >= m.games ? "var(--chart-up)" : "var(--chart-down)" }}>
+                {Math.round((m.wins / m.games) * 100)}%
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </Panel>
+  );
   const mostPanel = (
     <Panel title={g.mostChamps}>
       <ul className="-mx-1 space-y-0.5">
@@ -657,6 +693,7 @@ function Analysis({
         <aside className="space-y-4">
           {positionsPanel}
           {mostPanel}
+          {matesPanel}
         </aside>
         <div className="min-w-0 space-y-4">
           {summaryBar}
