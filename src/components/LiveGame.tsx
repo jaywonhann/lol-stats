@@ -5,6 +5,7 @@ import { getChampions, img } from "@/lib/ddragon";
 import { ddLocale, type Lang } from "@/lib/i18n";
 import type { Server } from "@/lib/lanes";
 import { activeGame, soloEntry, type LeagueEntry } from "@/lib/riot";
+import LiveGameRetry from "@/components/LiveGameRetry";
 
 const TIER_COLOR: Record<string, string> = {
   IRON: "#7a6f69", BRONZE: "#a0623a", SILVER: "#9fb0bf", GOLD: "#e2b54a", PLATINUM: "#4fb8a8",
@@ -47,6 +48,8 @@ export default async function LiveGame({
   spellIcons: Record<number, string>;
 }) {
   const g = await activeGame(server, puuid, tags);
+  // Riot 요청 한도에 걸려 확인을 못 했으면, 화면을 비워 두지 않고 몇 초 뒤 다시 확인해요
+  if (g === "retry") return <LiveGameRetry lang={lang} puuid={puuid} />;
   if (!g) return null;
   const ko = lang === "ko";
   const { version, champions } = await getChampions(ddLocale(lang)).catch(() => ({ version: "", champions: [] as never[] }));

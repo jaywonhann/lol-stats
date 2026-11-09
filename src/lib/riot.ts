@@ -246,7 +246,7 @@ export async function ladder(server: Server, tier: LadderTier, top = 30) {
   };
 }
 
-// 지금 하고 있는 게임 (op.gg "인게임 정보"). 게임 중이 아니면 null. 1분만 캐시해요.
+// 지금 하고 있는 게임 (op.gg "인게임 정보"). 게임 중이 아니면 null, 확인하지 못했으면(요청 한도·시간 초과) "retry". 1분만 캐시해요.
 export type ActiveGame = {
   gameLength: number; // 초
   gameStartTime: number;
@@ -254,11 +254,12 @@ export type ActiveGame = {
   participants: { puuid: string; teamId: number; championId: number; spell1Id: number; spell2Id: number; riotId?: string }[];
   bannedChampions?: { championId: number; teamId: number }[];
 };
-export async function activeGame(server: Server, puuid: string, tags?: string[]): Promise<ActiveGame | null> {
+export async function activeGame(server: Server, puuid: string, tags?: string[]): Promise<ActiveGame | null | "retry"> {
   try {
     return await get<ActiveGame>(server, `/lol/spectator/v5/active-games/by-summoner/${encodeURIComponent(puuid)}`, MINUTE, tags);
-  } catch {
-    return null;
+  } catch (e) {
+    // 404는 지금 게임 중이 아니라는 뜻. 그 밖의 실패는 잠시 뒤 다시 확인해요
+    return e instanceof RiotError && (e.kind === "not-found" || e.kind === "unavailable") ? null : "retry";
   }
 }
 
