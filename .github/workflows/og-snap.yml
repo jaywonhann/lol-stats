@@ -1,0 +1,24 @@
+name: 공유 이미지 받아 보기
+# 실사이트 공유 이미지를 받아 아티팩트로 남겨요 (눈으로 확인용, 시크릿 없음)
+on:
+  workflow_dispatch:
+    inputs:
+      paths:
+        description: 쉼표로 구분한 이미지 경로
+        default: /champions/Ahri/opengraph-image,/api/aram-card?id=Jinx&mode=aram
+jobs:
+  snap:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          mkdir out; i=0
+          IFS=',' read -ra P <<< "${{ inputs.paths }}"
+          for p in "${P[@]}"; do
+            i=$((i+1))
+            r=$(curl -s --max-time 90 -o "out/$i.png" -w '%{http_code} %{size_download}' "https://livelol.onrender.com$p")
+            echo "::notice title=$p::$r"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: og
+          path: out

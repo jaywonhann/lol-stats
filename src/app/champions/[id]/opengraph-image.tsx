@@ -37,8 +37,9 @@ export default async function Og({ params }: { params: Promise<{ id: string }> }
   return new ImageResponse(
     (
       <div style={{ width: "100%", height: "100%", display: "flex", position: "relative", background: "#070d17", color: "white" }}>
-        <img src={img.splash(id)} alt="" width={1200} height={630} style={{ position: "absolute", inset: 0, width: 1200, height: 630, objectFit: "cover", opacity: 0.55 }} />
-        <div style={{ position: "absolute", inset: 0, display: "flex", background: "linear-gradient(90deg,#070d17 10%,rgba(14,17,23,0.2))" }} />
+        {/* 일러스트는 오른쪽에만: 사진이 차지하는 면적이 줄어야 PNG가 가벼워져요 (1MB → 절반쯤) */}
+        <img src={img.splash(id)} alt="" width={760} height={630} style={{ position: "absolute", top: 0, right: 0, width: 760, height: 630, objectFit: "cover", opacity: 0.6 }} />
+        <div style={{ position: "absolute", inset: 0, display: "flex", background: "linear-gradient(90deg,#070d17 37%,rgba(7,13,23,0.8) 50%,rgba(7,13,23,0.15) 100%)" }} />
         <div style={{ position: "relative", display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 80px" }}>
           <div style={{ display: "flex", fontSize: 36, fontWeight: 900 }}>
             live<span style={{ color: "#c8aa6e" }}>lol</span>.stats{s ? ` · ${LANE_EN[s.lane]} · patch ${s.patch}` : ""}
