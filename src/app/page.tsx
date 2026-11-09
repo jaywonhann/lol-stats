@@ -158,6 +158,34 @@ export default async function Home() {
         )}
       </section>
 
+      <section className="fade-up" style={{ animationDelay: "30ms" }}>
+        <SectionTitle
+          title={lang === "ko" ? "게임 전에 쓰는 도구" : "Before your game"}
+          note={lang === "ko" ? "챔피언 선택부터 게임 중까지 바로 쓸 수 있어요." : "From champ select to mid-game."}
+        />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {(lang === "ko"
+            ? [
+                ["/multi", "멀티서치", "로비 채팅을 붙여 넣으면 우리 팀 5명 전적과 팀 맞춤 밴 추천"],
+                ["/bans", "밴 추천", "이번 패치에 밴할 가치가 있는 챔피언과 밴 낭비 챔피언"],
+                ["/predict", "승률 예측", "양 팀 챔피언으로 보는 예상 승률"],
+                ["/tools", "게임 타이머", "상대 스펠 쿨타임과 오브젝트 재생성 시간"],
+              ]
+            : [
+                ["/multi", "Multi-search", "Paste the lobby chat to see all five teammates and bans for your team"],
+                ["/bans", "Who to ban", "Champions worth banning this patch, and bans you might be wasting"],
+                ["/predict", "Win predictor", "Expected win rate from both teams' champions"],
+                ["/tools", "Game timers", "Enemy summoner spell cooldowns and objective respawns"],
+              ]
+          ).map(([href, name, line]) => (
+            <Link key={href} href={href} className="lift flex flex-col rounded-xl bg-panel p-4">
+              <span className="text-sm font-bold">{name} <span className="text-accent">→</span></span>
+              <span className="mt-1 text-xs leading-snug text-muted">{line}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
       {awards.length > 0 && (
         <section className="fade-up" style={{ animationDelay: "60ms" }}>
           <SectionTitle title={AW.title} note={AW.note} />
