@@ -58,10 +58,13 @@ function parseLobby(text: string, server: Server) {
 
 // 우리 팀 각자 주 라인의 주 챔피언이 이번 패치에 어려워하는 상대를 모아 밴 후보로 (상대별 게임 수가 적어 내 평균 쪽으로 20판 가중, 15판 이상만)
 type Pick = { who: string; key: string; lane: Lane };
-function teamBans(picks: Pick[], server: Server) {
+function latestPatch(server: Server) {
   const real = loadRealData({ server, rank: "all" });
   const patch = [...real.keys()].sort((x, y) => x.localeCompare(y, undefined, { numeric: true })).pop();
-  const data = patch ? real.get(patch) : undefined;
+  return patch ? real.get(patch) : undefined;
+}
+function teamBans(picks: Pick[], server: Server) {
+  const data = latestPatch(server);
   if (!data) return [];
   const out = new Map<string, { key: string; edge: number; why: { who: string; mine: string; winRate: number; games: number }[] }>();
   for (const p of picks) {
@@ -119,6 +122,7 @@ export default async function MultiPage({ searchParams }: Props) {
     if (top) picks.push({ who: r.gameName, key: String(top[0]), lane });
   }
   const bans = picks.length ? teamBans(picks, server) : [];
+  const patchData = picks.length ? latestPatch(server) : undefined;
 
   const errorText: Record<LookupError, string> = ko
     ? { "not-found": "소환사를 찾을 수 없어요. 이름과 태그를 확인해 주세요.", "rate-limited": "지금 조회가 몰려 있어요. 잠시 뒤 다시 눌러 주세요.", unavailable: "지금은 Riot 조회를 할 수 없어요.", error: "불러오지 못했어요. 다시 시도해 주세요." }
@@ -201,11 +205,11 @@ export default async function MultiPage({ searchParams }: Props) {
             let streak = 0;
             while (streak < games.length && games[streak].win === games[0]?.win) streak++;
             const champs = [...games.reduce((m, g) => {
-              const c = m.get(g.championId) ?? { id: g.championId, games: 0, wins: 0 };
+              const c = m.get(g.championId) ?? { id: g.championId, games: 0, wins: 0, lane: g.lane };
               c.games++;
               if (g.win) c.wins++;
               return m.set(g.championId, c);
-            }, new Map<number, { id: number; games: number; wins: number }>()).values()]
+            }, new Map<number, { id: number; games: number; wins: number; lane: Lane | null }>()).values()]
               .sort((x, y) => y.games - x.games)
               .slice(0, 3);
             const season = r.solo ? (r.solo.wins / Math.max(1, r.solo.wins + r.solo.losses)) * 100 : null;
@@ -262,7 +266,26 @@ export default async function MultiPage({ searchParams }: Props) {
                         return (
                           <li key={c.id} className="flex items-center gap-2 text-sm">
                             {champ && <Icon src={img.champion(version, champ.image.full)} alt={champ.name} size={28} className="rounded-md" />}
-                            <span className="min-w-0 flex-1 truncate">{champ?.name ?? c.id}</span>
+                            <span className="min-w-0 flex-1">
+                              {champ ? (
+                                <Link href={`/champions/${champ.id}${c.lane ? `?lane=${c.lane}` : ""}`} className="block truncate hover:underline">
+                                  {champ.name}
+                                </Link>
+                              ) : (
+                                <span className="block truncate">{c.id}</span>
+                              )}
+                              {(() => {
+                                const agg = c.lane ? patchData?.champs[`${c.id}:${c.lane}`] : undefined;
+                                if (!agg || agg.games < 30) return null;
+                                const wr = (agg.wins / agg.games) * 100;
+                                return (
+                                  <span className="block text-[11px] text-muted">
+                                    {ko ? "이번 패치 " : "Patch "}
+                                    <span className={wr >= 50 ? "text-win" : "text-lose"}>{wr.toFixed(1)}%</span>
+                                  </span>
+                                );
+                              })()}
+                            </span>
                             <span className="shrink-0 text-xs text-muted">
                               {ko ? `${c.games}판` : `${c.games}g`}{" "}
                               <span className={c.wins * 2 >= c.games ? "text-win" : "text-lose"}>{Math.round((c.wins / c.games) * 100)}%</span>
