@@ -148,10 +148,10 @@ export default async function ChampionPage({ params, searchParams }: Props) {
           />
           <div className="flex-1">
             <p className="text-xs text-muted">{champion.title}</p>
-            <h1 className="flex items-center gap-2 text-2xl font-bold">
-              {champion.name}
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold">{champion.name}</h1>
               {stat && <TierBadge tier={stat.tier} lang={lang} />}
-            </h1>
+            </div>
             <div className="mt-2 flex gap-1">
               {[champion.passive, ...champion.spells].map((s, i) => (
                 <div key={s.name} className="relative">
