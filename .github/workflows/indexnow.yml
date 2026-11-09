@@ -1,0 +1,49 @@
+name: 검색엔진에 새 주소 알리기 (IndexNow)
+# 사이트맵의 주소를 IndexNow로 보내요. 네이버, Bing 등 참여 검색엔진이 수집에 참고합니다.
+# 키 파일이 사이트에 올라온 뒤에 보내야 해서, 배포를 기다렸다가 실행해요.
+on:
+  push:
+    branches: [main]
+    paths:
+      - public/fcc958956852d39097eb1de380eabbff.txt
+      - .github/workflows/indexnow.yml
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      HOST: livelol.onrender.com
+      KEY: fcc958956852d39097eb1de380eabbff
+    steps:
+      - name: Wait for key file
+        run: |
+          for i in $(seq 1 60); do
+            if [ "$(curl -s -m 90 https://$HOST/$KEY.txt)" = "$KEY" ]; then echo ready; exit 0; fi
+            sleep 30
+          done
+          echo "::error::키 파일이 사이트에서 확인되지 않아요."; exit 1
+      - name: Submit sitemap URLs
+        run: |
+          python3 - <<'PY'
+          import html, json, os, re, urllib.error, urllib.request
+          host, key = os.environ["HOST"], os.environ["KEY"]
+          xml = urllib.request.urlopen(f"https://{host}/sitemap.xml", timeout=120).read().decode()
+          urls = sorted({html.unescape(html.unescape(u)) for u in re.findall(r"<loc>(.*?)</loc>", xml)})
+          print(len(urls), "urls")
+          body = json.dumps({"host": host, "key": key, "keyLocation": f"https://{host}/{key}.txt", "urlList": urls[:10000]}).encode()
+          ok = False
+          for api in ("https://searchadvisor.naver.com/indexnow", "https://api.indexnow.org/indexnow"):
+              req = urllib.request.Request(api, body, {"Content-Type": "application/json; charset=utf-8"})
+              try:
+                  code = urllib.request.urlopen(req, timeout=120).status
+              except urllib.error.HTTPError as e:
+                  code = e.code
+              except Exception as e:
+                  code = repr(e)
+              print(api, code)
+              ok = ok or code in (200, 202)
+          raise SystemExit(0 if ok else 1)
+          PY

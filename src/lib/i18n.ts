@@ -18,9 +18,9 @@ export const numLocale = (lang: Lang) => (lang === "ko" ? "ko-KR" : "en-US");
 export const ddLocale = (lang: Lang) => (lang === "ko" ? "ko_KR" : "en_US");
 
 const en = {
-  siteTitle: "livelol.stats - LoL champion stats",
+  siteTitle: "LoL Stats: Summoner Lookup, Tier List, Builds & Counters - livelol.stats",
   siteDescription:
-    "League of Legends champion tier list, builds, runes and counters",
+    "Look up League of Legends summoners and multi-search your lobby. Champion tier list, builds, runes and counters for the current patch, from real ranked games.",
   nav: {
     tier: "Tier List",
     trends: "Patch Trends",
@@ -483,8 +483,8 @@ const en = {
 export type Dict = typeof en;
 
 const ko: Dict = {
-  siteTitle: "livelol.stats - 롤 챔피언 통계",
-  siteDescription: "리그 오브 레전드 챔피언 티어, 빌드, 룬, 카운터 통계",
+  siteTitle: "롤 전적 검색, 챔피언 티어표, 빌드, 카운터 - livelol.stats",
+  siteDescription: "롤 전적 검색과 멀티서치, 이번 패치 챔피언 티어표와 빌드, 룬, 카운터를 실제 랭크 게임 데이터로 확인하세요.",
   nav: {
     tier: "티어 리스트",
     trends: "패치 트렌드",
