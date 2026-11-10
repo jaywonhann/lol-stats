@@ -75,6 +75,13 @@ export function loadAram(): AramData {
       }
     }
   }
+  // 3판 미만 조합은 화면 어디에도 안 쓰여요(빌드·룬·아이템·같은 팀·상대는 최소 3~5판부터 보여줘요).
+  // 서버 3개를 합친 뒤 버리면 메모리가 절반쯤으로 줄어요 (26MB → 13MB, 512MB 서버라 중요해요)
+  for (const t of Object.values(out.champs))
+    for (const key of ["builds", "runes", "items", "spells", "boots", "with", "vs"] as const) {
+      const m = t[key];
+      if (m) t[key] = Object.fromEntries(Object.entries(m).filter(([, [g]]) => g >= 3));
+    }
   aramCache = { stamp, data: out };
   return out;
 }
