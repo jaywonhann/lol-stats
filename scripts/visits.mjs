@@ -18,7 +18,7 @@ const snap = await res.json();
 for (const [day, d] of Object.entries(snap.days ?? {})) {
   const rec = (data.days[day] ??= { boots: {} });
   rec.boots ??= {};
-  rec.boots[snap.boot] = d;
+  rec.boots[snap.boot] = { ...d, v: snap.v ?? 1 };
 }
 
 const addMap = (into, from) => {
@@ -30,6 +30,12 @@ for (const [day, rec] of Object.entries(data.days)) {
   if (!rec.boots) continue;
   const t = { uv: 0, land: 0, nav: 0, ref: {}, top: {}, bots: {}, shares: {} };
   for (const b of Object.values(rec.boots)) {
+    // 2026-11-10 이전 방식(v 없음)은 브라우저인 척하는 로봇까지 사람으로 셌어요. 그 기록은 로봇 쪽으로 옮겨요.
+    if ((b.v ?? 1) < 2) {
+      addMap(t.bots, { ...b.bots, other: (b.bots?.other ?? 0) + (b.land ?? 0) });
+      addMap(t.shares, b.shares);
+      continue;
+    }
     t.uv += b.uv ?? 0;
     t.land += b.land ?? 0;
     t.nav += b.nav ?? 0;
@@ -48,7 +54,7 @@ const fmt = (o, n) => Object.entries(o ?? {}).sort((a, b) => b[1] - a[1]).slice(
 const lines = [
   "# livelol.stats 방문 기록",
   "",
-  "날짜는 UTC 기준이에요. 방문자 = 그날 서로 다른 사람 수(봇 제외, 서버가 다시 켜지면 같은 사람이 한 번 더 세질 수 있어요).",
+  "날짜는 UTC 기준이에요. 방문자 = 그날 서로 다른 사람 수(로봇 제외. 화면 스크립트까지 받아 간 접속만 사람으로 세요. 서버가 다시 켜지면 같은 사람이 한 번 더 세질 수 있어요).",
   "첫 접속 = 밖에서 들어온 횟수, 이동 = 사이트 안에서 페이지를 옮긴 횟수.",
   "",
   "| 날짜 | 방문자 | 첫 접속 | 이동 | 어디서 왔나 | 많이 본 페이지 | 검색 로봇 | 링크 공유 |",
