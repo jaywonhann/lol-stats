@@ -23,6 +23,7 @@ services:
         - scripts/pro-builds.mjs
         - scripts/rate.mjs
         - scripts/screenshots.mjs
+        - scripts/visits.mjs
     healthCheckPath: /robots.txt
     envVars:
       - key: NODE_VERSION

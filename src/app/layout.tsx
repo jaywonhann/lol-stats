@@ -13,7 +13,6 @@ import BottomNav from "@/components/BottomNav";
 import SlashSearch from "@/components/SlashSearch";
 import NavProgress from "@/components/NavProgress";
 import { Suspense } from "react";
-import { Analytics } from "@vercel/analytics/next";
 import { token as communityOn } from "@/lib/community";
 import "./globals.css";
 
@@ -165,7 +164,6 @@ export default async function RootLayout({
           Games, Inc.
         </footer>
         <SlashSearch />
-        <Analytics />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

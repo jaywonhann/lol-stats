@@ -1,0 +1,53 @@
+# 사이트 방문자 수를 10분마다 읽어서 visits 브랜치(visits.json, README.md 표)에 쌓아요.
+# Render 무료 서버는 디스크가 없고 배포·재시작 때마다 숫자가 0이 돼서, 밖에서 자주 읽어 두는 거예요.
+# GitHub 예약 실행은 자주 밀려서 한 번에 5시간 반쯤 돌고 다시 자기를 실행해요 (실시간 인원 기록과 같은 방식).
+name: 방문자 기록
+
+on:
+  schedule:
+    - cron: "37 */3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: visits
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          sparse-checkout: scripts
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 10분마다 방문자 수 읽어 올리기
+        env:
+          OUT: /tmp/visits
+          TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          mkdir -p $OUT
+          git fetch --depth=1 origin visits 2>/dev/null && git show origin/visits:visits.json > $OUT/visits.json 2>/dev/null || rm -f $OUT/visits.json
+          start=$(date +%s)
+          while [ $(( $(date +%s) - start )) -lt $((335 * 60)) ]; do
+            t0=$(date +%s)
+            node scripts/visits.mjs || echo "::warning::방문자 수 읽기 실패"
+            ( cd $OUT && [ -f visits.json ] && rm -rf .git && git init -q -b visits \
+              && git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" add visits.json README.md \
+              && git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -q -m "방문자 기록" \
+              && git push -q --force "https://x-access-token:$TOKEN@github.com/$REPO.git" visits ) || echo "::warning::올리기 실패"
+            sleep $(( 600 - ( $(date +%s) - t0 ) > 0 ? 600 - ( $(date +%s) - t0 ) : 1 ))
+          done
+      - name: 다음 회차 이어서 실행
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run visits.yml -R ${{ github.repository }} --ref main

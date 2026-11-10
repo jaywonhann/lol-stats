@@ -5,6 +5,7 @@
 import { createServer } from "node:http";
 import fs from "node:fs";
 import path from "node:path";
+import { createHash, randomBytes } from "node:crypto";
 import next from "next";
 
 const port = Number(process.env.PORT ?? 3000);
@@ -183,6 +184,78 @@ function run(req, res) {
   });
 }
 
+
+// ── 방문자 세기 ──────────────────────────────────────────────────────────
+// Render로 옮긴 뒤 방문자 통계가 없어서 직접 세요. 날짜(UTC)별로 사람 방문만 모으고,
+// IP는 저장하지 않아요: 매일 바뀌는 무작위 값과 섞은 지문만 그날 메모리에 두고 "서로 다른 방문자 수"를 세는 데만 써요.
+// 서버가 다시 켜지면 숫자가 0부터라, visits.yml이 몇 분마다 /__stats를 읽어 visits 브랜치에 쌓아요 (boot 값으로 구분).
+const BOOT = randomBytes(6).toString("hex");
+const SALT = randomBytes(16).toString("hex");
+const visitDays = new Map(); // "2026-11-10" -> { seen:Set, uv, land, nav, ref:{}, top:{}, bots:{}, shares:{} }
+const BOT_UA = /bot|crawl|spider|slurp|yeti|preview|scrap|facebookexternalhit|curl|wget|python|headless|lighthouse|monitor|uptime|axios|node-fetch|go-http|okhttp|java\/|^$/i;
+const SHARE_UA = [["kakao", /kakaotalk/i], ["facebook", /facebookexternalhit|meta-externalagent/i], ["twitter", /twitterbot/i], ["discord", /discordbot/i], ["slack", /slackbot/i], ["telegram", /telegrambot/i], ["whatsapp", /whatsapp/i], ["line", /line-poker|linebot/i]];
+const CRAWL_UA = [["google", /googlebot|google-inspectiontool|googleother/i], ["naver", /yeti|naverbot/i], ["bing", /bingbot|bingpreview/i], ["daum", /daum/i], ["yandex", /yandex/i], ["ai", /gptbot|chatgpt|claudebot|perplexity|bytespider|ccbot|amazonbot/i]];
+const REF_NAMES = [["google", /(^|\.)google\./], ["naver", /(^|\.)naver\.com$/], ["bing", /(^|\.)bing\.com$/], ["daum", /(^|\.)daum\.net$/], ["duckduckgo", /duckduckgo/], ["threads", /threads\.(net|com)$/], ["instagram", /instagram\.com$/], ["facebook", /facebook\.com$/], ["x", /^(t\.co|x\.com|twitter\.com)$/], ["reddit", /reddit\.com$/], ["youtube", /youtube\.com$|youtu\.be$/], ["discord", /discord/], ["kakao", /kakao/], ["tistory", /tistory\.com$/], ["inven", /inven\.co\.kr$/], ["dcinside", /dcinside\.com$/], ["fmkorea", /fmkorea\.com$/], ["tiktok", /tiktok\.com$/]];
+const bump = (o, k, cap = 200) => {
+  if (k in o) o[k]++;
+  else if (Object.keys(o).length < cap) o[k] = 1;
+};
+function countVisit(req) {
+  try {
+    if (req.method !== "GET" || req.headers["x-refresh"]) return;
+    const ip = String(req.headers["x-forwarded-for"] ?? req.socket.remoteAddress ?? "").split(",")[0].trim();
+    if (!ip || ip === "127.0.0.1" || ip === "::1" || ip === "::ffff:127.0.0.1") return;
+    const pathname = (req.url ?? "/").split("?")[0];
+    if (pathname.startsWith("/api/") || pathname.startsWith("/_next") || /\.[a-z0-9]{2,5}$/i.test(pathname) || pathname.endsWith("opengraph-image")) return;
+    const day = new Date().toISOString().slice(0, 10);
+    let d = visitDays.get(day);
+    if (!d) {
+      d = { seen: new Set(), uv: 0, land: 0, nav: 0, ref: {}, top: {}, bots: {}, shares: {} };
+      visitDays.set(day, d);
+      while (visitDays.size > 3) visitDays.delete(visitDays.keys().next().value);
+    }
+    const ua = String(req.headers["user-agent"] ?? "");
+    // 링크를 붙였을 때 메신저·SNS가 미리보기를 가져가는 요청: "누가 링크를 공유했다"는 신호라 따로 세요
+    const share = SHARE_UA.find(([, re]) => re.test(ua));
+    if (share) return bump(d.shares, share[0], 20);
+    if (BOT_UA.test(ua)) return bump(d.bots, CRAWL_UA.find(([, re]) => re.test(ua))?.[0] ?? "other", 20);
+    const isNav = !!req.headers["rsc"];
+    // 마우스를 올렸을 때 미리 받는 요청은 방문으로 안 쳐요
+    if (isNav && (req.headers["next-router-prefetch"] || req.headers["purpose"] === "prefetch")) return;
+    const id = createHash("sha1").update(`${SALT}|${day}|${ip}|${ua}`).digest("base64").slice(0, 12);
+    if (!d.seen.has(id) && d.seen.size < 100_000) {
+      d.seen.add(id);
+      d.uv++;
+    }
+    if (isNav) d.nav++;
+    else {
+      d.land++;
+      let from = "direct";
+      const r = req.headers["referer"];
+      if (r) {
+        try {
+          const h = new URL(r).hostname.replace(/^www\./, "");
+          from = h === (req.headers.host ?? "").split(":")[0] ? "" : (REF_NAMES.find(([, re]) => re.test(h))?.[0] ?? h);
+        } catch {
+          from = "direct";
+        }
+      }
+      if (from) bump(d.ref, from, 60);
+    }
+    bump(d.top, pathname);
+  } catch {
+    // 세다가 생긴 오류는 무시 (페이지는 그대로 보여줘야 해요)
+  }
+}
+function sendStats(req, res) {
+  if ((req.url ?? "").split("?")[0] !== "/__stats") return false;
+  const days = {};
+  for (const [day, d] of visitDays) days[day] = { uv: d.uv, land: d.land, nav: d.nav, ref: d.ref, top: d.top, bots: d.bots, shares: d.shares };
+  res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store", "x-robots-tag": "noindex" });
+  res.end(JSON.stringify({ boot: BOOT, up: Math.round(process.uptime()), now: new Date().toISOString(), days }));
+  return true;
+}
+
 await app.prepare();
 let lastVisit = 0; // 방문자 페이지 요청이 마지막으로 온 시각 (미리 만들기는 그 뒤 잠깐 쉬어요)
 createServer((req, res) => {
@@ -197,7 +270,9 @@ createServer((req, res) => {
     req.headers["x-lang-url"] = lp;
   }
   req.headers["x-pathname"] = (req.url ?? "/").split("?")[0];
+  if (sendStats(req, res)) return;
   if (sendFile(req, res)) return;
+  countVisit(req);
   if (light(req.url)) return void handle(req, res);
   // 그림·파일·robots.txt(서버 깨우기)는 빼고 페이지 요청만 방문으로 쳐요
   if (req.socket.remoteAddress !== "127.0.0.1" && req.socket.remoteAddress !== "::ffff:127.0.0.1") lastVisit = Date.now();
