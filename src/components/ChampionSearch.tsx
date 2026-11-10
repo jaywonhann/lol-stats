@@ -16,8 +16,8 @@ const TAGS: [string, string, string][] = [
   ["Support", "Support", "서포터"],
 ];
 
-// base: 챔피언 링크 앞부분 (윈도우 앱 화면은 "/app?champ=")
-export default function ChampionSearch({ champions, lang, base = "/champions/", filters = false }: { champions: Entry[]; lang: Lang; base?: string; filters?: boolean }) {
+// base: 챔피언 링크 앞부분 (윈도우 앱 화면은 "/app?champ="), suffix: 챔피언 이름 뒤에 붙는 부분 (카운터 모음은 "/counters")
+export default function ChampionSearch({ champions, lang, base = "/champions/", suffix = "", filters = false }: { champions: Entry[]; lang: Lang; base?: string; suffix?: string; filters?: boolean }) {
   const t = dict(lang);
   const [q, setQ] = useState("");
   const [tag, setTag] = useState<string | null>(null);
@@ -71,7 +71,7 @@ export default function ChampionSearch({ champions, lang, base = "/champions/", 
       )}
       <div className="mt-4 grid grid-cols-5 gap-2 sm:grid-cols-8 md:grid-cols-10">
         {results.map((c) => (
-          <Link key={c.id} href={`${base}${c.id}${c.lane ? `?lane=${c.lane}` : ""}`} className="group flex flex-col items-center gap-1 text-center">
+          <Link key={c.id} href={`${base}${c.id}${suffix}${c.lane ? `?lane=${c.lane}` : ""}`} className="group flex flex-col items-center gap-1 text-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={c.icon} alt={c.name} width={56} height={56} loading="lazy" style={{ width: 56, height: 56 }} className="overflow-hidden text-[0px] rounded-md group-hover:ring-2 group-hover:ring-accent" />
             <span className="w-full truncate text-xs text-muted group-hover:text-text">{c.name}</span>

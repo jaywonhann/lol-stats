@@ -17,7 +17,7 @@ const handle = app.getRequestHandler();
 // 언어·서버 쿠키와 Next가 페이지 이동 때 보내는 헤더까지 같아야 같은 요청으로 봐요.
 // 512MB 서버라 저장 공간은 36MB까지 (챔피언 미리 만들기가 다 차면 56MB에선 메모리가 넘쳐 서버가 다시 켜졌어요)
 const CACHE_MB = Number(process.env.PAGE_CACHE_MB ?? 36);
-const CACHEABLE = /^\/(|tier|duo|aram|aram\/[^/]+|champions|champions\/[^/]+|champions\/[^/]+\/counters|items|matchup|bans|meta|trends|ranking|pros|tools|predict|multi|faq|community|privacy)$/;
+const CACHEABLE = /^\/(|tier|duo|aram|aram\/[^/]+|champions|champions\/[^/]+|champions\/[^/]+\/counters|counters|items|matchup|bans|meta|trends|ranking|pros|tools|predict|multi|faq|community|privacy)$/;
 // 메뉴 페이지(아래 WARM 목록)는 챔피언 페이지가 저장 공간을 채워도 지우지 않아요. 메뉴를 누르면 늘 바로 오게.
 // (KR 서버 기준만 고정해서 메모리를 아껴요)
 const pinned = (key) => {
@@ -216,7 +216,7 @@ createServer((req, res) => {
 // 위쪽·아래쪽 메뉴에 있는 페이지는 전부 (누르면 바로 뜨게)
 // (랭킹·프로·트렌드·아이템처럼 Riot 호출이나 여러 패치 데이터를 읽는 페이지는 배포 직후 한꺼번에 만들면
 //  메모리가 넘쳐 서버가 다시 켜졌어요. 그런 페이지는 첫 방문 때 만들어서 저장해 두고 지우지만 않아요)
-const WARM = ["/", "/tier", "/champions", "/bans", "/meta", "/aram", "/duo", "/multi", ...["top", "jungle", "mid", "bottom", "support"].map((l) => `/tier?lane=${l}&rank=all`)];
+const WARM = ["/", "/tier", "/champions", "/counters", "/bans", "/meta", "/aram", "/duo", "/multi", ...["top", "jungle", "mid", "bottom", "support"].map((l) => `/tier?lane=${l}&rank=all`)];
 const WARM_SET = new Set([...WARM, "/ranking", "/items", "/trends", "/pros", "/tools", "/predict", "/matchup"]);
 async function warm(again = false) {
   if (process.env.PAGE_CACHE_MB === "0") return;

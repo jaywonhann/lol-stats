@@ -92,6 +92,9 @@ export default async function RootLayout({
                 <Link href="/champions" className="rounded px-3 py-2 text-sm hover:bg-panel-2">
                   {lang === "ko" ? "챔피언 목록" : "All champions"}
                 </Link>
+                <Link href="/counters" className="rounded px-3 py-2 text-sm hover:bg-panel-2">
+                  {lang === "ko" ? "챔피언 카운터" : "Counter picks"}
+                </Link>
                 <Link href="/matchup" className="rounded px-3 py-2 text-sm hover:bg-panel-2">
                   {lang === "ko" ? "상성 비교" : "Matchup lookup"}
                 </Link>

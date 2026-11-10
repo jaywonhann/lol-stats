@@ -4,8 +4,8 @@ import Link from "@/components/Link";
 import { usePathname } from "next/navigation";
 
 const T = {
-  ko: { home: "홈", tier: "티어", summoner: "전적", ranking: "랭킹", more: "더보기", champions: "챔피언", matchup: "상성 비교", multi: "멀티서치", bans: "밴 추천", items: "아이템 통계", trends: "트렌드", community: "커뮤니티", faq: "FAQ" },
-  en: { home: "Home", tier: "Tier", summoner: "Search", ranking: "Ladder", more: "More", champions: "Champions", matchup: "Matchups", multi: "Multi-search", bans: "Who to ban", items: "Item stats", trends: "Trends", community: "Community", faq: "FAQ" },
+  ko: { home: "홈", tier: "티어", summoner: "전적", ranking: "랭킹", more: "더보기", champions: "챔피언", counters: "카운터", matchup: "상성 비교", multi: "멀티서치", bans: "밴 추천", items: "아이템 통계", trends: "트렌드", community: "커뮤니티", faq: "FAQ" },
+  en: { home: "Home", tier: "Tier", summoner: "Search", ranking: "Ladder", more: "More", champions: "Champions", counters: "Counters", matchup: "Matchups", multi: "Multi-search", bans: "Who to ban", items: "Item stats", trends: "Trends", community: "Community", faq: "FAQ" },
 };
 const MAIN = [
   { href: "/", key: "home", icon: "🏠" },
@@ -13,7 +13,7 @@ const MAIN = [
   { href: "/summoner", key: "summoner", icon: "🔍" },
   { href: "/ranking", key: "ranking", icon: "📊" },
 ] as const;
-const MORE = ["champions", "matchup", "multi", "bans", "items", "trends", "community", "faq"] as const;
+const MORE = ["champions", "counters", "matchup", "multi", "bans", "items", "trends", "community", "faq"] as const;
 
 export default function BottomNav({ lang, community = true }: { lang: "ko" | "en"; community?: boolean }) {
   const path = usePathname();
