@@ -137,7 +137,8 @@ export function loadRealData(filter: Filter): Map<string, PatchData> {
 function remember(key: string, stamp: string, data: Map<string, PatchData>) {
   cache.delete(key);
   cache.set(key, { stamp, data });
-  while (cache.size > 3) cache.delete(cache.keys().next().value!);
+  // 2026-11-10: 데이터가 커지면서(서버당 3MB+) 3개를 들고 있으면 힙이 한도(200MB) 가까이 차서 서버가 다시 켜졌어요. 2개만 들고 있어요
+  while (cache.size > 2) cache.delete(cache.keys().next().value!);
 }
 
 // 표본이 너무 적은(3게임 미만) 룬·아이템·상성 기록은 빼서 데이터를 1/3 크기로 줄여요. 화면에는 원래 안 나오는 것들이에요.
