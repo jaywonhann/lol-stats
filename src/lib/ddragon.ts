@@ -161,6 +161,8 @@ export const img = {
   spell: (v: string, file: string) => `${BASE}/cdn/${v}/img/spell/${file}`,
   passive: (v: string, file: string) => `${BASE}/cdn/${v}/img/passive/${file}`,
   rune: (icon: string) => `${BASE}/cdn/img/${icon}`,
+  // 로딩 화면 그림 (308x560): 공유 카드처럼 서버에서 그림을 다룰 때 스플래시(1215x717)보다 메모리를 훨씬 덜 써요
+  loading: (id: string, skin = 0) => `${BASE}/cdn/img/champion/loading/${id}_${skin}.jpg`,
   splash: (id: string, skin = 0) =>
     `${BASE}/cdn/img/champion/splash/${id}_${skin}.jpg`,
   profileIcon: (v: string, id: number) =>

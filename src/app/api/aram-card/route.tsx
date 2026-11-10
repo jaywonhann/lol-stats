@@ -25,8 +25,8 @@ export async function GET(req: Request) {
   return new ImageResponse(
     (
       <div style={{ width: "100%", height: "100%", display: "flex", position: "relative", background: "#070d17", color: "#f0e6d2" }}>
-        <img src={img.splash(champ.id)} alt="" width={760} height={630} style={{ position: "absolute", top: 0, right: 0, width: 760, height: 630, objectFit: "cover", opacity: 0.65 }} />
-        <div style={{ position: "absolute", top: 0, left: 0, width: 1200, height: 630, display: "flex", background: "linear-gradient(90deg, #070d17 40%, rgba(7,13,23,0.6) 55%, rgba(7,13,23,0) 100%)" }} />
+        <img src={img.loading(champ.id)} alt="" width={347} height={630} style={{ position: "absolute", top: 0, right: 40, width: 347, height: 630, objectFit: "cover", opacity: 0.75 }} />
+        <div style={{ position: "absolute", top: 0, left: 0, width: 1200, height: 630, display: "flex", background: "linear-gradient(90deg, #070d17 66%, rgba(7,13,23,0) 82%)" }} />
         <div style={{ position: "relative", display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 72px" }}>
           <div style={{ display: "flex", fontSize: 30, fontWeight: 900 }}>
             live<span style={{ color: "#c8aa6e" }}>lol</span>.stats · {label} build
