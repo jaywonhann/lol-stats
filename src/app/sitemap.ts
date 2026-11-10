@@ -64,6 +64,7 @@ async function entries(): Promise<MetadataRoute.Sitemap> {
     return [
       ...pages,
       ...champions.map((c) => ({ url: `${SITE}/champions/${c.id}`, lastModified: now, changeFrequency: "daily" as const, priority: 0.6 })),
+      ...champions.map((c) => ({ url: `${SITE}/champions/${c.id}/counters`, lastModified: now, changeFrequency: "daily" as const, priority: 0.6 })),
       // 칼바람·증바람은 페이지가 ?mode= 로 갈려서(canonical도 그 주소) 모드마다 따로 올려요
       ...(["mayhem", "aram"] as const).flatMap((mode) =>
         champions

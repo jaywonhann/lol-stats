@@ -379,6 +379,9 @@ export default async function ChampionPage({ params, searchParams }: Props) {
             </Panel>
             <Panel title={t.hardMatchups}>
               <MatchupList me={champion.id} lang={lang} rows={mu.hard} version={version} lane={lane} />
+              <Link href={`/champions/${champion.id}/counters?lane=${lane}`} className="mt-3 block text-xs text-accent hover:underline">
+                {lang === "ko" ? `${champion.name} 카운터 전체 보기 →` : `See all ${champion.name} counters →`}
+              </Link>
             </Panel>
             {duos.length > 0 && (
               <Panel title={t.bestDuo(lane)}>
