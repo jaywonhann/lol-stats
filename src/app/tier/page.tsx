@@ -18,6 +18,7 @@ import { getLang, getServer, langAlternates } from "@/lib/server";
 import LivePanel from "@/components/LivePanel";
 import AutoRefresh from "@/components/AutoRefresh";
 import { boards } from "@/lib/stats";
+import { latest as latestAll, rows as counterRows } from "@/lib/counters";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
@@ -84,6 +85,9 @@ export default async function TierPage({ searchParams }: Props) {
       return c && items && trees && spells ? [[s.champion.id, quickBuild(c, items, trees, spells)] as const] : [];
     }),
   );
+  // 챔피언마다 가장 까다로운 상대 3명 (u.gg 티어 목록의 "카운터" 칸처럼). 표본이 많은 에메랄드+ 전체 데이터로
+  const allData = latestAll(server);
+  const counters = new Map(rows.map((s) => [s.champion.id, allData ? (counterRows(allData, s.champion, lane, champions)?.counters.slice(0, 3) ?? []) : []]));
   const q = (o: { lane?: string; rank?: string; patch?: string }) =>
     `/tier?lane=${o.lane ?? lane}&rank=${o.rank ?? rank}${(o.patch ?? patch) !== latest ? `&patch=${o.patch ?? patch}` : ""}`;
 
@@ -139,13 +143,14 @@ export default async function TierPage({ searchParams }: Props) {
       </div>
 
       <div className="overflow-x-auto rounded-lg bg-panel">
-        <table className="w-full min-w-[900px] text-sm">
+        <table className="w-full min-w-[1000px] text-sm">
           <thead className="border-b border-line text-xs text-muted">
             <tr>
               <th className="px-3 py-2 text-left">{t.rank}</th>
               <th className="px-3 py-2 text-left">{t.champion}</th>
               <th className="px-3 py-2">{t.tierCol}</th>
               <th className="px-3 py-2 text-left">{lang === "ko" ? "룬 · 스펠 · 코어템" : "Runes · Spells · Core items"}</th>
+              <th className="px-3 py-2 text-left">{lang === "ko" ? "카운터" : "Counters"}</th>
               <th className="px-3 py-2 text-right">{t.metaScore}</th>
               <th className="px-3 py-2 text-right">{t.winRate}</th>
               <th className="px-3 py-2 text-right">{t.pickRate}</th>
@@ -180,6 +185,19 @@ export default async function TierPage({ searchParams }: Props) {
                 </td>
                 <td className="px-3 py-2">
                   {quick.get(s.champion.id) && <BuildIcons qb={quick.get(s.champion.id)!} version={version} size={26} />}
+                </td>
+                <td className="px-3 py-2">
+                  {(counters.get(s.champion.id)?.length ?? 0) > 0 && (
+                    <Link
+                      href={`/champions/${s.champion.id}/counters?lane=${lane}`}
+                      className="flex items-center gap-1 hover:opacity-80"
+                      title={lang === "ko" ? `${s.champion.name} 카운터 전체 보기` : `All ${s.champion.name} counters`}
+                    >
+                      {counters.get(s.champion.id)!.map((m) => (
+                        <Icon key={m.champion.id} src={img.champion(version, m.champion.image.full)} alt={m.champion.name} size={24} />
+                      ))}
+                    </Link>
+                  )}
                 </td>
                 <td className="px-3 py-2 text-right font-semibold">
                   {s.score.toFixed(1)}
