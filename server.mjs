@@ -16,7 +16,8 @@ const handle = app.getRequestHandler();
 // 한 번 만든 페이지는 잠깐 저장해 두고 같은 요청이 오면 바로 보내요 (데이터는 배포할 때만 바뀌어요).
 // 언어·서버 쿠키와 Next가 페이지 이동 때 보내는 헤더까지 같아야 같은 요청으로 봐요.
 // 512MB 서버라 저장 공간은 36MB까지 (챔피언 미리 만들기가 다 차면 56MB에선 메모리가 넘쳐 서버가 다시 켜졌어요)
-const CACHE_MB = Number(process.env.PAGE_CACHE_MB ?? 36);
+// 2026-11-10: 메뉴 페이지를 고정 저장하고 나서 배포 직후 공유 이미지를 만들다 서버가 다시 켜지는 일이 두 번 있어서 28MB로 줄였어요
+const CACHE_MB = Number(process.env.PAGE_CACHE_MB ?? 28);
 const CACHEABLE = /^\/(|tier|duo|aram|aram\/[^/]+|champions|champions\/[^/]+|champions\/[^/]+\/counters|counters|items|matchup|bans|meta|trends|ranking|pros|tools|predict|multi|faq|community|privacy)$/;
 // 메뉴 페이지(아래 WARM 목록)는 챔피언 페이지가 저장 공간을 채워도 지우지 않아요. 메뉴를 누르면 늘 바로 오게.
 // (KR 서버 기준만 고정해서 메모리를 아껴요)
