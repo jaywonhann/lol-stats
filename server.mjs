@@ -214,8 +214,10 @@ createServer((req, res) => {
 
 // 서버가 켜지면 자주 가는 페이지를 미리 한 번씩 만들어 둬요 (한 번에 하나씩, 방문자 요청과 같이 줄 서요)
 // 위쪽·아래쪽 메뉴에 있는 페이지는 전부 (누르면 바로 뜨게)
-const WARM = ["/", "/tier", "/champions", "/bans", "/meta", "/aram", "/duo", "/ranking", "/items", "/trends", "/pros", "/multi", "/tools", "/predict", "/matchup", ...["top", "jungle", "mid", "bottom", "support"].map((l) => `/tier?lane=${l}&rank=all`)];
-const WARM_SET = new Set(WARM);
+// (랭킹·프로·트렌드·아이템처럼 Riot 호출이나 여러 패치 데이터를 읽는 페이지는 배포 직후 한꺼번에 만들면
+//  메모리가 넘쳐 서버가 다시 켜졌어요. 그런 페이지는 첫 방문 때 만들어서 저장해 두고 지우지만 않아요)
+const WARM = ["/", "/tier", "/champions", "/bans", "/meta", "/aram", "/duo", "/multi", ...["top", "jungle", "mid", "bottom", "support"].map((l) => `/tier?lane=${l}&rank=all`)];
+const WARM_SET = new Set([...WARM, "/ranking", "/items", "/trends", "/pros", "/tools", "/predict", "/matchup"]);
 async function warm(again = false) {
   if (process.env.PAGE_CACHE_MB === "0") return;
   for (const lang of ["ko", "en"])
@@ -230,6 +232,8 @@ async function warm(again = false) {
         } catch {
           // 미리 만들기는 실패해도 괜찮아요
         }
+        // 한 번에 몰아서 만들지 않고 조금씩 쉬어 가며 (메모리가 정리될 틈)
+        await sleep(500);
       }
   if (again) return;
   // 메뉴 페이지는 20분마다 한 번씩 확인해서, 오래됐으면 새로 만들어 둬요 (12시간 지나 지워지지 않게)
