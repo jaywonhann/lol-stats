@@ -191,7 +191,6 @@ function run(req, res) {
 // 서버가 다시 켜지면 숫자가 0부터라, visits.yml이 몇 분마다 /__stats를 읽어 visits 브랜치에 쌓아요 (boot 값으로 구분).
 const BOOT = randomBytes(6).toString("hex");
 const SALT = randomBytes(16).toString("hex");
-const waiting = new Map(); // 페이지는 받았지만 아직 사람인지 확인 안 된 방문
 const visitDays = new Map(); // "2026-11-10" -> { seen:Set, uv, land, nav, ref:{}, top:{}, bots:{}, shares:{} }
 const BOT_UA = /bot|crawl|spider|slurp|yeti|preview|scrap|facebookexternalhit|curl|wget|python|headless|lighthouse|monitor|uptime|axios|node-fetch|go-http|okhttp|java\/|^$/i;
 const SHARE_UA = [["kakao", /kakaotalk/i], ["facebook", /facebookexternalhit|meta-externalagent/i], ["twitter", /twitterbot/i], ["discord", /discordbot/i], ["slack", /slackbot/i], ["telegram", /telegrambot/i], ["whatsapp", /whatsapp/i], ["line", /line-poker|linebot/i]];
@@ -206,29 +205,10 @@ function countVisit(req) {
     if (req.method !== "GET" || req.headers["x-refresh"]) return;
     const ip = String(req.headers["x-forwarded-for"] ?? req.socket.remoteAddress ?? "").split(",")[0].trim();
     if (!ip || ip === "127.0.0.1" || ip === "::1" || ip === "::ffff:127.0.0.1") return;
-    const pathname = (req.url ?? "/").split("?")[0];
+    const [pathname, query = ""] = (req.url ?? "/").split("?");
+    const isHit = pathname === "/__hit";
+    if (!isHit && (req.headers["rsc"] || pathname.startsWith("/api/") || pathname.startsWith("/_next") || pathname.startsWith("/__") || /\.[a-z0-9]{2,5}$/i.test(pathname) || pathname.endsWith("opengraph-image"))) return;
     const day = new Date().toISOString().slice(0, 10);
-    // 브라우저인 척하는 수집 로봇은 페이지 글만 받고 화면용 스크립트는 안 받아요.
-    // 그래서 페이지를 받은 뒤 스크립트까지 받아 간 경우에만 사람으로 세요.
-    if (pathname.startsWith("/_next/static/") && pathname.endsWith(".js")) {
-      const pid = createHash("sha1").update(`${SALT}|${day}|${ip}|${String(req.headers["user-agent"] ?? "")}`).digest("base64").slice(0, 12);
-      const w = waiting.get(pid);
-      if (!w) return;
-      waiting.delete(pid);
-      const dd = visitDays.get(w.day);
-      if (!dd) return;
-      if (!dd.seen.has(pid) && dd.seen.size < 100_000) {
-        dd.seen.add(pid);
-        dd.uv++;
-      }
-      for (const v of w.list) {
-        dd.land++;
-        if (v.from) bump(dd.ref, v.from, 60);
-        bump(dd.top, v.path);
-      }
-      return;
-    }
-    if (pathname.startsWith("/api/") || pathname.startsWith("/_next") || /\.[a-z0-9]{2,5}$/i.test(pathname) || pathname.endsWith("opengraph-image")) return;
     let d = visitDays.get(day);
     if (!d) {
       d = { seen: new Set(), uv: 0, land: 0, nav: 0, ref: {}, top: {}, bots: {}, shares: {} };
@@ -236,53 +216,55 @@ function countVisit(req) {
       while (visitDays.size > 3) visitDays.delete(visitDays.keys().next().value);
     }
     const ua = String(req.headers["user-agent"] ?? "");
-    // 링크를 붙였을 때 메신저·SNS가 미리보기를 가져가는 요청: "누가 링크를 공유했다"는 신호라 따로 세요
-    const share = SHARE_UA.find(([, re]) => re.test(ua));
-    if (share) return bump(d.shares, share[0], 20);
-    if (BOT_UA.test(ua)) return bump(d.bots, CRAWL_UA.find(([, re]) => re.test(ua))?.[0] ?? "other", 20);
-    const isNav = !!req.headers["rsc"];
-    // 마우스를 올렸을 때 미리 받는 요청은 방문으로 안 쳐요
-    if (isNav && (req.headers["next-router-prefetch"] || req.headers["purpose"] === "prefetch")) return;
+    if (!isHit) {
+      // 링크를 붙였을 때 메신저·SNS가 미리보기를 가져가는 요청: "누가 링크를 공유했다"는 신호라 따로 세요
+      const share = SHARE_UA.find(([, re]) => re.test(ua));
+      if (share) return bump(d.shares, share[0], 20);
+      // 이름을 밝힌 로봇만 여기서 세요. 브라우저인 척하는 로봇은 아래 /__hit 신호를 못 보내서 어디에도 안 잡혀요.
+      if (BOT_UA.test(ua)) bump(d.bots, CRAWL_UA.find(([, re]) => re.test(ua))?.[0] ?? "other", 20);
+      return;
+    }
+    // /__hit: 화면에서 실제로 손을 댔을 때(스크롤·터치·마우스·키보드) 브라우저가 보내는 신호예요 (src/components/Seen.tsx).
+    // 페이지만 받아 가는 로봇, 스크립트까지 돌리는 로봇 모두 손을 대지는 않아서 사람만 세져요.
+    if (BOT_UA.test(ua)) return;
+    const q = new URLSearchParams(query);
+    const page = (q.get("p") ?? "/").split("?")[0].slice(0, 80);
+    if (!page.startsWith("/")) return;
     const id = createHash("sha1").update(`${SALT}|${day}|${ip}|${ua}`).digest("base64").slice(0, 12);
-    if (isNav) {
-      // 스크립트를 받아 간(사람으로 확인된) 방문자의 이동만 세요
-      if (d.seen.has(id)) {
-        d.nav++;
-        bump(d.top, pathname);
-      }
-      return;
+    if (!d.seen.has(id) && d.seen.size < 100_000) {
+      d.seen.add(id);
+      d.uv++;
     }
-    let from = "direct";
-    const r = req.headers["referer"];
-    if (r) {
-      try {
-        const h = new URL(r).hostname.replace(/^www\./, "");
-        from = h === (req.headers.host ?? "").split(":")[0] ? "" : (REF_NAMES.find(([, re]) => re.test(h))?.[0] ?? h);
-      } catch {
-        from = "direct";
-      }
-    }
-    if (d.seen.has(id)) {
+    if (q.get("n") === "1") d.nav++;
+    else {
       d.land++;
+      let from = "direct";
+      const r = q.get("r");
+      if (r) {
+        const h = r.toLowerCase().replace(/^www\./, "").slice(0, 60);
+        from = h === String(req.headers.host ?? "").split(":")[0] ? "" : (REF_NAMES.find(([, re]) => re.test(h))?.[0] ?? h);
+      }
       if (from) bump(d.ref, from, 60);
-      bump(d.top, pathname);
-      return;
     }
-    if (waiting.size > 5000) waiting.delete(waiting.keys().next().value);
-    const w = waiting.get(id) ?? { day, list: [] };
-    if (w.list.length < 5) w.list.push({ from, path: pathname });
-    waiting.delete(id);
-    waiting.set(id, w);
+    bump(d.top, page);
   } catch {
     // 세다가 생긴 오류는 무시 (페이지는 그대로 보여줘야 해요)
   }
 }
+
 function sendStats(req, res) {
-  if ((req.url ?? "").split("?")[0] !== "/__stats") return false;
+  const path = (req.url ?? "").split("?")[0];
+  if (path === "/__hit") {
+    countVisit(req);
+    res.writeHead(204, { "cache-control": "no-store", "x-robots-tag": "noindex" });
+    res.end();
+    return true;
+  }
+  if (path !== "/__stats") return false;
   const days = {};
   for (const [day, d] of visitDays) days[day] = { uv: d.uv, land: d.land, nav: d.nav, ref: d.ref, top: d.top, bots: d.bots, shares: d.shares };
   res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store", "x-robots-tag": "noindex" });
-  res.end(JSON.stringify({ v: 2, boot: BOOT, up: Math.round(process.uptime()), now: new Date().toISOString(), days }));
+  res.end(JSON.stringify({ v: 3, boot: BOOT, up: Math.round(process.uptime()), now: new Date().toISOString(), days }));
   return true;
 }
 

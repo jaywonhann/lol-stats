@@ -12,6 +12,7 @@ import AdSlot from "@/components/AdSlot";
 import BottomNav from "@/components/BottomNav";
 import SlashSearch from "@/components/SlashSearch";
 import NavProgress from "@/components/NavProgress";
+import Seen from "@/components/Seen";
 import { Suspense } from "react";
 import { token as communityOn } from "@/lib/community";
 import "./globals.css";
@@ -54,6 +55,7 @@ export default async function RootLayout({
       <body className="min-h-screen antialiased">
         <Suspense>
           <NavProgress />
+          <Seen />
         </Suspense>
         <a
           href="#main"
