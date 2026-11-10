@@ -25,7 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
     description: t.siteDescription,
     manifest: "/manifest.webmanifest",
     icons: { apple: "/apple-touch-icon.png" },
-    verification: { google: "_-6PArOHrYvTVP-g36tgO22K_2iXB0nqyiOkYl1Ypqk" },
+    verification: { google: ["_-6PArOHrYvTVP-g36tgO22K_2iXB0nqyiOkYl1Ypqk", "56o6zRu-CKszX1W3Ns4jLSi84oaMpbVxifWMySydkPE"] },
     other: { "google-adsense-account": ADSENSE_CLIENT },
   };
 }
