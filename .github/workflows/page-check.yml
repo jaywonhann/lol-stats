@@ -34,7 +34,7 @@ jobs:
           done
           echo "::notice title=pages::${pages//%/pct}"
           imgs=""
-          for p in /tier/opengraph-image /duo/opengraph-image /bans/opengraph-image /multi/opengraph-image /champions/Jinx/opengraph-image /champions/Yasuo/counters/opengraph-image "/api/aram-card?id=Jinx&mode=aram" "/api/card?id=Hide%20on%20bush%23KR1&s=kr"; do
+          for p in /tier/opengraph-image /trends/opengraph-image /duo/opengraph-image /bans/opengraph-image /multi/opengraph-image /champions/Jinx/opengraph-image /champions/Yasuo/counters/opengraph-image "/api/aram-card?id=Jinx&mode=aram" "/api/card?id=Hide%20on%20bush%23KR1&s=kr"; do
             imgs="$imgs | $p $(curl -s --max-time 90 -o /dev/null -w '%{http_code} %{size_download} [%header{x-mem}]' "$SITE$p")"
           done
           echo "::notice title=share images::${imgs//%/pct}"

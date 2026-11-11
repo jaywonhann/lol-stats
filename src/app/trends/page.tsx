@@ -13,21 +13,39 @@ import {
   rankLabel,
   serverLabel,
 } from "@/lib/lanes";
-import { ddLocale, dict, type Lang } from "@/lib/i18n";
+import { ddLocale, dict, numLocale, type Lang } from "@/lib/i18n";
 import type { ChampionStat } from "@/lib/mock";
-import { movers } from "@/lib/stats";
-import { getLang, getServer } from "@/lib/server";
+import { movers, patchSwings, SWING_MIN_GAMES } from "@/lib/stats";
+import { getLang, getServer, langAlternates } from "@/lib/server";
 
 export const dynamic = "force-dynamic";
-export async function generateMetadata(): Promise<Metadata> {
-  const ko = (await getLang()) === "ko";
+type Props = { searchParams: Promise<{ lane?: string; rank?: string }> };
+
+// "26.22 패치 승률" 같은 검색과 링크 미리보기에 이번 패치 숫자가 바로 보이게, 제목과 설명에 패치와 대표 챔피언을 넣어요.
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  const [sp, lang, server] = await Promise.all([searchParams, getLang(), getServer()]);
+  const ko = lang === "ko";
+  const ln = LANES.find((l) => l.id === sp.lane)?.id;
+  const [{ champions }, allPatches] = await Promise.all([getChampions(ddLocale(lang)), getPatches()]);
+  const sw = patchSwings(champions, { server, rank: "all" }, allPatches, 1);
+  const alternates = await langAlternates(`/trends${ln ? `?lane=${ln}` : ""}`);
+  const up = sw?.up[0];
+  const down = sw?.down[0];
+  if (!sw || !up || !down)
+    return {
+      alternates,
+      title: dict(lang).trendsTitle,
+      description: ko ? "패치별 승률과 메타 점수가 가장 많이 바뀐 챔피언을 모아봤어요." : "Champions whose win rate and meta score changed most between patches.",
+    };
+  const pp = (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(1)}%p`;
   return {
-    title: dict(await getLang()).trendsTitle,
-    description: ko ? "패치별 승률과 메타 점수가 가장 많이 바뀐 챔피언을 모아봤어요." : "Champions whose win rate and meta score changed most between patches.",
+    alternates,
+    title: ko ? `${sw.patch} 패치 승률 변화 - 오른 챔피언·내린 챔피언` : `Patch ${sw.patch} Win Rate Changes - Biggest Winners and Losers`,
+    description: ko
+      ? `${sw.patch} 패치에서 승률이 가장 오른 챔피언은 ${up.champion.name}(${pp(up.change)}), 가장 내린 챔피언은 ${down.champion.name}(${pp(down.change)})예요. 실제 랭크 게임 ${sw.matches.toLocaleString("ko-KR")}판 기준.`
+      : `Biggest winner of patch ${sw.patch}: ${up.champion.name} (${pp(up.change)}). Biggest loser: ${down.champion.name} (${pp(down.change)}). From ${sw.matches.toLocaleString("en-US")} real ranked games.`,
   };
 }
-
-type Props = { searchParams: Promise<{ lane?: string; rank?: string }> };
 
 export default async function TrendsPage({ searchParams }: Props) {
   const params = await searchParams;
@@ -47,6 +65,8 @@ export default async function TrendsPage({ searchParams }: Props) {
     allPatches,
     8,
   );
+  const swings = patchSwings(champions, { server, rank }, allPatches);
+  const ko = lang === "ko";
   const patch = patches[patches.length - 1];
   const prev = patches[patches.length - 2];
   const bars = [...rising, ...[...falling].reverse()].map(({ stat }) => ({
@@ -69,6 +89,20 @@ export default async function TrendsPage({ searchParams }: Props) {
           {source === "real" ? t.realGames : t.sampleData}
         </span>
       </div>
+      {swings && swings.up.length > 0 && swings.down.length > 0 && (
+        <Panel title={ko ? `${swings.patch} 패치 한눈에: 승률이 가장 많이 바뀐 챔피언` : `Patch ${swings.patch} at a glance: biggest win rate changes`}>
+          <div className="grid gap-x-6 gap-y-4 md:grid-cols-2">
+            <SwingList title={ko ? "오른 챔피언" : "Winners"} rows={swings.up} version={version} lang={lang} />
+            <SwingList title={ko ? "내린 챔피언" : "Losers"} rows={swings.down} version={version} lang={lang} />
+          </div>
+          <p className="mt-3 text-xs text-muted">
+            {ko
+              ? `모든 라인에서 ${swings.prev} → ${swings.patch} 승률 변화 기준이에요. 두 패치 모두 ${SWING_MIN_GAMES}판 이상 나온 챔피언만 봤어요 (이번 패치 ${swings.matches.toLocaleString(numLocale(lang))}판).`
+              : `Win rate change from ${swings.prev} to ${swings.patch} across all lanes, for champions with ${SWING_MIN_GAMES}+ games in both patches (${swings.matches.toLocaleString(numLocale(lang))} games this patch).`}
+          </p>
+        </Panel>
+      )}
+
       <div className="space-y-2">
         <Tabs
           active={lane}
@@ -121,6 +155,47 @@ export default async function TrendsPage({ searchParams }: Props) {
           patches={patches}
         />
       </div>
+    </div>
+  );
+}
+
+function SwingList({
+  title,
+  rows,
+  version,
+  lang,
+}: {
+  title: string;
+  rows: NonNullable<ReturnType<typeof patchSwings>>["up"];
+  version: string;
+  lang: Lang;
+}) {
+  return (
+    <div>
+      <h3 className="mb-2 text-sm font-semibold text-muted">{title}</h3>
+      <ul className="space-y-1">
+        {rows.map((r) => (
+          <li key={`${r.champion.id}:${r.lane}`}>
+            <Link href={`/champions/${r.champion.id}?lane=${r.lane}`} className="flex items-center gap-3 rounded-md px-1 py-1 hover:bg-panel-2">
+              <Icon src={img.champion(version, r.champion.image.full)} alt={r.champion.name} size={32} />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium">{r.champion.name}</div>
+                <div className="text-xs text-muted">
+                  {laneLabel(r.lane, lang)} · {r.games.toLocaleString(numLocale(lang))}
+                  {lang === "ko" ? "판" : " games"}
+                </div>
+              </div>
+              <div className="text-right text-xs text-muted tabular-nums">
+                {r.before.toFixed(1)}% → <WinRate value={r.winRate} />
+              </div>
+              <span className={`w-16 text-right text-sm font-semibold tabular-nums ${r.change >= 0 ? "text-[var(--chart-up)]" : "text-[var(--chart-down)]"}`}>
+                {r.change >= 0 ? "▲" : "▼"}
+                {Math.abs(r.change).toFixed(1)}%p
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

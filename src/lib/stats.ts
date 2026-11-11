@@ -126,3 +126,33 @@ export function movers(
       .map(pack),
   };
 }
+
+// 이번 패치에 승률이 가장 많이 오르고 내린 챔피언 (라인 구분 없이 전체에서).
+// 두 패치 모두 판수가 충분한 챔피언만 봐요. 판수가 적으면 우연으로 크게 움직여 보여서요.
+export const SWING_MIN_GAMES = 200;
+export function patchSwings(champions: Champion[], filter: Filter, allPatches: string[], count = 5) {
+  const { source, patches, real } = statsSource(allPatches, filter);
+  const patch = patches.at(-1);
+  const prev = patches.at(-2);
+  if (source !== "real" || !patch || !prev) return null;
+  const now = real.get(patch)!;
+  const old = real.get(prev)!;
+  const byKey = new Map(champions.map((c) => [c.key, c]));
+  const rows = Object.entries(now.champs).flatMap(([k, c]) => {
+    const o = old.champs[k];
+    const [key, lane] = k.split(":");
+    const champion = byKey.get(key);
+    if (!o || !champion || c.games < SWING_MIN_GAMES || o.games < SWING_MIN_GAMES) return [];
+    const winRate = (c.wins / c.games) * 100;
+    const before = (o.wins / o.games) * 100;
+    return [{ champion, lane: lane as Lane, games: c.games, winRate, before, change: winRate - before }];
+  });
+  rows.sort((a, b) => b.change - a.change);
+  return {
+    patch,
+    prev,
+    matches: now.matches,
+    up: rows.slice(0, count).filter((r) => r.change > 0),
+    down: rows.slice(-count).reverse().filter((r) => r.change < 0),
+  };
+}
