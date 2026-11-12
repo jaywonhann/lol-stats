@@ -1,3 +1,4 @@
+import { patchName } from "@/lib/lanes";
 import Link from "@/components/Link";
 import ChampionSearch from "@/components/ChampionSearch";
 import SummonerSearch from "@/components/SummonerSearch";
@@ -62,8 +63,8 @@ export default async function Home() {
       ].filter((a, i, arr) => a.pick && arr.findIndex((b) => b.pick?.s.champion.id === a.pick!.s.champion.id) === i)
     : [];
   const AW = lang === "ko"
-    ? { title: `패치 ${patch} 어워드`, note: "실제 랭크 게임 기록으로 뽑은, 이번 패치의 재미있는 챔피언들이에요.", hidden: ["숨은 OP상", "아무도 안 하는데 제일 잘 이겨요"], people: ["국민 픽상", "어딜 가나 이 챔피언"], sad: ["억울한 인기상", "다들 하는데 자꾸 져요"], rocket: ["로켓 상승상", "최근 며칠 사이 가장 많이 뜬 챔피언"] }
-    : { title: `Patch ${patch} awards`, note: "This patch's most interesting champions, picked from real ranked games.", hidden: ["Hidden OP", "Nobody plays it, and it wins the most"], people: ["People's pick", "It's in every game"], sad: ["Popular but sad", "Everyone picks it, everyone loses"], rocket: ["Rocket riser", "Climbed the most in the last few days"] };
+    ? { title: `패치 ${patchName(patch)} 어워드`, note: "실제 랭크 게임 기록으로 뽑은, 이번 패치의 재미있는 챔피언들이에요.", hidden: ["숨은 OP상", "아무도 안 하는데 제일 잘 이겨요"], people: ["국민 픽상", "어딜 가나 이 챔피언"], sad: ["억울한 인기상", "다들 하는데 자꾸 져요"], rocket: ["로켓 상승상", "최근 며칠 사이 가장 많이 뜬 챔피언"] }
+    : { title: `Patch ${patchName(patch)} awards`, note: "This patch's most interesting champions, picked from real ranked games.", hidden: ["Hidden OP", "Nobody plays it, and it wins the most"], people: ["People's pick", "It's in every game"], sad: ["Popular but sad", "Everyone picks it, everyone loses"], rocket: ["Rocket riser", "Climbed the most in the last few days"] };
   // 첫 화면: 라인별 1위, 지금 게임 중인 인원(10분 기록의 마지막 값), 최근 24시간 분석 게임 수
   const laneTops = picks.filter((p) => p.rows.length > 0).map((p) => ({ lane: p.lane, s: p.rows[0] }));
   const liveNow = (await liveHistory(server).catch(() => [])).at(-1)?.estimate ?? null;
@@ -137,7 +138,7 @@ export default async function Home() {
             </span>
           )}
           <span>
-            <b className="text-base text-text tabular-nums">{patch}</b> {lang === "ko" ? "패치" : "patch"}
+            <b className="text-base text-text tabular-nums">{patchName(patch)}</b> {lang === "ko" ? "패치" : "patch"}
           </span>
         </div>
         {laneTops.length > 0 && (
@@ -213,7 +214,7 @@ export default async function Home() {
       {hot.length > 0 && (
         <section className="fade-up" style={{ animationDelay: "140ms" }}>
           <SectionTitle
-            title={lang === "ko" ? `지금 뜨는 빌드 · 패치 ${patch}` : `Hot builds right now · patch ${patch}`}
+            title={lang === "ko" ? `지금 뜨는 빌드 · 패치 ${patchName(patch)}` : `Hot builds right now · patch ${patchName(patch)}`}
             note={lang === "ko" ? "라인별 상위 챔피언이 지금 가장 많이 가는 룬, 스펠, 코어템이에요." : "The runes, spells and core items the top champions in each lane are running."}
             href="/tier"
             link={t.viewAll}

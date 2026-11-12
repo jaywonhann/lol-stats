@@ -1,3 +1,4 @@
+import { patchName } from "@/lib/lanes";
 import type { Metadata } from "next";
 import Link from "@/components/Link";
 import { Icon, Panel } from "@/components/ui";
@@ -63,7 +64,7 @@ export default async function ItemsPage({ searchParams }: Props) {
       <div>
         <h1 className="text-2xl font-bold">{ko ? "아이템 통계" : "Item stats"}</h1>
         <p className="mt-1 text-sm text-muted">
-          {ko ? `패치 ${patch ?? "-"} 실제 랭크 게임에서 코어템(1~4번째)으로 완성된 아이템이에요.` : `Items completed as core items (1st–4th) in real ranked games, patch ${patch ?? "-"}.`}
+          {ko ? `패치 ${patch ? patchName(patch) : "-"} 실제 랭크 게임에서 코어템(1~4번째)으로 완성된 아이템이에요.` : `Items completed as core items (1st–4th) in real ranked games, patch ${patch ? patchName(patch) : "-"}.`}
         </p>
       </div>
       <div className="flex gap-2">

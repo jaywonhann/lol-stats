@@ -1,3 +1,4 @@
+import { patchName } from "@/lib/lanes";
 import { ImageResponse } from "next/og";
 import { getChampions, getPatches, img } from "@/lib/ddragon";
 import { LANES } from "@/lib/lanes";
@@ -27,7 +28,7 @@ export default async function Og() {
           <div style={{ display: "flex", fontSize: 40, fontWeight: 900 }}>
             live<span style={{ color: "#c8aa6e" }}>lol</span>.stats
           </div>
-          <div style={{ display: "flex", fontSize: 28, color: "#a09b8c" }}>{patch ? `Patch ${patch} · KR ranked` : "KR ranked"}</div>
+          <div style={{ display: "flex", fontSize: 28, color: "#a09b8c" }}>{patch ? `Patch ${patchName(patch)} · KR ranked` : "KR ranked"}</div>
         </div>
         <div style={{ display: "flex", marginTop: 18, fontSize: 64, fontWeight: 900 }}>Tier list: #1 in every lane</div>
         <div style={{ display: "flex", marginTop: 44, justifyContent: "space-between" }}>

@@ -1,3 +1,4 @@
+import { patchName } from "@/lib/lanes";
 import type { Metadata } from "next";
 import Link from "@/components/Link";
 import { Icon, Tabs, TierBadge, WinRate, pct } from "@/components/ui";
@@ -210,7 +211,7 @@ export default async function TierPage({ searchParams }: Props) {
                     return (
                       <span
                         className={`block text-[11px] tabular-nums ${d > 0 ? "text-[var(--chart-up)]" : "text-[var(--chart-down)]"}`}
-                        title={lang === "ko" ? `${prevPatch} 패치 대비` : `vs patch ${prevPatch}`}
+                        title={lang === "ko" ? `${patchName(prevPatch)} 패치 대비` : `vs patch ${patchName(prevPatch)}`}
                       >
                         {d > 0 ? "▲" : "▼"}
                         {Math.abs(d).toFixed(1)}

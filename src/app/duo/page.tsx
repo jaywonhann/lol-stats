@@ -1,3 +1,4 @@
+import { patchName } from "@/lib/lanes";
 import type { Metadata } from "next";
 import Link from "@/components/Link";
 import { Icon, Panel } from "@/components/ui";
@@ -54,8 +55,8 @@ export default async function DuoPage({ searchParams }: Props) {
         <h1 className="text-2xl font-bold">{ko ? "바텀 듀오 조합 순위" : "Bot lane duo tier list"}</h1>
         <p className="mt-1 text-sm text-muted">
           {ko
-            ? `한국·북미·유럽 랭크 게임에서 같은 팀 원딜과 서포터가 만난 ${Math.round(games).toLocaleString()}번을 모았어요 (패치 ${patch ?? "-"}까지). ${MIN_GAMES}판 넘게 나온 조합만 보여줘요. 챔피언을 누르면 그 챔피언 빌드로 가요.`
-            : `${Math.round(games).toLocaleString()} ADC + support pairings from ranked games on KR, NA and EUW (up to patch ${patch ?? "-"}). Only pairs with ${MIN_GAMES}+ games are shown. Click a champion for its build.`}
+            ? `한국·북미·유럽 랭크 게임에서 같은 팀 원딜과 서포터가 만난 ${Math.round(games).toLocaleString()}번을 모았어요 (패치 ${patch ? patchName(patch) : "-"}까지). ${MIN_GAMES}판 넘게 나온 조합만 보여줘요. 챔피언을 누르면 그 챔피언 빌드로 가요.`
+            : `${Math.round(games).toLocaleString()} ADC + support pairings from ranked games on KR, NA and EUW (up to patch ${patch ? patchName(patch) : "-"}). Only pairs with ${MIN_GAMES}+ games are shown. Click a champion for its build.`}
         </p>
       </div>
       <div className="flex flex-wrap gap-2">

@@ -41,3 +41,12 @@ export const serverLabel = (server: Server, lang: Lang) =>
   dict(lang).servers[server];
 
 export type Filter = { server: Server; rank: Rank };
+
+// Riot은 2025년부터 패치를 연도로 불러요 (게임 데이터의 16.22 = 공식 이름 26.22).
+// 유저와 유튜버가 검색하는 이름과 맞도록 화면·검색 제목에는 공식 이름을 써요. 주소와 데이터 키는 그대로예요.
+export const patchName = (p: string | null | undefined): string => {
+  const m = /^(\d+)\.(\d+)$/.exec(p ?? "");
+  if (!m) return p ?? "";
+  const major = Number(m[1]);
+  return major >= 15 && major < 25 ? `${major + 10}.${Number(m[2])}` : (p as string);
+};

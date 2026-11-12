@@ -1,3 +1,4 @@
+import { patchName } from "@/lib/lanes";
 import type { Metadata } from "next";
 import Link from "@/components/Link";
 import { Icon, Panel } from "@/components/ui";
@@ -51,8 +52,8 @@ export default async function AramPage({ searchParams }: Props) {
         <h1 className="text-2xl font-bold">{ko ? `${modeName(mode, true)} 챔피언 순위` : `${modeName(mode, false)} champion tier list`}</h1>
         <p className="mt-1 text-sm text-muted">
           {ko
-            ? `한국·북미·유럽 서버의 실제 ${modeName(mode, true)} ${total.toLocaleString()}게임 (패치 ${data.patch ?? "-"}). 챔피언을 누르면 템트리${mode === "mayhem" ? "와 증강" : ""}이 나와요.`
-            : `${total.toLocaleString()} real ${modeName(mode, false)} games from KR, NA and EUW (patch ${data.patch ?? "-"}). Pick a champion for builds${mode === "mayhem" ? " and augments" : ""}.`}
+            ? `한국·북미·유럽 서버의 실제 ${modeName(mode, true)} ${total.toLocaleString()}게임 (패치 ${data.patch ? patchName(data.patch) : "-"}). 챔피언을 누르면 템트리${mode === "mayhem" ? "와 증강" : ""}이 나와요.`
+            : `${total.toLocaleString()} real ${modeName(mode, false)} games from KR, NA and EUW (patch ${data.patch ? patchName(data.patch) : "-"}). Pick a champion for builds${mode === "mayhem" ? " and augments" : ""}.`}
         </p>
       </div>
       <div className="flex flex-wrap gap-2">

@@ -1,3 +1,4 @@
+import { patchName } from "@/lib/lanes";
 import type { Metadata } from "next";
 import Link from "@/components/Link";
 import { notFound } from "next/navigation";
@@ -73,7 +74,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     const lane = ln && lanes.includes(ln) ? ln : lanes[0];
     const c = patch && lane ? patch.champs[`${data.champion.key}:${lane}`] : undefined;
     if (patch && lane && c && c.games >= 100) {
-      patchNo = patch.patch;
+      patchNo = patchName(patch.patch);
       const wr = ((c.wins / c.games) * 100).toFixed(1);
       const { champions } = await getChampions(ddLocale(lang));
       const hard = counterRows(patch, data.champion, lane, champions)?.counters[0]?.champion.name;
@@ -451,7 +452,7 @@ export default async function ChampionPage({ params, searchParams }: Props) {
               title={t.winRate}
               suffix="%"
               baseline={50}
-              points={trend.map((p) => ({ label: p.patch, value: p.winRate }))}
+              points={trend.map((p) => ({ label: patchName(p.patch), value: p.winRate }))}
             />
             <TrendChart
               title={t.laneRank(laneLabel(lane, lang))}
@@ -459,7 +460,7 @@ export default async function ChampionPage({ params, searchParams }: Props) {
               decimals={0}
               invert
               points={trend.map((p) => ({
-                label: p.patch,
+                label: patchName(p.patch),
                 value: p.rank,
                 note: t.tier(p.tier),
               }))}
@@ -532,7 +533,7 @@ function Delta({ v, from, lang }: { v: number; from: string; lang: Lang }) {
   return (
     <span
       className={`block text-[11px] font-semibold tabular-nums ${flat ? "text-muted" : v > 0 ? "text-[var(--chart-up)]" : "text-[var(--chart-down)]"}`}
-      title={lang === "ko" ? `${from} 패치 대비` : `vs patch ${from}`}
+      title={lang === "ko" ? `${patchName(from)} 패치 대비` : `vs patch ${patchName(from)}`}
     >
       {flat ? "–" : `${v > 0 ? "▲" : "▼"}${Math.abs(v).toFixed(1)}%p`} <span className="font-normal text-muted">{lang === "ko" ? `${from} 대비` : `vs ${from}`}</span>
     </span>

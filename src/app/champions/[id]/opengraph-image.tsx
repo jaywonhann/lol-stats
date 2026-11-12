@@ -1,3 +1,4 @@
+import { patchName } from "@/lib/lanes";
 import { ImageResponse } from "next/og";
 import { getChampion, img } from "@/lib/ddragon";
 import { loadRealData, realLanes } from "@/lib/real";
@@ -42,7 +43,7 @@ export default async function Og({ params }: { params: Promise<{ id: string }> }
         <div style={{ position: "absolute", top: 0, left: 0, width: 1200, height: 630, display: "flex", background: "linear-gradient(90deg,#070d17 66%,rgba(7,13,23,0) 82%)" }} />
         <div style={{ position: "relative", display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 80px" }}>
           <div style={{ display: "flex", fontSize: 36, fontWeight: 900 }}>
-            live<span style={{ color: "#c8aa6e" }}>lol</span>.stats{s ? ` · ${LANE_EN[s.lane]} · patch ${s.patch}` : ""}
+            live<span style={{ color: "#c8aa6e" }}>lol</span>.stats{s ? ` · ${LANE_EN[s.lane]} · patch ${patchName(s.patch)}` : ""}
           </div>
           <div style={{ display: "flex", marginTop: 32, fontSize: 104, fontWeight: 900, lineHeight: 1 }}>{name}</div>
           {s ? (

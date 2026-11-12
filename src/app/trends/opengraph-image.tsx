@@ -1,3 +1,4 @@
+import { patchName } from "@/lib/lanes";
 import { ImageResponse } from "next/og";
 import { getChampions, getPatches, img } from "@/lib/ddragon";
 import { patchSwings } from "@/lib/stats";
@@ -26,7 +27,7 @@ export default async function Og() {
           </div>
           <div style={{ display: "flex", fontSize: 28, color: "#a09b8c" }}>{sw ? `${sw.matches.toLocaleString("en-US")} KR ranked games` : "KR ranked"}</div>
         </div>
-        <div style={{ display: "flex", marginTop: 16, fontSize: 60, fontWeight: 900 }}>{sw ? `Patch ${sw.patch}: winners and losers` : "Patch trends"}</div>
+        <div style={{ display: "flex", marginTop: 16, fontSize: 60, fontWeight: 900 }}>{sw ? `Patch ${patchName(sw.patch)}: winners and losers` : "Patch trends"}</div>
         <div style={{ display: "flex", marginTop: 30, justifyContent: "space-between" }}>
           {cols.map((c) => (
             <div key={c.title} style={{ display: "flex", flexDirection: "column", width: 520 }}>

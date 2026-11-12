@@ -1,3 +1,4 @@
+import { patchName } from "@/lib/lanes";
 import { ImageResponse } from "next/og";
 import { getChampion, getChampions, img } from "@/lib/ddragon";
 import { latest, rows } from "@/lib/counters";
@@ -27,7 +28,7 @@ export default async function Og({ params }: { params: Promise<{ id: string }> }
           <div style={{ display: "flex", fontSize: 40, fontWeight: 900 }}>
             live<span style={{ color: "#c8aa6e" }}>lol</span>.stats
           </div>
-          <div style={{ display: "flex", fontSize: 28, color: "#a09b8c" }}>{patch && lane ? `${LANE_EN[lane]} · patch ${patch.patch} · KR ranked` : "Ranked games"}</div>
+          <div style={{ display: "flex", fontSize: 28, color: "#a09b8c" }}>{patch && lane ? `${LANE_EN[lane]} · patch ${patchName(patch.patch)} · KR ranked` : "Ranked games"}</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", marginTop: 18 }}>
           {data && <img src={img.champion(version, data.champion.image.full)} alt="" width={96} height={96} style={{ width: 96, height: 96, borderRadius: 16, border: "3px solid #c8aa6e", marginRight: 24 }} />}

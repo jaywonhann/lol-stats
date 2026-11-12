@@ -1,3 +1,4 @@
+import { patchName } from "@/lib/lanes";
 import type { Metadata } from "next";
 import Link from "@/components/Link";
 import { notFound } from "next/navigation";
@@ -109,8 +110,8 @@ export default async function AramChampPage({ params, searchParams }: Props) {
           <p className="mt-0.5 text-sm text-muted">
             {enough
               ? ko
-                ? `실제 ${a.games.toLocaleString()}게임 · 승률 ${base.toFixed(1)}% · 패치 ${data.patch}`
-                : `${a.games.toLocaleString()} real games · ${base.toFixed(1)}% win rate · patch ${data.patch}`
+                ? `실제 ${a.games.toLocaleString()}게임 · 승률 ${base.toFixed(1)}% · 패치 ${patchName(data.patch)}`
+                : `${a.games.toLocaleString()} real games · ${base.toFixed(1)}% win rate · patch ${patchName(data.patch)}`
               : ko
                 ? mode === "mayhem" ? "지금은 증바람이 열려 있지 않아서 게임이 없어요. 칼바람 탭을 봐 주세요." : "아직 게임이 충분히 모이지 않았어요."
                 : mode === "mayhem" ? "ARAM: Mayhem isn't live right now. Try the ARAM tab." : "Not enough games collected yet."}

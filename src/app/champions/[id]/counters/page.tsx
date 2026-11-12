@@ -1,3 +1,4 @@
+import { patchName } from "@/lib/lanes";
 import type { Metadata } from "next";
 import Link from "@/components/Link";
 import { notFound } from "next/navigation";
@@ -56,8 +57,8 @@ export default async function CountersPage({ params, searchParams }: Props) {
             <p className="mt-1 text-sm text-muted">
               {r && patch
                 ? ko
-                  ? `${serverLabel(server, lang)} 에메랄드+ · ${patch.patch} 패치 · ${laneName} ${name} ${r.games.toLocaleString(nl)}판 (평균 승률 ${r.base.toFixed(1)}%)`
-                  : `${serverLabel(server, lang)} Emerald+ · patch ${patch.patch} · ${r.games.toLocaleString(nl)} ${laneName} ${name} games (avg win rate ${r.base.toFixed(1)}%)`
+                  ? `${serverLabel(server, lang)} 에메랄드+ · ${patchName(patch.patch)} 패치 · ${laneName} ${name} ${r.games.toLocaleString(nl)}판 (평균 승률 ${r.base.toFixed(1)}%)`
+                  : `${serverLabel(server, lang)} Emerald+ · patch ${patchName(patch.patch)} · ${r.games.toLocaleString(nl)} ${laneName} ${name} games (avg win rate ${r.base.toFixed(1)}%)`
                 : ko
                   ? "아직 이 챔피언의 표본이 부족해요."
                   : "Not enough games for this champion yet."}

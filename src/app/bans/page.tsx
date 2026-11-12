@@ -1,3 +1,4 @@
+import { patchName } from "@/lib/lanes";
 import type { Metadata } from "next";
 import Link from "@/components/Link";
 import { Icon, Panel } from "@/components/ui";
@@ -95,8 +96,8 @@ export default async function BansPage() {
         <h1 className="text-2xl font-bold">{ko ? "밴 추천" : "Who to ban"}</h1>
         <p className="mt-1 text-sm text-muted">
           {ko
-            ? `패치 ${patch} · ${serverLabel(server, lang)} ${rankLabel("all", lang)} 실제 랭크 게임. 승률이 50%보다 높고 자주 나오는 챔피언일수록 위에 와요 (${MIN_GAMES}판 이상만).`
-            : `Patch ${patch} · ${serverLabel(server, lang)} ${rankLabel("all", lang)} ranked games. Champions that win more than 50% and show up often rank higher (${MIN_GAMES}+ games only).`}
+            ? `패치 ${patchName(patch)} · ${serverLabel(server, lang)} ${rankLabel("all", lang)} 실제 랭크 게임. 승률이 50%보다 높고 자주 나오는 챔피언일수록 위에 와요 (${MIN_GAMES}판 이상만).`
+            : `Patch ${patchName(patch)} · ${serverLabel(server, lang)} ${rankLabel("all", lang)} ranked games. Champions that win more than 50% and show up often rank higher (${MIN_GAMES}+ games only).`}
         </p>
       </div>
       {source !== "real" ? (

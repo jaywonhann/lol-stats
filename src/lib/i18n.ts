@@ -1,4 +1,5 @@
 // 화면 문구 사전 (영어 기본, 한국어). 클라이언트 컴포넌트에서도 쓰므로 next/headers를 가져오지 않습니다.
+import { patchName } from "./lanes";
 import type { Lane, Rank, Server } from "./lanes";
 
 type Metric = "cs" | "gold" | "dmg" | "vision" | "kp" | "deaths";
@@ -55,7 +56,7 @@ const en = {
   emeraldPlus: "Emerald+",
   tier: (t: string) => (t === "OP" ? "OP" : `Tier ${t}`),
   serverName: (s: string) => s,
-  patch: (p: string) => `Patch ${p}`,
+  patch: (p: string) => `Patch ${patchName(p)}`,
   games: (n: string) => `${n} games`,
   winRate: "Win rate",
   pickRate: "Pick rate",
@@ -79,14 +80,14 @@ const en = {
   backHome: "Back to home",
   // 홈
   homeSubtitle: (server: string, patch: string) =>
-    `${server} · Champion tiers, builds, runes and counters for patch ${patch}`,
+    `${server} · Champion tiers, builds, runes and counters for patch ${patchName(patch)}`,
   bestPicks: (lane: string) => `Best ${lane} picks`,
   heroTagline: "LoL stats, but actually fun.",
   heroFeatured: (name: string, lane: string) => `Top pick right now · ${name} ${lane}`,
   bestPicksTitle: "Best picks by lane",
   viewAll: "View all",
-  risingOnPatch: (p: string) => `Rising on patch ${p}`,
-  fallingOnPatch: (p: string) => `Falling on patch ${p}`,
+  risingOnPatch: (p: string) => `Rising on patch ${patchName(p)}`,
+  fallingOnPatch: (p: string) => `Falling on patch ${patchName(p)}`,
   viewAllTrends: "View all patch trends",
   championSearch: "Champion search",
   hotBuildVideos: "Trending build videos",
@@ -144,7 +145,7 @@ const en = {
   scoreChangeDetail: (score: string, wr: string) =>
     `Meta score ${score}, win rate ${wr}%`,
   scoreChangeRange: (prev: string, patch: string) =>
-    `Patch ${prev} → ${patch} meta score change`,
+    `Patch ${patchName(prev)} → ${patchName(patch)} meta score change`,
   realGames: "Real games",
   trendsFirstPatch:
     "We started collecting real data this patch. Champions that rose or fell will show up here once next patch's data comes in.",
@@ -314,7 +315,7 @@ const en = {
     siteAvg: "Site avg",
     siteAvgVal: (v: string) => `avg ${v}%`,
     siteAvgNote: (server: string, patch: string) =>
-      `Site avg = ${server} Emerald+ win rate for that champion and lane on patch ${patch}.`,
+      `Site avg = ${server} Emerald+ win rate for that champion and lane on patch ${patchName(patch)}.`,
     noSiteAvg: "Site averages for this server will appear once enough games are collected.",
     roles: "Roles played",
     laneVs: "Strengths & weaknesses",
@@ -519,7 +520,7 @@ const ko: Dict = {
   emeraldPlus: "에메랄드+",
   tier: (t) => (t === "OP" ? "OP" : `${t}티어`),
   serverName: (s) => `${s} 서버`,
-  patch: (p) => `패치 ${p}`,
+  patch: (p) => `패치 ${patchName(p)}`,
   games: (n) => `${n}게임`,
   winRate: "승률",
   pickRate: "픽률",
@@ -541,14 +542,14 @@ const ko: Dict = {
   notFound: "페이지를 찾을 수 없어요",
   backHome: "홈으로",
   homeSubtitle: (server, patch) =>
-    `${server} 서버 · 패치 ${patch} 기준 챔피언 티어, 빌드, 룬, 카운터`,
+    `${server} 서버 · 패치 ${patchName(patch)} 기준 챔피언 티어, 빌드, 룬, 카운터`,
   bestPicks: (lane) => `${lane} 추천 챔피언`,
   heroTagline: "롤 통계, 근데 재밌게.",
   heroFeatured: (name, lane) => `지금 가장 좋은 픽 · ${name} ${lane}`,
   bestPicksTitle: "라인별 추천 챔피언",
   viewAll: "전체 보기",
-  risingOnPatch: (p) => `패치 ${p} 떠오르는 챔피언`,
-  fallingOnPatch: (p) => `패치 ${p} 떨어지는 챔피언`,
+  risingOnPatch: (p) => `패치 ${patchName(p)} 떠오르는 챔피언`,
+  fallingOnPatch: (p) => `패치 ${patchName(p)} 떨어지는 챔피언`,
   viewAllTrends: "패치 트렌드 전체 보기",
   championSearch: "챔피언 검색",
   hotBuildVideos: "조회수 핫한 템트리",
@@ -600,7 +601,7 @@ const ko: Dict = {
   soloGames: (n) => `솔로랭크 ${n}게임`,
   trendsTitle: "패치 트렌드",
   scoreChangeDetail: (score, wr) => `메타 점수 ${score}, 승률 ${wr}%`,
-  scoreChangeRange: (prev, patch) => `패치 ${prev} → ${patch} 메타 점수 변화`,
+  scoreChangeRange: (prev, patch) => `패치 ${patchName(prev)} → ${patchName(patch)} 메타 점수 변화`,
   realGames: "실제 게임",
   trendsFirstPatch:
     "실제 데이터는 이번 패치부터 모으기 시작했어요. 다음 패치 데이터가 쌓이면 오르고 내린 챔피언이 여기에 표시돼요.",
@@ -754,7 +755,7 @@ const ko: Dict = {
     siteAvg: "사이트 평균",
     siteAvgVal: (v) => `평균 ${v}%`,
     siteAvgNote: (server, patch) =>
-      `사이트 평균 = 패치 ${patch} ${server} 서버 에메랄드+ 해당 챔피언·라인 승률이에요.`,
+      `사이트 평균 = 패치 ${patchName(patch)} ${server} 서버 에메랄드+ 해당 챔피언·라인 승률이에요.`,
     noSiteAvg: "이 서버의 사이트 평균은 게임이 충분히 모이면 표시돼요.",
     roles: "포지션 분포",
     laneVs: "강점과 약점",

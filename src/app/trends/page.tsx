@@ -1,3 +1,4 @@
+import { patchName } from "@/lib/lanes";
 import TrendTabs from "@/components/TrendTabs";
 import type { Metadata } from "next";
 import Link from "@/components/Link";
@@ -40,10 +41,10 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const pp = (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(1)}%p`;
   return {
     alternates,
-    title: ko ? `${sw.patch} 패치 승률 변화 - 오른 챔피언·내린 챔피언` : `Patch ${sw.patch} Win Rate Changes - Biggest Winners and Losers`,
+    title: ko ? `${patchName(sw.patch)} 패치 승률 변화 - 오른 챔피언·내린 챔피언` : `Patch ${patchName(sw.patch)} Win Rate Changes - Biggest Winners and Losers`,
     description: ko
-      ? `${sw.patch} 패치에서 승률이 가장 오른 챔피언은 ${up.champion.name}(${pp(up.change)}), 가장 내린 챔피언은 ${down.champion.name}(${pp(down.change)})예요. 실제 랭크 게임 ${sw.matches.toLocaleString("ko-KR")}판 기준.`
-      : `Biggest winner of patch ${sw.patch}: ${up.champion.name} (${pp(up.change)}). Biggest loser: ${down.champion.name} (${pp(down.change)}). From ${sw.matches.toLocaleString("en-US")} real ranked games.`,
+      ? `${patchName(sw.patch)} 패치에서 승률이 가장 오른 챔피언은 ${up.champion.name}(${pp(up.change)}), 가장 내린 챔피언은 ${down.champion.name}(${pp(down.change)})예요. 실제 랭크 게임 ${sw.matches.toLocaleString("ko-KR")}판 기준.`
+      : `Biggest winner of patch ${patchName(sw.patch)}: ${up.champion.name} (${pp(up.change)}). Biggest loser: ${down.champion.name} (${pp(down.change)}). From ${sw.matches.toLocaleString("en-US")} real ranked games.`,
   };
 }
 
@@ -90,15 +91,15 @@ export default async function TrendsPage({ searchParams }: Props) {
         </span>
       </div>
       {swings && swings.up.length > 0 && swings.down.length > 0 && (
-        <Panel title={ko ? `${swings.patch} 패치 한눈에: 승률이 가장 많이 바뀐 챔피언` : `Patch ${swings.patch} at a glance: biggest win rate changes`}>
+        <Panel title={ko ? `${patchName(swings.patch)} 패치 한눈에: 승률이 가장 많이 바뀐 챔피언` : `Patch ${patchName(swings.patch)} at a glance: biggest win rate changes`}>
           <div className="grid gap-x-6 gap-y-4 md:grid-cols-2">
             <SwingList title={ko ? "오른 챔피언" : "Winners"} rows={swings.up} version={version} lang={lang} />
             <SwingList title={ko ? "내린 챔피언" : "Losers"} rows={swings.down} version={version} lang={lang} />
           </div>
           <p className="mt-3 text-xs text-muted">
             {ko
-              ? `모든 라인에서 ${swings.prev} → ${swings.patch} 승률 변화 기준이에요. 두 패치 모두 ${SWING_MIN_GAMES}판 이상 나온 챔피언만 봤어요 (이번 패치 ${swings.matches.toLocaleString(numLocale(lang))}판).`
-              : `Win rate change from ${swings.prev} to ${swings.patch} across all lanes, for champions with ${SWING_MIN_GAMES}+ games in both patches (${swings.matches.toLocaleString(numLocale(lang))} games this patch).`}
+              ? `모든 라인에서 ${patchName(swings.prev)} → ${patchName(swings.patch)} 승률 변화 기준이에요. 두 패치 모두 ${SWING_MIN_GAMES}판 이상 나온 챔피언만 봤어요 (이번 패치 ${swings.matches.toLocaleString(numLocale(lang))}판).`
+              : `Win rate change from ${patchName(swings.prev)} to ${patchName(swings.patch)} across all lanes, for champions with ${SWING_MIN_GAMES}+ games in both patches (${swings.matches.toLocaleString(numLocale(lang))} games this patch).`}
           </p>
         </Panel>
       )}
