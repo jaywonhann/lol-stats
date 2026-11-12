@@ -119,13 +119,14 @@ export default function MatchList({
               <GameRow
                 summaryClass={`grid cursor-pointer list-none grid-cols-[4.5rem_auto_minmax(0,1fr)] items-center gap-x-4 gap-y-2 rounded-lg px-3 py-3 [&::-webkit-details-marker]:hidden md:grid-cols-[4.5rem_auto_6.5rem_7.5rem_minmax(0,1fr)] xl:grid-cols-[4.5rem_auto_6.5rem_7.5rem_auto_minmax(0,1fr)] ${win ? "bg-[color-mix(in_srgb,var(--chart-up)_14%,var(--color-panel))]" : "bg-[color-mix(in_srgb,var(--chart-down)_14%,var(--color-panel))]"}`}
                 labels={{ blue: t.blue, red: t.red, win: t.win, loss: t.loss, dmg: t.dmg }}
+                version={version}
                 players={m.info.participants.map((p) => ({
                   team: p.teamId === 200 ? 200 : 100,
                   win: p.win,
                   me: p.puuid === puuid,
                   name: p.riotIdGameName ?? p.championName,
                   href: p.riotIdGameName ? `/summoner?id=${encodeURIComponent(`${p.riotIdGameName}#${p.riotIdTagline ?? ""}`)}${server ? `&s=${server}` : ""}` : null,
-                  champ: version ? img.champion(version, byKey.get(String(p.championId))?.image.full ?? `${p.championName}.png`) : null,
+                  champ: byKey.get(String(p.championId))?.image.full ?? `${p.championName}.png`,
                   champName: p.championName,
                   k: p.kills,
                   d: p.deaths,
@@ -133,7 +134,7 @@ export default function MatchList({
                   dmg: p.totalDamageDealtToChampions,
                   dmgPct: Math.round((p.totalDamageDealtToChampions / maxDmg) * 100),
                   inbun: rated.get(p.puuid) ?? 1,
-                  items: items(p).map((id) => (id && version ? img.item(version, String(id)) : null)),
+                  items: items(p).map((x) => x ?? 0),
                 }))}
                 summary={
                   <>
