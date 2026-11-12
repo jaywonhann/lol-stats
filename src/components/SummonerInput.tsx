@@ -80,7 +80,8 @@ export default function SummonerInput({
     const recent = readRecent()
       .filter((r) => r.toLowerCase().includes(q.toLowerCase()) && r.toLowerCase() !== q.toLowerCase())
       .slice(0, 4)
-      .map((who) => ({ who, recent: true, server: readRecentServers()[who.toLowerCase()] }));
+      // 최근 검색은 예전에 본 서버가 틀렸을 수도 있어서(다른 서버로 잘못 찾은 기록), 지금 고른 서버로 다시 찾아요
+      .map((who) => ({ who, recent: true, server: undefined as string | undefined }));
     setItems(recent);
     setOpen(true);
     if (q.length < 2) return;
@@ -104,7 +105,8 @@ export default function SummonerInput({
 
   return (
     <div ref={box} className="relative min-w-0 flex-1">
-      <input type="hidden" name="s" value={picked ?? server} />
+      {/* 서버는 보통 위쪽 서버 선택(쿠키)을 따라요. 주소에 예전 서버(?s=)가 남아 있어도 새 검색은 지금 고른 서버로 가게, 추천 목록에서 서버가 정해진 사람을 골랐을 때만 넣어요 */}
+      {picked && <input type="hidden" name="s" value={picked} />}
       <input
         id="summoner-id"
         name="id"

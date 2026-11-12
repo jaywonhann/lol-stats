@@ -19,6 +19,7 @@ import { redirect } from "next/navigation";
 import { growth } from "@/lib/growth";
 import { rateMatch, scoreReport } from "@/lib/score";
 import SummonerSearch from "@/components/SummonerSearch";
+import SyncServer from "@/components/SyncServer";
 import { getChampions, getPatches, getRuneTrees, getSummonerSpells, getVersion, img, type Champion } from "@/lib/ddragon";
 import { ddLocale, dict, numLocale, timeAgo, type Lang } from "@/lib/i18n";
 import { boards } from "@/lib/stats";
@@ -94,6 +95,7 @@ export default async function SummonerPage({ searchParams }: Props) {
         <p className="mt-1 text-sm text-muted">{t.intro}</p>
       </div>
       <SummonerSearch lang={lang} server={server} defaultValue={raw} />
+      {server !== cookieServer && <SyncServer server={server} />}
     </section>
   );
   if (!parsed) return <div className="space-y-6">{header}</div>;
@@ -107,6 +109,22 @@ export default async function SummonerPage({ searchParams }: Props) {
   } catch (e) {
     error = e instanceof RiotError ? e.kind : "error";
   }
+
+  // 다른 서버 계정일 때가 많아서, 같은 이름으로 다른 서버를 한 번에 눌러 볼 수 있게 해요
+  const otherServers = (
+    <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+      <span className="text-muted">{lang === "ko" ? "다른 서버에서 찾기:" : "Try another server:"}</span>
+      {SERVERS.filter((x) => x.id !== server).map((x) => (
+        <Link
+          key={x.id}
+          href={`/summoner?id=${encodeURIComponent(parsed.defaultedTag ? parsed.gameName : riotId)}&s=${x.id}`}
+          className="rounded-md bg-panel-2 px-3 py-1 hover:bg-line"
+        >
+          {serverLabel(x.id, lang)}
+        </Link>
+      ))}
+    </div>
+  );
 
   const tagNote = parsed.defaultedTag && (
     <p className="text-xs text-muted">{t.defaultedTag(parsed.tagLine)}</p>
@@ -129,21 +147,7 @@ export default async function SummonerPage({ searchParams }: Props) {
             {message}
           </p>
           {error === "not-found" && <div className="mt-2">{tagNote}</div>}
-          {error === "not-found" && (
-            // 다른 서버 계정일 때가 많아서, 같은 이름으로 다른 서버를 한 번에 눌러 볼 수 있게 해요
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-              <span className="text-muted">{lang === "ko" ? "다른 서버에서 찾기:" : "Try another server:"}</span>
-              {SERVERS.filter((x) => x.id !== server).map((x) => (
-                <Link
-                  key={x.id}
-                  href={`/summoner?id=${encodeURIComponent(parsed.defaultedTag ? parsed.gameName : riotId)}&s=${x.id}`}
-                  className="rounded-md bg-panel-2 px-3 py-1 hover:bg-line"
-                >
-                  {serverLabel(x.id, lang)}
-                </Link>
-              ))}
-            </div>
-          )}
+          {error === "not-found" && otherServers}
         </Panel>
       </div>
     );
@@ -207,6 +211,7 @@ export default async function SummonerPage({ searchParams }: Props) {
         champions={champions}
         patches={patches}
         tagNote={tagNote}
+        otherServers={otherServers}
         update={update}
         spellIcons={spellIcons}
         runeIcons={runeIcons}
@@ -230,6 +235,7 @@ function Analysis({
   champions,
   patches,
   tagNote,
+  otherServers,
   update,
   spellIcons,
   runeIcons,
@@ -242,6 +248,7 @@ function Analysis({
   patches: string[];
   update: React.ReactNode;
   tagNote: React.ReactNode;
+  otherServers: React.ReactNode;
   spellIcons: Record<number, string>;
   runeIcons: Record<number, string>;
 }) {
@@ -297,7 +304,13 @@ function Analysis({
         {profileHeader()}
         {tagNote}
         <Panel>
-          <p className="text-sm">{t.noGames}</p>
+          <p className="text-sm">
+            {t.noGames}{" "}
+            {lang === "ko"
+              ? `지금은 ${serverLabel(server, lang)} 서버에서 찾았어요. 다른 서버 계정이면 아래를 눌러 주세요.`
+              : `This searched ${serverLabel(server, lang)}. If the account plays on another server, pick it below.`}
+          </p>
+          {otherServers}
         </Panel>
       </>
     );
