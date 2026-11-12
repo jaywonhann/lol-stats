@@ -79,13 +79,28 @@ jobs:
       - name: Summoner timing
         run: |
           SITE=${{ inputs.site || 'https://livelol.onrender.com' }}
+          # first = 프로필·최근 게임 첫 줄이 도착한 시각, rest = 뒤따르는 패널(진단 패널)이 도착한 시각, total = 끝
+          cat > st.py <<'PY'
+          import sys, time, urllib.request
+          url = sys.argv[1]; t0 = time.time(); first = rest = None; buf = b""
+          r = urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "page-check"}), timeout=90)
+          cache = r.headers.get("x-page-cache") or "miss"
+          while True:
+              c = r.read1(65536)
+              if not c: break
+              buf += c; now = time.time() - t0
+              if first is None and b"Recent games" in buf: first = now
+              if rest is None and b"Strengths &amp; weaknesses" in buf or b"Strengths \\u0026 weaknesses" in buf: rest = now
+          import re
+          tm = re.search(rb'data-timing="([^"]*)"', buf)
+          f = lambda v: f"{v:.2f}s" if v is not None else "none"
+          print(f"first={f(first)} rest={f(rest)} total={time.time()-t0:.2f}s cache={cache} {tm.group(1).decode() if tm else 'no-timing'} bytes={len(buf)}")
+          PY
           out=""
-          for id in "Hide%20on%20bush%23KR1" "T1%20Gumayusi%23KR1" "Doublelift%23NA1"; do
+          for id in "Hide%20on%20bush%23KR1" "Doublelift%23NA1"; do
             s=kr; case "$id" in *NA1) s=na1;; esac
             for n in 1 2; do
-              t=$(curl -s --max-time 90 "$SITE/summoner?id=$id&s=$s" -o t.html -w "%{http_code} %{time_starttransfer}s/%{time_total}s" || echo timeout)
-              tm="$(grep -o 'data-timing="[^"]*"' t.html | head -1) $(grep -o 'data-live-timing="[^"]*"' t.html | head -1) bytes=$(wc -c < t.html)"
-              out="$out | ${id%%%23*} #$n $t ${tm:-no-timing}"
+              out="$out | ${id%%%23*} #$n $(python3 st.py "$SITE/summoner?id=$id&s=$s" 2>&1 | tail -1)"
             done
           done
           echo "::notice title=summoner timing::${out//%/pct}"
