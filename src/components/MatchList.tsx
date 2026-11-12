@@ -1,10 +1,10 @@
 // 최근 게임 목록: 한 줄 요약을 누르면 10명 전체 KDA·딜량·아이템·인분이 펼쳐져요
-import Link from "@/components/Link";
 import { Icon, Panel } from "@/components/ui";
 import { img, type Champion } from "@/lib/ddragon";
 import type { Lang } from "@/lib/i18n";
 import type { Match, Participant } from "@/lib/riot";
 import { rateMatch } from "@/lib/score";
+import GameRow from "@/components/GameRow";
 
 const T = {
   ko: {
@@ -116,10 +116,27 @@ export default function MatchList({
           const kp = teamKills ? Math.round(((me.kills + me.assists) / teamKills) * 100) : 0;
           return (
             <li key={m.metadata.matchId}>
-              <details className="group rounded-lg bg-panel">
-                <summary
-                  className={`grid cursor-pointer list-none grid-cols-[4.5rem_auto_minmax(0,1fr)] items-center gap-x-4 gap-y-2 rounded-lg px-3 py-3 [&::-webkit-details-marker]:hidden md:grid-cols-[4.5rem_auto_6.5rem_7.5rem_minmax(0,1fr)] xl:grid-cols-[4.5rem_auto_6.5rem_7.5rem_auto_minmax(0,1fr)] ${win ? "bg-[color-mix(in_srgb,var(--chart-up)_14%,var(--color-panel))]" : "bg-[color-mix(in_srgb,var(--chart-down)_14%,var(--color-panel))]"}`}
-                >
+              <GameRow
+                summaryClass={`grid cursor-pointer list-none grid-cols-[4.5rem_auto_minmax(0,1fr)] items-center gap-x-4 gap-y-2 rounded-lg px-3 py-3 [&::-webkit-details-marker]:hidden md:grid-cols-[4.5rem_auto_6.5rem_7.5rem_minmax(0,1fr)] xl:grid-cols-[4.5rem_auto_6.5rem_7.5rem_auto_minmax(0,1fr)] ${win ? "bg-[color-mix(in_srgb,var(--chart-up)_14%,var(--color-panel))]" : "bg-[color-mix(in_srgb,var(--chart-down)_14%,var(--color-panel))]"}`}
+                labels={{ blue: t.blue, red: t.red, win: t.win, loss: t.loss, dmg: t.dmg }}
+                players={m.info.participants.map((p) => ({
+                  team: p.teamId === 200 ? 200 : 100,
+                  win: p.win,
+                  me: p.puuid === puuid,
+                  name: p.riotIdGameName ?? p.championName,
+                  href: p.riotIdGameName ? `/summoner?id=${encodeURIComponent(`${p.riotIdGameName}#${p.riotIdTagline ?? ""}`)}${server ? `&s=${server}` : ""}` : null,
+                  champ: version ? img.champion(version, byKey.get(String(p.championId))?.image.full ?? `${p.championName}.png`) : null,
+                  champName: p.championName,
+                  k: p.kills,
+                  d: p.deaths,
+                  a: p.assists,
+                  dmg: p.totalDamageDealtToChampions,
+                  dmgPct: Math.round((p.totalDamageDealtToChampions / maxDmg) * 100),
+                  inbun: rated.get(p.puuid) ?? 1,
+                  items: items(p).map((id) => (id && version ? img.item(version, String(id)) : null)),
+                }))}
+                summary={
+                  <>
                   <div className="leading-tight">
                     <p className="text-sm font-bold" style={{ color: win ? "var(--chart-up)" : "var(--chart-down)" }}>
                       {win ? t.victory : t.defeat}
@@ -182,50 +199,9 @@ export default function MatchList({
                       </ul>
                     ))}
                   </div>
-                </summary>
-                <div className="grid gap-3 border-t border-line p-3 md:grid-cols-2">
-                  {[100, 200].map((team) => (
-                    <div key={team}>
-                      <p className="mb-1 text-xs font-semibold text-muted">
-                        {team === 100 ? t.blue : t.red} · {m.info.participants.find((p) => p.teamId === team)?.win ? t.win : t.loss}
-                      </p>
-                      <ul className="space-y-1.5">
-                        {m.info.participants
-                          .filter((p) => p.teamId === team)
-                          .map((p) => {
-                            const id = p.riotIdGameName ? `${p.riotIdGameName}#${p.riotIdTagline ?? ""}` : null;
-                            return (
-                              <li key={p.puuid} className={`flex items-center gap-2 rounded px-1 py-1 text-xs ${p.puuid === puuid ? "bg-accent/10" : ""}`}>
-                                {champIcon(p, 24)}
-                                <span className="min-w-0 flex-1">
-                                  {id ? (
-                                    <Link href={`/summoner?id=${encodeURIComponent(id)}${server ? `&s=${server}` : ""}`} className="block truncate hover:underline">
-                                      {p.riotIdGameName}
-                                    </Link>
-                                  ) : (
-                                    <span className="block truncate">{p.championName}</span>
-                                  )}
-                                  <span className="block h-1 rounded bg-panel-2">
-                                    <span
-                                      className="block h-1 rounded bg-accent"
-                                      style={{ width: `${(p.totalDamageDealtToChampions / maxDmg) * 100}%` }}
-                                      title={`${t.dmg} ${p.totalDamageDealtToChampions.toLocaleString()}`}
-                                    />
-                                  </span>
-                                </span>
-                                <span className="w-14 shrink-0 text-right font-semibold">
-                                  {p.kills}/{p.deaths}/{p.assists}
-                                </span>
-                                <span className="hidden w-9 shrink-0 text-right text-muted sm:block">{(rated.get(p.puuid) ?? 1).toFixed(1)}</span>
-                                <span className="hidden lg:block">{itemRow(p, 16)}</span>
-                              </li>
-                            );
-                          })}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              </details>
+                </>
+                }
+              />
             </li>
           );
         })}
