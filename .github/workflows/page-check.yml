@@ -105,7 +105,8 @@ jobs:
           done
           # 처음 찾는 사람(캐시 없음) 시간: 페이커 최근 게임에 나온 다른 소환사 한 명을 골라 재요
           curl -s --max-time 90 "$SITE/summoner?id=Hide%20on%20bush%23KR1&s=kr" -o hb.html
-          cold=$(grep -o '/summoner?id=[^"\\&]*&s=kr' hb.html | grep -v 'Hide%20on%20bush' | sort -u | shuf -n 1)
+          cold=$(grep -o 'summoner?id=[A-Za-z0-9%._~-]*' hb.html | grep -v 'Hide%20on%20bush' | grep '%23' | sort -u | shuf -n 1)
+          [ -n "$cold" ] && cold="/$cold&s=kr"
           if [ -n "$cold" ]; then
             out="$out | cold ${cold#/summoner?id=} $(python3 st.py "$SITE$cold" 2>&1 | tail -1) | again $(python3 st.py "$SITE$cold" 2>&1 | tail -1)"
           fi
