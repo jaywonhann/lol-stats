@@ -1,4 +1,4 @@
-import { patchName } from "@/lib/lanes";
+import { patchName, type Lane } from "@/lib/lanes";
 import type { Metadata } from "next";
 import Link from "@/components/Link";
 import { Icon, Tabs, TierBadge, WinRate, pct } from "@/components/ui";
@@ -28,15 +28,51 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   // ?lane= 이 있으면 "탑 티어"처럼 라인별 검색어에 맞춘 제목과 제 주소(canonical)를 써요
   const ln = LANES.find((l) => l.id === sp.lane)?.id;
   const name = ln ? laneLabel(ln, lang) : "";
+  // "26.22 패치 티어" 검색과 링크 미리보기에 이번 패치 번호와 실제 1위 챔피언이 바로 보이게 해요 (실제 데이터가 없으면 일반 문구)
+  let pn = "";
+  let facts = "";
+  try {
+    const [{ champions }, allPatches, server] = await Promise.all([getChampions(ddLocale(lang)), getPatches(), getServer()]);
+    const top = (lane: Lane) => {
+      const b = boards(champions, lane, { server, rank: "all" }, allPatches);
+      if (b.source !== "real") return null;
+      const rows = b.boards[b.boards.length - 1] ?? []; // 화면의 순위표와 같은 순서
+      return rows.length ? { patch: b.patches[b.patches.length - 1], rows } : null;
+    };
+    if (ln) {
+      const r = top(ln);
+      if (r) {
+        pn = patchName(r.patch);
+        const [a, ...rest] = r.rows.slice(0, 3);
+        const others = rest.map((x) => x.champion.name).join(", ");
+        facts = ko
+          ? `${pn} 패치 ${name} 1위는 ${a.champion.name} (승률 ${a.winRate.toFixed(1)}%)${others ? `, 그다음은 ${others}` : ""}. `
+          : `Patch ${pn} ${name} #1: ${a.champion.name} (${a.winRate.toFixed(1)}% win rate)${others ? `, then ${others}` : ""}. `;
+      }
+    } else {
+      const firsts = LANES.flatMap((l) => {
+        const r = top(l.id);
+        if (!r) return [];
+        pn = patchName(r.patch);
+        return [`${laneLabel(l.id, lang)} ${r.rows[0].champion.name}`];
+      });
+      if (firsts.length) facts = ko ? `${pn} 패치 라인별 1위: ${firsts.join(", ")}. ` : `Patch ${pn} #1 picks: ${firsts.join(", ")}. `;
+    }
+  } catch {
+    // 숫자를 못 읽으면 일반 문구만 써요
+  }
+  const pre = pn ? (ko ? `${pn} 패치 ` : `Patch ${pn} `) : "";
   return {
-    title: ln ? (ko ? `${name} 티어 리스트 (롤 ${name} 티어 순위)` : `${name} Tier List - best ${name} champions`) : dict(lang).tierTitle,
-    description: ln
-      ? ko
-        ? `이번 패치 ${name} 챔피언 티어 순위. 실제 랭크 게임 승률, 픽률, 밴률과 추천 룬·코어템을 한 줄에 보여줘요.`
-        : `Best ${name} champions this patch, ranked from real ranked games with win, pick and ban rates plus runes and core items.`
-      : ko
-        ? "라인별 챔피언 티어표. 승률, 픽률, 밴률을 이번 패치 기준으로 보여줘요."
-        : "Champion tier list by lane with win, pick and ban rates for the current patch.",
+    title: ln ? (ko ? `${pre}${name} 티어 리스트 (롤 ${name} 티어 순위)` : `${pre}${name} Tier List - best ${name} champions`) : `${pre}${dict(lang).tierTitle}`,
+    description:
+      facts +
+      (ln
+        ? ko
+          ? `이번 패치 ${name} 챔피언 티어 순위. 실제 랭크 게임 승률, 픽률, 밴률과 추천 룬·코어템을 한 줄에 보여줘요.`
+          : `Best ${name} champions this patch, ranked from real ranked games with win, pick and ban rates plus runes and core items.`
+        : ko
+          ? "라인별 챔피언 티어표. 승률, 픽률, 밴률을 이번 패치 기준으로 보여줘요."
+          : "Champion tier list by lane with win, pick and ban rates for the current patch."),
     alternates: await langAlternates(ln ? `/tier?lane=${ln}` : "/tier"),
   };
 }
