@@ -40,9 +40,11 @@ import {
   realCorePath,
   realMatchups,
   realDuos,
+  realLanes,
   realWinRates,
   type SlotOption,
 } from "@/lib/real";
+import { latest as counterLatest, rows as counterRows } from "@/lib/counters";
 import { boards, lanesOf } from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
@@ -61,14 +63,37 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   // ?lane= 이 있으면 "야스오 탑 빌드"처럼 라인별 검색어에 맞춘 제목
   const ln = LANES.find((l) => l.id === sp.lane)?.id;
   const n = ln ? `${data.champion.name} ${laneLabel(ln, lang)}` : data.champion.name;
+  // 검색 결과에 실제 숫자가 보이게: 이번 패치 승률·판수와 가장 어려운 상대를 제목과 설명에 넣어요 (표본이 없으면 일반 문구)
+  const ko = lang === "ko";
+  let patchNo = "";
+  let facts = "";
+  try {
+    const patch = counterLatest(await getServer());
+    const lanes = patch ? realLanes(patch, data.champion) : [];
+    const lane = ln && lanes.includes(ln) ? ln : lanes[0];
+    const c = patch && lane ? patch.champs[`${data.champion.key}:${lane}`] : undefined;
+    if (patch && lane && c && c.games >= 100) {
+      patchNo = patch.patch;
+      const wr = ((c.wins / c.games) * 100).toFixed(1);
+      const { champions } = await getChampions(ddLocale(lang));
+      const hard = counterRows(patch, data.champion, lane, champions)?.counters[0]?.champion.name;
+      const who = `${data.champion.name} ${laneLabel(lane, lang)}`;
+      facts = ko
+        ? `${patchNo} 패치 ${who} 승률 ${wr}% (${c.games.toLocaleString("ko-KR")}판).${hard ? ` 가장 어려운 상대는 ${hard}.` : ""} `
+        : `Patch ${patchNo} ${who}: ${wr}% win rate over ${c.games.toLocaleString("en-US")} games.${hard ? ` Hardest matchup: ${hard}.` : ""} `;
+    }
+  } catch {
+    // 숫자를 못 읽으면 일반 문구만 써요
+  }
   return {
     // 레이아웃의 canonical은 주소의 ?뒤를 버려서, 라인별 페이지("야스오 탑")가 검색엔진에 따로 안 잡혔어요
     alternates: await langAlternates(`/champions/${data.champion.id}${ln ? `?lane=${ln}` : ""}`),
-    title: t.champMetaTitle(n),
+    title: patchNo ? `${t.champMetaTitle(n)} (${ko ? `${patchNo} 패치` : `Patch ${patchNo}`})` : t.champMetaTitle(n),
     description:
-      lang === "ko"
-        ? `${n} 승률, 추천 룬·아이템 빌드, 스킬 순서, 쉬운/어려운 상대를 이번 패치 기준으로 정리했어요.`
-        : `${n} win rate, best runes and item builds, skill order and easy/hard matchups for the current patch.`,
+      facts +
+      (ko
+        ? `${n} 추천 룬·아이템 빌드, 스킬 순서, 쉬운/어려운 상대를 실제 랭크 게임으로 정리했어요.`
+        : `${n} best runes, item builds, skill order and easy/hard matchups from real ranked games.`),
   };
 }
 
