@@ -3,6 +3,10 @@ name: 사이트 스크린샷
 
 on:
   workflow_dispatch:
+    inputs:
+      set:
+        description: "blog 또는 threads"
+        default: blog
 
 permissions:
   contents: write
@@ -22,7 +26,7 @@ jobs:
         run: |
           mkdir -p shots && cp scripts/screenshots.mjs /tmp/pw/
           cd /tmp/pw
-          OUT=$GITHUB_WORKSPACE/shots SHOT_LANG=ko node screenshots.mjs
+          OUT=$GITHUB_WORKSPACE/shots SHOT_LANG=ko SHOT_SET=${{ inputs.set || 'blog' }} node screenshots.mjs
       - name: screenshots 브랜치에 올리기
         run: |
           cd shots
