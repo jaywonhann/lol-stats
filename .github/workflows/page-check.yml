@@ -80,11 +80,11 @@ jobs:
         run: |
           SITE=${{ inputs.site || 'https://livelol.onrender.com' }}
           out=""
-          for id in "Hide%20on%20bush%23KR1" "Faker%23KR1" "Doublelift%23NA1"; do
+          for id in "Hide%20on%20bush%23KR1" "T1%20Gumayusi%23KR1" "Doublelift%23NA1"; do
             s=kr; case "$id" in *NA1) s=na1;; esac
             for n in 1 2; do
               t=$(curl -s --max-time 90 "$SITE/summoner?id=$id&s=$s" -o t.html -w "%{http_code} %{time_starttransfer}s/%{time_total}s" || echo timeout)
-              tm=$(grep -o 'data-timing="[^"]*"' t.html | head -1)
+              tm="$(grep -o 'data-timing="[^"]*"' t.html | head -1) $(grep -o 'data-live-timing="[^"]*"' t.html | head -1) bytes=$(wc -c < t.html)"
               out="$out | ${id%%%23*} #$n $t ${tm:-no-timing}"
             done
           done

@@ -47,10 +47,12 @@ export default async function LiveGame({
   tags?: string[];
   spellIcons: Record<number, string>;
 }) {
+  const t0 = Date.now();
   const g = await activeGame(server, puuid, tags);
+  const tg = Date.now() - t0;
   // Riot 요청 한도에 걸려 확인을 못 했으면, 화면을 비워 두지 않고 몇 초 뒤 다시 확인해요
   if (g === "retry") return <LiveGameRetry lang={lang} puuid={puuid} />;
-  if (!g) return null;
+  if (!g) return <span hidden data-live-timing={`spectator=${tg} none`} />;
   const ko = lang === "ko";
   const { version, champions } = await getChampions(ddLocale(lang)).catch(() => ({ version: "", champions: [] as never[] }));
   const byKey = new Map(champions.map((c) => [Number(c.key), c]));
@@ -60,10 +62,12 @@ export default async function LiveGame({
   // 각 플레이어 솔로랭크 티어 (10번 호출, 10분 캐시. 실패한 사람은 비워 둬요)
   const ranks = new Map<string, LeagueEntry | null>();
   await Promise.all(g.participants.filter((p) => p.puuid).map(async (p) => ranks.set(p.puuid, await soloEntry(server, p.puuid))));
+  const tr = Date.now() - t0;
   const teams = [100, 200].map((id) => g.participants.filter((p) => p.teamId === id));
 
   return (
     <Panel>
+      <span hidden data-live-timing={`spectator=${tg} ranks=${tr}`} />
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-lose/15 px-2.5 py-1 text-xs font-bold text-lose">
           <span className="h-2 w-2 animate-pulse rounded-full bg-lose" aria-hidden />
