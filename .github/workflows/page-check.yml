@@ -76,6 +76,19 @@ jobs:
           errs=$(grep -oE "(Summoner not found|Too many lookups|Riot lookups are unavailable|Couldn.t load)[^<]*" m.html | sort | uniq -c | tr '\n' ' ')
           recent=$(grep -oE '[0-9]+W [0-9]+L' m.html | head -4 | tr '\n' ' ')
           bans=$(grep -c "Bans for your team" m.html || true); ptag=$(grep -o ">Patch " m.html | wc -l); echo "::notice title=multi-search::$t cards=$cards records=$recent bansPanel=$bans patchTags=$ptag errors=${errs:-none}"
+      - name: Summoner timing
+        run: |
+          SITE=${{ inputs.site || 'https://livelol.onrender.com' }}
+          out=""
+          for id in "Hide%20on%20bush%23KR1" "Faker%23KR1" "Doublelift%23NA1"; do
+            s=kr; case "$id" in *NA1) s=na1;; esac
+            for n in 1 2; do
+              t=$(curl -s --max-time 90 "$SITE/summoner?id=$id&s=$s" -o t.html -w "%{http_code} %{time_starttransfer}s/%{time_total}s" || echo timeout)
+              tm=$(grep -o 'data-timing="[^"]*"' t.html | head -1)
+              out="$out | ${id%%%23*} #$n $t ${tm:-no-timing}"
+            done
+          done
+          echo "::notice title=summoner timing::${out//%/pct}"
       - name: Summoner played-with
         run: |
           SITE=${{ inputs.site || 'https://livelol.onrender.com' }}

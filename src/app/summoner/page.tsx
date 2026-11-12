@@ -65,7 +65,19 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   return { title: id ? t.metaTitle(id) : t.title, ...(card && { openGraph: { images: card }, twitter: { card: "summary_large_image" as const, images: card } }) };
 }
 
+// 서버에서 어디가 오래 걸리는지 보려고 단계별 시간을 숨은 표시로 남겨요 (page-check가 읽어요)
+function Timing({ marks }: { marks: Record<string, number> }) {
+  const end = Date.now();
+  const t0 = marks.start;
+  const out = Object.entries({ ...marks, render: end })
+    .filter(([k]) => k !== "start")
+    .map(([k, v]) => `${k}=${v - t0}`)
+    .join(" ");
+  return <span hidden data-timing={out} />;
+}
+
 export default async function SummonerPage({ searchParams }: Props) {
+  const marks: Record<string, number> = { start: Date.now() };
   const [sp, lang, cookieServer] = await Promise.all([searchParams, getLang(), getServer()]);
   // 공유된 링크는 서버(?s=)를 같이 담고 있어요
   const server = sp.s ? parseServer(sp.s) : cookieServer;
@@ -91,6 +103,7 @@ export default async function SummonerPage({ searchParams }: Props) {
   let error: LookupError | null = null;
   try {
     result = await lookupSummoner(server, parsed.gameName, parsed.tagLine);
+    marks.lookup = Date.now();
   } catch (e) {
     error = e instanceof RiotError ? e.kind : "error";
   }
@@ -151,6 +164,7 @@ export default async function SummonerPage({ searchParams }: Props) {
         getRuneTrees(version, ddLocale(lang)).catch(() => []),
       ])
     : [[], []];
+  marks.data = Date.now();
   const spellIcons: Record<number, string> = {};
   for (const sp of spellList) spellIcons[Number(sp.key)] = img.spell(version!, sp.image.full);
   const runeIcons: Record<number, string> = {};
@@ -197,6 +211,7 @@ export default async function SummonerPage({ searchParams }: Props) {
         spellIcons={spellIcons}
         runeIcons={runeIcons}
       />
+      <Timing marks={marks} />
     </div>
   );
 }
