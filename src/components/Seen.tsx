@@ -14,6 +14,13 @@ export default function Seen() {
 
   useEffect(() => {
     if (sent.current === pathname) return;
+    // 방문자 현황(/visits)을 연 브라우저는 사이트 주인이라 이후로 세지 않아요 (주인 방문으로 숫자가 부풀지 않게)
+    try {
+      if (pathname === "/visits") localStorage.setItem("livelol-owner", "1");
+      if (localStorage.getItem("livelol-owner")) return;
+    } catch {
+      if (pathname === "/visits") return;
+    }
     const events = ["pointerdown", "pointermove", "touchstart", "scroll", "keydown"] as const;
     const off = () => events.forEach((e) => window.removeEventListener(e, hit));
     function hit() {
