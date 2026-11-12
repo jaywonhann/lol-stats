@@ -8,7 +8,10 @@ export const dynamic = "force-dynamic";
 type Acc = { server: string; who: string; puuid: string; label: string; kind: string };
 type Seen = { at: number; live: null | { champ: number; start: number; queue: number }; riotId?: string };
 
-const BATCH = 30;
+// 예전엔 30개를 한꺼번에 보내서 대부분 429(요청 한도)를 받았고, 그 1초 동안 전적 검색까지 막혔어요.
+// 이제 10개를 3개씩 나눠 보내요 (Riot 키 한도: 1초에 20번, 2분에 100번).
+const BATCH = 10;
+const PARALLEL = 3;
 const FRESH_MS = 10 * 60_000;
 const key = () =>
   process.env.RIOT_API_KEY?.match(/RGAPI-[0-9a-f-]{36}/gi)?.at(-1) ?? process.env.RIOT_API_KEY?.trim();
@@ -53,8 +56,7 @@ export async function GET() {
       lastBatch = Date.now();
       lastStatus = {};
       const batch = [...list].sort((a, b) => (seen.get(a.puuid)?.at ?? 0) - (seen.get(b.puuid)?.at ?? 0)).slice(0, BATCH);
-      await Promise.all(
-        batch.map(async (a) => {
+      const one = async (a: Acc) => {
           const res = await fetch(
             `https://${a.server}.api.riotgames.com/lol/spectator/v5/active-games/by-summoner/${a.puuid}`,
             { headers: { "X-Riot-Token": key()! }, cache: "no-store" },
@@ -71,8 +73,8 @@ export async function GET() {
             // 관전 응답의 riotId는 지금 닉네임이에요. 프로가 닉네임을 바꿔도 전적 링크가 열리게 이걸 써요
             seen.set(a.puuid, { at: Date.now(), live: me ? { champ: me.championId, start: g.gameStartTime, queue: g.gameQueueConfigId } : null, riotId: me?.riotId?.includes("#") ? me.riotId : undefined });
           } else if (res.status === 404) seen.set(a.puuid, { at: Date.now(), live: null });
-        }),
-      );
+      };
+      for (let i = 0; i < batch.length; i += PARALLEL) await Promise.all(batch.slice(i, i + PARALLEL).map(one));
     }
 
     const live = list.flatMap((a) => {
