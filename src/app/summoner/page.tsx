@@ -23,7 +23,7 @@ import { getChampions, getPatches, getRuneTrees, getSummonerSpells, getVersion, 
 import { ddLocale, dict, numLocale, timeAgo, type Lang } from "@/lib/i18n";
 import { boards } from "@/lib/stats";
 import { fetchedAt } from "@/lib/summoner-cache";
-import { LANES, laneLabel, parseServer, serverLabel, type Lane, type Server } from "@/lib/lanes";
+import { LANES, SERVERS, laneLabel, parseServer, serverLabel, type Lane, type Server } from "@/lib/lanes";
 import { getLang, getServer } from "@/lib/server";
 import {
   lookupSummoner,
@@ -116,6 +116,21 @@ export default async function SummonerPage({ searchParams }: Props) {
             {message}
           </p>
           {error === "not-found" && <div className="mt-2">{tagNote}</div>}
+          {error === "not-found" && (
+            // 다른 서버 계정일 때가 많아서, 같은 이름으로 다른 서버를 한 번에 눌러 볼 수 있게 해요
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-muted">{lang === "ko" ? "다른 서버에서 찾기:" : "Try another server:"}</span>
+              {SERVERS.filter((x) => x.id !== server).map((x) => (
+                <Link
+                  key={x.id}
+                  href={`/summoner?id=${encodeURIComponent(parsed.defaultedTag ? parsed.gameName : riotId)}&s=${x.id}`}
+                  className="rounded-md bg-panel-2 px-3 py-1 hover:bg-line"
+                >
+                  {serverLabel(x.id, lang)}
+                </Link>
+              ))}
+            </div>
+          )}
         </Panel>
       </div>
     );

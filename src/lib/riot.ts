@@ -2,6 +2,7 @@
 // 개발 키는 지역당 2분에 100회라 백그라운드 수집기와 나눠 씁니다. 한 번 검색에 최대 24회만 부르고,
 // 결과는 Next 데이터 캐시에 넣어 같은 검색을 반복해도 다시 부르지 않습니다.
 // 로컬 테스트: RIOT_API_BASE=http://localhost:8903 이면 {RIOT_API_BASE}/{kr|asia|...}/... 로 보냅니다.
+import { unstable_cache } from "next/cache";
 import type { Server } from "./lanes";
 
 export type Region = "asia" | "americas" | "europe";
@@ -41,14 +42,14 @@ const MINUTE = 60;
 const SHORT = 10 * MINUTE;
 const LONG = 30 * 24 * 60 * MINUTE;
 
-async function get<T>(host: Server | Region, path: string, revalidate = SHORT, tags?: string[]): Promise<T> {
+async function get<T>(host: Server | Region, path: string, revalidate: number | false = SHORT, tags?: string[]): Promise<T> {
   const k = key();
   if (!k) throw new RiotError("unavailable");
   let res: Response;
   try {
     res = await fetch(url(host, path), {
       headers: { "X-Riot-Token": k },
-      next: { revalidate, tags },
+      ...(revalidate === false ? { cache: "no-store" as const } : { next: { revalidate, tags } }),
       signal: AbortSignal.timeout(8000),
     });
   } catch {
@@ -160,6 +161,27 @@ async function pool<T, R>(items: T[], limit: number, fn: (t: T) => Promise<R>) {
   return out;
 }
 
+// 타임라인 원본은 게임 하나에 1~3MB라 Next의 데이터 캐시(한 항목 2MB까지)에 안 들어가서, 전적을 열 때마다 다시 받았어요.
+// 라인전 비교에 쓰는 15분까지의 골드·CS만 남겨 작게 저장해요 (끝난 게임은 안 바뀌니 오래 보관). 실패는 저장하지 않아요.
+const slimTimeline = (region: Region, matchId: string) =>
+  unstable_cache(
+    async (): Promise<Timeline> => {
+      const t = await get<Timeline>(region, `/lol/match/v5/matches/${encodeURIComponent(matchId)}/timeline`, false);
+      return {
+        info: {
+          participants: t.info.participants.map((p) => ({ participantId: p.participantId, puuid: p.puuid })),
+          frames: t.info.frames.slice(0, 16).map((f) => ({
+            participantFrames: Object.fromEntries(
+              Object.entries(f.participantFrames).map(([k, v]) => [k, { totalGold: v.totalGold, minionsKilled: v.minionsKilled, jungleMinionsKilled: v.jungleMinionsKilled }]),
+            ),
+          })),
+        },
+      };
+    },
+    ["tl-slim", matchId],
+    { revalidate: LONG },
+  )();
+
 // 업데이트 버튼이 이 태그로 캐시를 비웁니다 (summoner-cache.ts)
 export const summonerTag = (server: Server, gameName: string, tagLine: string) =>
   `sum:${server}:${encodeURIComponent(`${gameName}#${tagLine}`.toLowerCase())}`;
@@ -191,17 +213,19 @@ export async function lookupSummoner(
     get<string[]>(region, `/lol/match/v5/matches/by-puuid/${puuid}/ids?queue=420&start=0&count=${count}`, SHORT, tags),
     soft(get<Mastery[]>(server, `/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}/top?count=5`, SHORT, tags)),
   ]);
-  const matches = await pool(ids.slice(0, count), 5, (id) =>
-    get<Match>(region, `/lol/match/v5/matches/${encodeURIComponent(id)}`, LONG).catch(() => null),
-  );
-  // 라인전 수치용 타임라인은 최근 10게임만 (호출 수를 아끼려고), 실패해도 무시
-  const recent = matches.filter((m): m is Match => m !== null).slice(0, 10);
-  const tl = await pool(recent, 5, (m) =>
-    get<Timeline>(region, `/lol/match/v5/matches/${encodeURIComponent(m.metadata.matchId)}/timeline`, LONG).catch(() => null),
-  );
+  // 게임 상세와 (라인전 수치용) 최근 10게임 타임라인을 한 줄에 세워 동시에 6개씩 받아요 (Riot 키 한도: 1초에 20번).
+  // 예전에는 게임 20개를 다 받은 뒤에야 타임라인을 받기 시작해서 기다리는 시간이 두 번 쌓였어요. 실패한 건 건너뛰어요.
+  const list = ids.slice(0, count);
+  const jobs: (() => Promise<Match | Timeline | null>)[] = [
+    ...list.map((id) => () => get<Match>(region, `/lol/match/v5/matches/${encodeURIComponent(id)}`, LONG).catch(() => null)),
+    ...list.slice(0, 10).map((id) => () => slimTimeline(region, id).catch(() => null)),
+  ];
+  const done = await pool(jobs, 6, (job) => job());
+  const matches = done.slice(0, list.length) as (Match | null)[];
   const timelines: Record<string, Timeline> = {};
-  recent.forEach((m, i) => {
-    if (tl[i]) timelines[m.metadata.matchId] = tl[i]!;
+  list.slice(0, 10).forEach((id, i) => {
+    const t = done[list.length + i] as Timeline | null;
+    if (t && matches[i]) timelines[id] = t;
   });
   return {
     mastery: mastery ?? [],
