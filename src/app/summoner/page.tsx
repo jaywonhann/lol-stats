@@ -14,7 +14,7 @@ import MatchList from "@/components/MatchList";
 import LiveGame from "@/components/LiveGame";
 import Achievements from "@/components/Achievements";
 import { badges, bestGame, rankVsLobby } from "@/lib/achievements";
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { growth } from "@/lib/growth";
 import { rateMatch, scoreReport } from "@/lib/score";
@@ -75,6 +75,20 @@ function Timing({ marks }: { marks: Record<string, number> }) {
     .map(([k, v]) => `${k}=${v - t0}`)
     .join(" ");
   return <span hidden data-timing={out} />;
+}
+
+// 아래쪽 패널은 한 박자 늦게 그려요. 무료 서버는 CPU가 느려서 페이지 전체를 다 그린 뒤 보내면 4초쯤 걸리는데,
+// 이렇게 나누면 프로필·랭크·최근 6판이 먼저 화면에 뜨고 나머지가 뒤따라 와요.
+async function LaterInner({ children }: { children: ReactNode }) {
+  await new Promise((r) => setTimeout(r, 0));
+  return <>{children}</>;
+}
+function Later({ children, fallback }: { children: ReactNode; fallback: ReactNode }) {
+  return (
+    <Suspense fallback={fallback}>
+      <LaterInner>{children}</LaterInner>
+    </Suspense>
+  );
 }
 
 export default async function SummonerPage({ searchParams }: Props) {
@@ -750,6 +764,23 @@ function Analysis({
             server={server}
             spellIcons={spellIcons}
             runeIcons={runeIcons}
+            to={6}
+            more={
+              <Later fallback={<div className="mt-2 h-96 animate-pulse rounded-lg bg-panel-2" />}>
+                <MatchList
+                  matches={result.matches}
+                  puuid={account.puuid}
+                  version={version}
+                  champions={champions}
+                  lang={lang}
+                  server={server}
+                  spellIcons={spellIcons}
+                  runeIcons={runeIcons}
+                  from={6}
+                  bare
+                />
+              </Later>
+            }
           />
           <div className="space-y-1 text-xs text-muted">
             <p>{t.analyzed(total, result.matchIds)}</p>
@@ -757,6 +788,7 @@ function Analysis({
           </div>
           <div id="analysis" className="scroll-mt-20" aria-hidden />
           {tiltPanel}
+          <Later fallback={<div className="h-64 animate-pulse rounded-lg bg-panel" />}>
           {nowPanel}
           {titlesPanel}
       {score && <GrowthCard g={growth(score)} lang={lang} />}
@@ -847,6 +879,7 @@ function Analysis({
           </div>
         )}
       </Panel>
+          </Later>
         </div>
       </div>
     </>

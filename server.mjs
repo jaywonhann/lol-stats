@@ -2,6 +2,7 @@
 // 페이지 요청이 한꺼번에 몰리면 렌더링이 겹쳐서 메모리가 넘치고 서버가 꺼져요.
 // 그래서 페이지는 한 번에 MAX_CONCURRENT개씩만 만들고, 나머지는 줄 세워 차례로 처리합니다.
 // 정적 파일(/_next/static, 이미지 등)은 가벼워서 줄을 서지 않아요.
+import zlib from "node:zlib";
 import { createServer } from "node:http";
 import fs from "node:fs";
 import path from "node:path";
@@ -28,13 +29,16 @@ const pinned = (key) => {
 };
 const pageCache = new Map(); // key -> { at, status, headers, body }
 let cacheBytes = 0;
+// 전적 페이지는 같은 주소를 다시 열 때(공유 링크, 새로고침) 바로 오게 3분만 저장해요. 오래된 건 보내지 않아요.
+const SUMMONER_TTL = 3 * 60_000;
 const ttl = (pathname) =>
-  (pathname === "/" || pathname === "/pros" ? 5 : pathname.startsWith("/champions/") ? 120 : 30) * 60_000;
+  pathname === "/summoner" ? SUMMONER_TTL : (pathname === "/" || pathname === "/pros" ? 5 : pathname.startsWith("/champions/") ? 120 : 30) * 60_000;
 const cookieOf = (req, name) => (req.headers.cookie ?? "").match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`))?.[1] ?? "";
 function cacheKey(req) {
   if (req.method !== "GET") return null;
   const pathname = (req.url ?? "/").split("?")[0];
-  if (!CACHEABLE.test(pathname)) return null;
+  const summoner = pathname === "/summoner" && /[?&]id=./.test(req.url ?? "") && !req.headers["rsc"];
+  if (!summoner && !CACHEABLE.test(pathname)) return null;
   // 멀티서치 검색 결과(소환사 이름이 들어간 주소)는 저장하지 않아요
   if (pathname === "/multi" && /[?&]q=./.test(req.url ?? "")) return null;
   const h = req.headers;
@@ -57,6 +61,15 @@ function remember(key, pathname, res, chunks) {
   if (res.statusCode !== 200 || headers["set-cookie"]) return;
   const body = Buffer.concat(chunks);
   if (body.length > 3_000_000) return;
+  // 전적 페이지가 오류(요청 한도·못 찾음)를 보여 준 거면 저장하지 않아요.
+  if (pathname === "/summoner") {
+    const enc = headers["content-encoding"];
+    let html = null;
+    try {
+      html = !enc ? body : enc === "gzip" ? zlib.gunzipSync(body) : enc === "br" ? zlib.brotliDecompressSync(body) : null;
+    } catch {}
+    if (!html || html.includes('role="alert"')) return;
+  }
   delete headers["transfer-encoding"];
   delete headers["connection"];
   headers["content-length"] = String(body.length);
@@ -92,7 +105,7 @@ function fromCache(key, res, req) {
   const hit = pageCache.get(key);
   if (!hit) return false;
   const age = Date.now() - hit.at;
-  if (age > STALE_MAX) {
+  if (age > STALE_MAX || (hit.ttl === SUMMONER_TTL && age > hit.ttl)) {
     pageCache.delete(key);
     cacheBytes -= hit.body.length;
     return false;

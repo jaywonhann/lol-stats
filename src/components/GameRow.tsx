@@ -24,14 +24,19 @@ export type DetailPlayer = {
   items: number[];
 };
 
+// 줄마다 같은 긴 class를 서버에서 20번 보내지 않게 여기서 붙여요
+const ROW = "grid cursor-pointer list-none grid-cols-[4.5rem_auto_minmax(0,1fr)] items-center gap-x-4 gap-y-2 rounded-lg px-3 py-3 [&::-webkit-details-marker]:hidden md:grid-cols-[4.5rem_auto_6.5rem_7.5rem_minmax(0,1fr)] xl:grid-cols-[4.5rem_auto_6.5rem_7.5rem_auto_minmax(0,1fr)]";
+const WIN = "bg-[color-mix(in_srgb,var(--chart-up)_14%,var(--color-panel))]";
+const LOSS = "bg-[color-mix(in_srgb,var(--chart-down)_14%,var(--color-panel))]";
+
 export default function GameRow({
-  summaryClass,
+  win,
   summary,
   players,
   labels,
   version,
 }: {
-  summaryClass: string;
+  win: boolean;
   summary: React.ReactNode;
   players: DetailPlayer[];
   labels: { blue: string; red: string; win: string; loss: string; dmg: string };
@@ -51,7 +56,7 @@ export default function GameRow({
     src ? <Icon src={src} alt={alt} size={size} /> : <span className="shrink-0 rounded bg-panel-2" style={{ width: size, height: size }} />;
   return (
     <details className="group rounded-lg bg-panel" onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}>
-      <summary className={summaryClass}>
+      <summary className={`${ROW} ${win ? WIN : LOSS}`}>
         {summary}
         {wide && (
           <div className="hidden grid-cols-2 gap-x-3 gap-y-0.5 xl:grid">

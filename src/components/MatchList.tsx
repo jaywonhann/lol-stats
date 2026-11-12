@@ -5,6 +5,7 @@ import type { Lang } from "@/lib/i18n";
 import type { Match, Participant } from "@/lib/riot";
 import { rateMatch } from "@/lib/score";
 import GameRow from "@/components/GameRow";
+import type { ReactNode } from "react";
 
 const T = {
   ko: {
@@ -62,6 +63,10 @@ export default function MatchList({
   server,
   spellIcons = {},
   runeIcons = {},
+  from = 0,
+  to = 20,
+  bare = false,
+  more,
 }: {
   matches: Match[];
   puuid: string;
@@ -72,6 +77,11 @@ export default function MatchList({
   server?: string;
   spellIcons?: Record<number, string>;
   runeIcons?: Record<number, string>;
+  // 앞 몇 판을 먼저 보내고 나머지는 뒤따라 보내려고 나눠 그려요 (bare: 제목 없이 목록만, more: 목록 아래에 붙일 것)
+  from?: number;
+  to?: number;
+  bare?: boolean;
+  more?: ReactNode;
 }) {
   const t = T[lang];
   const byKey = new Map(champions.map((c) => [c.key, c]));
@@ -95,13 +105,12 @@ export default function MatchList({
 
   const rows = matches
     .filter((m) => m.info.gameDuration >= 300 && m.info.participants.some((p) => p.puuid === puuid))
-    .slice(0, 20);
+    .slice(0, 20)
+    .slice(from, to);
   if (!rows.length) return null;
 
-  return (
-    <Panel title={t.title}>
-      <p className="mb-2 text-xs text-muted">{t.hint}</p>
-      <ul className="space-y-2">
+  const list = (
+      <ul className={bare ? "mt-2 space-y-2" : "space-y-2"}>
         {rows.map((m) => {
           const me = m.info.participants.find((p) => p.puuid === puuid)!;
           const rated = new Map(rateMatch(m).map((r) => [r.puuid, r.inbun]));
@@ -117,7 +126,7 @@ export default function MatchList({
           return (
             <li key={m.metadata.matchId}>
               <GameRow
-                summaryClass={`grid cursor-pointer list-none grid-cols-[4.5rem_auto_minmax(0,1fr)] items-center gap-x-4 gap-y-2 rounded-lg px-3 py-3 [&::-webkit-details-marker]:hidden md:grid-cols-[4.5rem_auto_6.5rem_7.5rem_minmax(0,1fr)] xl:grid-cols-[4.5rem_auto_6.5rem_7.5rem_auto_minmax(0,1fr)] ${win ? "bg-[color-mix(in_srgb,var(--chart-up)_14%,var(--color-panel))]" : "bg-[color-mix(in_srgb,var(--chart-down)_14%,var(--color-panel))]"}`}
+                win={win}
                 labels={{ blue: t.blue, red: t.red, win: t.win, loss: t.loss, dmg: t.dmg }}
                 version={version}
                 players={m.info.participants.map((p) => ({
@@ -191,6 +200,13 @@ export default function MatchList({
           );
         })}
       </ul>
+  );
+  if (bare) return list;
+  return (
+    <Panel title={t.title}>
+      <p className="mb-2 text-xs text-muted">{t.hint}</p>
+      {list}
+      {more}
     </Panel>
   );
 }
