@@ -214,7 +214,8 @@ export async function lookupSummoner(
     get<string[]>(region, `/lol/match/v5/matches/by-puuid/${puuid}/ids?queue=420&start=0&count=${count}`, SHORT, tags),
     soft(get<Mastery[]>(server, `/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}/top?count=5`, SHORT, tags)),
   ]);
-  // 게임 상세를 동시에 6개씩 받아요 (Riot 키 한도: 1초에 20번). 실패한 건 건너뛰어요.
+  // 게임 상세를 동시에 10개씩 받아요 (Riot 키 한도: 1초에 20번). 서버(미국)에서 아시아 Riot 서버까지 한 번에 0.5초쯤이라
+  // 6개씩일 때는 20판에 4번을 기다려서 처음 찾는 소환사가 6초 걸렸어요. 실패한 건 건너뛰어요.
   // 타임라인(라인전 수치용)은 한 판에 1~3MB라 무료 서버에서 읽는 데만 몇 초가 걸려요. 그래서 전적 화면은
   // 타임라인 없이 먼저 보여 주고, 라인전 수치는 matchTimelines()로 뒤따라 받아요 (withTimelines=false가 기본).
   const list = ids.slice(0, count);
@@ -222,7 +223,7 @@ export async function lookupSummoner(
     ...list.map((id) => () => get<Match>(region, `/lol/match/v5/matches/${encodeURIComponent(id)}`, LONG).catch(() => null)),
     ...(withTimelines ? list.slice(0, 10) : []).map((id) => () => slimTimeline(region, id).catch(() => null)),
   ];
-  const done = await pool(jobs, 6, (job) => job());
+  const done = await pool(jobs, 10, (job) => job());
   const matches = done.slice(0, list.length) as (Match | null)[];
   const timelines: Record<string, Timeline> = {};
   (withTimelines ? list.slice(0, 10) : []).forEach((id, i) => {
