@@ -11,6 +11,41 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
+      - name: Summoner timing (먼저 재요. 다른 점검이 서버 CPU를 쓰기 전에)
+        run: |
+          SITE=${{ inputs.site || 'https://livelol.onrender.com' }}
+          # first = 프로필·최근 게임 첫 줄이 도착한 시각, rest = 뒤따르는 패널(진단 패널)이 도착한 시각, total = 끝
+          cat > st.py <<'PY'
+          import sys, time, urllib.request
+          url = sys.argv[1]; t0 = time.time(); first = rest = None; buf = b""
+          r = urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "page-check"}), timeout=90)
+          cache = r.headers.get("x-page-cache") or "miss"
+          while True:
+              c = r.read1(65536)
+              if not c: break
+              buf += c; now = time.time() - t0
+              if first is None and b"Recent games" in buf: first = now
+              if rest is None and (b"Strengths &amp; weaknesses" in buf or b"Strengths \\u0026 weaknesses" in buf): rest = now
+          import re
+          tm = re.search(rb'data-timing="([^"]*)"', buf)
+          f = lambda v: f"{v:.2f}s" if v is not None else "none"
+          print(f"first={f(first)} rest={f(rest)} total={time.time()-t0:.2f}s cache={cache} {tm.group(1).decode() if tm else 'no-timing'} bytes={len(buf)}")
+          PY
+          out=""
+          for id in "Hide%20on%20bush%23KR1" "Doublelift%23NA1"; do
+            s=kr; case "$id" in *NA1) s=na1;; esac
+            for n in 1 2; do
+              out="$out | ${id%%%23*} #$n $(python3 st.py "$SITE/summoner?id=$id&s=$s" 2>&1 | tail -1)"
+            done
+          done
+          # 처음 찾는 사람(캐시 없음) 시간: 페이커 최근 게임에 나온 다른 소환사 한 명을 골라 재요
+          curl -s --max-time 90 "$SITE/summoner?id=Hide%20on%20bush%23KR1&s=kr" -o hb.html
+          cold=$(grep -o 'summoner?id=[A-Za-z0-9%._~-]*' hb.html | grep -v 'Hide%20on%20bush' | grep '%23' | sort -u | shuf -n 1)
+          [ -n "$cold" ] && cold="/$cold&s=kr"
+          if [ -n "$cold" ]; then
+            out="$out | cold ${cold#/summoner?id=} $(python3 st.py "$SITE$cold" 2>&1 | tail -1) | again $(python3 st.py "$SITE$cold" 2>&1 | tail -1)"
+          fi
+          echo "::notice title=summoner timing::${out//%/pct}"
       - name: Burst (several visitors at once, 6 requests in flight)
         # 한꺼번에 40개 넘게 열면 무료 서버(512MB)가 점검 때문에 넘어져서, 동시에 6개까지만 열어요
         run: |
@@ -76,41 +111,6 @@ jobs:
           errs=$(grep -oE "(Summoner not found|Too many lookups|Riot lookups are unavailable|Couldn.t load)[^<]*" m.html | sort | uniq -c | tr '\n' ' ')
           recent=$(grep -oE '[0-9]+W [0-9]+L' m.html | head -4 | tr '\n' ' ')
           bans=$(grep -c "Bans for your team" m.html || true); ptag=$(grep -o ">Patch " m.html | wc -l); echo "::notice title=multi-search::$t cards=$cards records=$recent bansPanel=$bans patchTags=$ptag errors=${errs:-none}"
-      - name: Summoner timing
-        run: |
-          SITE=${{ inputs.site || 'https://livelol.onrender.com' }}
-          # first = 프로필·최근 게임 첫 줄이 도착한 시각, rest = 뒤따르는 패널(진단 패널)이 도착한 시각, total = 끝
-          cat > st.py <<'PY'
-          import sys, time, urllib.request
-          url = sys.argv[1]; t0 = time.time(); first = rest = None; buf = b""
-          r = urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "page-check"}), timeout=90)
-          cache = r.headers.get("x-page-cache") or "miss"
-          while True:
-              c = r.read1(65536)
-              if not c: break
-              buf += c; now = time.time() - t0
-              if first is None and b"Recent games" in buf: first = now
-              if rest is None and (b"Strengths &amp; weaknesses" in buf or b"Strengths \\u0026 weaknesses" in buf): rest = now
-          import re
-          tm = re.search(rb'data-timing="([^"]*)"', buf)
-          f = lambda v: f"{v:.2f}s" if v is not None else "none"
-          print(f"first={f(first)} rest={f(rest)} total={time.time()-t0:.2f}s cache={cache} {tm.group(1).decode() if tm else 'no-timing'} bytes={len(buf)}")
-          PY
-          out=""
-          for id in "Hide%20on%20bush%23KR1" "Doublelift%23NA1"; do
-            s=kr; case "$id" in *NA1) s=na1;; esac
-            for n in 1 2; do
-              out="$out | ${id%%%23*} #$n $(python3 st.py "$SITE/summoner?id=$id&s=$s" 2>&1 | tail -1)"
-            done
-          done
-          # 처음 찾는 사람(캐시 없음) 시간: 페이커 최근 게임에 나온 다른 소환사 한 명을 골라 재요
-          curl -s --max-time 90 "$SITE/summoner?id=Hide%20on%20bush%23KR1&s=kr" -o hb.html
-          cold=$(grep -o 'summoner?id=[A-Za-z0-9%._~-]*' hb.html | grep -v 'Hide%20on%20bush' | grep '%23' | sort -u | shuf -n 1)
-          [ -n "$cold" ] && cold="/$cold&s=kr"
-          if [ -n "$cold" ]; then
-            out="$out | cold ${cold#/summoner?id=} $(python3 st.py "$SITE$cold" 2>&1 | tail -1) | again $(python3 st.py "$SITE$cold" 2>&1 | tail -1)"
-          fi
-          echo "::notice title=summoner timing::${out//%/pct}"
       - name: Summoner played-with
         run: |
           SITE=${{ inputs.site || 'https://livelol.onrender.com' }}
