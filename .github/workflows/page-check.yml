@@ -90,7 +90,7 @@ jobs:
               if not c: break
               buf += c; now = time.time() - t0
               if first is None and b"Recent games" in buf: first = now
-              if rest is None and b"Strengths &amp; weaknesses" in buf or b"Strengths \\u0026 weaknesses" in buf: rest = now
+              if rest is None and (b"Strengths &amp; weaknesses" in buf or b"Strengths \\u0026 weaknesses" in buf): rest = now
           import re
           tm = re.search(rb'data-timing="([^"]*)"', buf)
           f = lambda v: f"{v:.2f}s" if v is not None else "none"
