@@ -28,11 +28,13 @@ import { LANES, SERVERS, laneLabel, parseServer, serverLabel, type Lane, type Se
 import { getLang, getServer } from "@/lib/server";
 import {
   lookupSummoner,
+  matchTimelines,
   parseRiotId,
   RiotError,
   summonerTag,
   type LeagueEntry,
   type Lookup,
+  type Match,
   type LookupError,
 } from "@/lib/riot";
 import {
@@ -89,6 +91,14 @@ function Later({ children, fallback }: { children: ReactNode; fallback: ReactNod
       <LaterInner>{children}</LaterInner>
     </Suspense>
   );
+}
+
+// 종합 점수 카드: 라인전 수치에 타임라인이 필요해서, 화면 나머지가 뜬 뒤 따로 받아 그려요
+async function LaneScore({ server, matches, puuid, lang }: { server: Server; matches: Match[]; puuid: string; lang: Lang }) {
+  const ids = matches.filter((m) => m.info.gameDuration >= 300).slice(0, 10).map((m) => m.metadata.matchId);
+  const timelines = await matchTimelines(server, ids).catch(() => ({}));
+  const report = scoreReport(matches, puuid, timelines);
+  return report ? <ScoreCard report={report} lang={lang} /> : null;
 }
 
 export default async function SummonerPage({ searchParams }: Props) {
@@ -855,7 +865,11 @@ function Analysis({
         </Panel>
       )}
 
-      {score && <ScoreCard report={score} lang={lang} />}
+      {score && (
+        <Suspense fallback={<div className="h-72 animate-pulse rounded-lg bg-panel" />}>
+          <LaneScore server={server} matches={result.matches} puuid={account.puuid} lang={lang} />
+        </Suspense>
+      )}
 
       <Panel title={t.laneVs}>
         {lanes.games === 0 ? (

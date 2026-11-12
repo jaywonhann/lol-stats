@@ -191,6 +191,7 @@ export async function lookupSummoner(
   gameName: string,
   tagLine: string,
   count = 20,
+  withTimelines = false,
 ): Promise<Lookup> {
   const region = REGION[server];
   const tags = [summonerTag(server, gameName, tagLine)];
@@ -213,17 +214,18 @@ export async function lookupSummoner(
     get<string[]>(region, `/lol/match/v5/matches/by-puuid/${puuid}/ids?queue=420&start=0&count=${count}`, SHORT, tags),
     soft(get<Mastery[]>(server, `/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}/top?count=5`, SHORT, tags)),
   ]);
-  // 게임 상세와 (라인전 수치용) 최근 10게임 타임라인을 한 줄에 세워 동시에 6개씩 받아요 (Riot 키 한도: 1초에 20번).
-  // 예전에는 게임 20개를 다 받은 뒤에야 타임라인을 받기 시작해서 기다리는 시간이 두 번 쌓였어요. 실패한 건 건너뛰어요.
+  // 게임 상세를 동시에 6개씩 받아요 (Riot 키 한도: 1초에 20번). 실패한 건 건너뛰어요.
+  // 타임라인(라인전 수치용)은 한 판에 1~3MB라 무료 서버에서 읽는 데만 몇 초가 걸려요. 그래서 전적 화면은
+  // 타임라인 없이 먼저 보여 주고, 라인전 수치는 matchTimelines()로 뒤따라 받아요 (withTimelines=false가 기본).
   const list = ids.slice(0, count);
   const jobs: (() => Promise<Match | Timeline | null>)[] = [
     ...list.map((id) => () => get<Match>(region, `/lol/match/v5/matches/${encodeURIComponent(id)}`, LONG).catch(() => null)),
-    ...list.slice(0, 10).map((id) => () => slimTimeline(region, id).catch(() => null)),
+    ...(withTimelines ? list.slice(0, 10) : []).map((id) => () => slimTimeline(region, id).catch(() => null)),
   ];
   const done = await pool(jobs, 6, (job) => job());
   const matches = done.slice(0, list.length) as (Match | null)[];
   const timelines: Record<string, Timeline> = {};
-  list.slice(0, 10).forEach((id, i) => {
+  (withTimelines ? list.slice(0, 10) : []).forEach((id, i) => {
     const t = done[list.length + i] as Timeline | null;
     if (t && matches[i]) timelines[id] = t;
   });
@@ -239,6 +241,18 @@ export async function lookupSummoner(
 }
 
 // "Name#TAG" → 이름/태그. 태그가 없으면 서버 기본 태그를 씁니다.
+// 라인전 수치(10분 CS·15분 골드 차이)용 타임라인. 전적 화면이 먼저 뜬 뒤 따로 받아요.
+export async function matchTimelines(server: Server, matchIds: string[]): Promise<Record<string, Timeline>> {
+  const region = REGION[server];
+  const got = await pool(matchIds, 4, (id) => slimTimeline(region, id).catch(() => null));
+  const out: Record<string, Timeline> = {};
+  matchIds.forEach((id, i) => {
+    const t = got[i];
+    if (t) out[id] = t;
+  });
+  return out;
+}
+
 export function parseRiotId(raw: string, server: Server) {
   const s = raw.trim().replace(/\s+/g, " ");
   const i = s.lastIndexOf("#");
