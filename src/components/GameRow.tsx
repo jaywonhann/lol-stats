@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "@/components/Link";
 import { Icon } from "@/components/ui";
 import { img } from "@/lib/ddragon";
@@ -38,11 +38,38 @@ export default function GameRow({
   version: string | null;
 }) {
   const [open, setOpen] = useState(false);
+  // 넓은 화면(xl)에서만 보이는 10명 이름 목록도, 처음 HTML에 넣지 않고 화면이 넓을 때만 그려요 (20판이면 이것만 160KB)
+  const [wide, setWide] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1280px)");
+    const on = () => setWide(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
   const icon = (src: string | null, alt: string, size: number) =>
     src ? <Icon src={src} alt={alt} size={size} /> : <span className="shrink-0 rounded bg-panel-2" style={{ width: size, height: size }} />;
   return (
     <details className="group rounded-lg bg-panel" onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}>
-      <summary className={summaryClass}>{summary}</summary>
+      <summary className={summaryClass}>
+        {summary}
+        {wide && (
+          <div className="hidden grid-cols-2 gap-x-3 gap-y-0.5 xl:grid">
+            {([100, 200] as const).map((team) => (
+              <ul key={team} className="space-y-0.5">
+                {players
+                  .filter((p) => p.team === team)
+                  .map((p, i) => (
+                    <li key={i} className="flex items-center gap-1 text-xs">
+                      {icon(version ? img.champion(version, p.champ) : null, p.champName, 16)}
+                      <span className={`max-w-[5.5rem] truncate ${p.me ? "font-bold text-text" : "text-muted"}`}>{p.name}</span>
+                    </li>
+                  ))}
+              </ul>
+            ))}
+          </div>
+        )}
+      </summary>
       {open && (
         <div className="grid gap-3 border-t border-line p-3 md:grid-cols-2">
           {([100, 200] as const).map((team) => {

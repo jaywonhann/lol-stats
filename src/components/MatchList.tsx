@@ -133,7 +133,7 @@ export default function MatchList({
                   a: p.assists,
                   dmg: p.totalDamageDealtToChampions,
                   dmgPct: Math.round((p.totalDamageDealtToChampions / maxDmg) * 100),
-                  inbun: rated.get(p.puuid) ?? 1,
+                  inbun: Math.round((rated.get(p.puuid) ?? 1) * 10) / 10,
                   items: items(p).map((x) => x ?? 0),
                 }))}
                 summary={
@@ -184,22 +184,6 @@ export default function MatchList({
                     <p>{t.csMin((cs(me) / Math.max(1, m.info.gameDuration / 60)).toFixed(1))}</p>
                   </div>
                   <div className="col-span-3 md:col-span-1">{itemRow(me, 24)}</div>
-                  <div className="hidden grid-cols-2 gap-x-3 gap-y-0.5 xl:grid">
-                    {[100, 200].map((team) => (
-                      <ul key={team} className="space-y-0.5">
-                        {m.info.participants
-                          .filter((p) => p.teamId === team)
-                          .map((p) => (
-                            <li key={p.puuid} className="flex items-center gap-1 text-xs">
-                              {champIcon(p, 16)}
-                              <span className={`max-w-[5.5rem] truncate ${p.puuid === puuid ? "font-bold text-text" : "text-muted"}`}>
-                                {p.riotIdGameName ?? p.championName}
-                              </span>
-                            </li>
-                          ))}
-                      </ul>
-                    ))}
-                  </div>
                 </>
                 }
               />
