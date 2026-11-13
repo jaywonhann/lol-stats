@@ -19,6 +19,9 @@ const threadsShots = [
   { name: "t2-summoner-faker", path: "/summoner?id=Hide%20on%20bush%23KR1", wait: 6000 },
   { name: "t2-summoner-gumayusi", path: "/summoner?id=T1%20Gumayusi%23KR1", wait: 6000 },
   { name: "t3-home", path: "/", wait: 8000 },
+  { name: "t4-bans-wasted", path: "/bans", wait: 3000, el: "밴 낭비일 수도 있는 챔피언" },
+  { name: "t5-bans-top", path: "/bans", wait: 3000, el: "지금 밴하면 좋은 챔피언 TOP 10" },
+  { name: "t6-multi", path: "/multi", wait: 3000 },
 ];
 const shots = SET === "threads" ? threadsShots : blogShots;
 const phone = SET === "threads";
