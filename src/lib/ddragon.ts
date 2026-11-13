@@ -18,11 +18,25 @@ async function fetchJson<T>(path: string): Promise<T> {
 // 아이템처럼 큰 파일은 메모리(힙 한도)가 빠듯해서 넣지 않아요.
 const MEMO_MS = 10 * 60_000;
 const MEMO_OK = /^\/api\/versions\.json$|\/(champion|runesReforged|summoner)\.json$/;
-const memo = new Map<string, { at: number; value: Promise<unknown> }>();
+// 2026-11-13: 10분이 지나면 다시 받을 때까지 기다려서, 그 순간 전적 검색이 2초 넘게 멈췄어요.
+// 이제는 10분이 지나도 들고 있던 값을 바로 쓰고, 새 값은 뒤에서 받아 바꿔 넣어요.
+const memo = new Map<string, { at: number; value: Promise<unknown>; refreshing?: boolean }>();
 function getJson<T>(path: string): Promise<T> {
   if (!MEMO_OK.test(path)) return fetchJson<T>(path);
   const hit = memo.get(path);
-  if (hit && Date.now() - hit.at < MEMO_MS) return hit.value as Promise<T>;
+  if (hit) {
+    if (Date.now() - hit.at >= MEMO_MS && !hit.refreshing) {
+      hit.refreshing = true;
+      fetchJson<T>(path).then(
+        (v) => memo.set(path, { at: Date.now(), value: Promise.resolve(v) }),
+        () => {
+          hit.refreshing = false;
+          hit.at = Date.now();
+        },
+      );
+    }
+    return hit.value as Promise<T>;
+  }
   const value = fetchJson<T>(path);
   memo.set(path, { at: Date.now(), value });
   value.catch(() => memo.delete(path));
