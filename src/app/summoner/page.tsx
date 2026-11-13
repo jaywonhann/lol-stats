@@ -81,8 +81,11 @@ function Timing({ marks }: { marks: Record<string, number> }) {
 
 // 아래쪽 패널은 한 박자 늦게 그려요. 무료 서버는 CPU가 느려서 페이지 전체를 다 그린 뒤 보내면 4초쯤 걸리는데,
 // 이렇게 나누면 프로필·랭크·최근 6판이 먼저 화면에 뜨고 나머지가 뒤따라 와요.
+// 2026-11-13: setTimeout 0이면 아래 패널이 곧바로 CPU를 가져가서, 위쪽 HTML이 아래 패널이 다 그려질 때(4.6초)까지 못 나갔어요.
+// 위쪽이 먼저 나가도록 잠깐 기다렸다가 그려요.
+const LATER_MS = 700;
 async function LaterInner({ children }: { children: ReactNode }) {
-  await new Promise((r) => setTimeout(r, 0));
+  await new Promise((r) => setTimeout(r, LATER_MS));
   return <>{children}</>;
 }
 function Later({ children, fallback }: { children: ReactNode; fallback: ReactNode }) {
@@ -97,6 +100,7 @@ function Later({ children, fallback }: { children: ReactNode; fallback: ReactNod
 async function LaneScore({ server, matches, puuid, lang }: { server: Server; matches: Match[]; puuid: string; lang: Lang }) {
   // 타임라인은 한 판에 1~3MB라 읽는 동안 서버(CPU 0.1개)가 다른 요청을 못 받아요. 최근 4판만 써요.
   const ids = matches.filter((m) => m.info.gameDuration >= 300).slice(0, 4).map((m) => m.metadata.matchId);
+  await new Promise((r) => setTimeout(r, LATER_MS));
   const timelines = await matchTimelines(server, ids).catch(() => ({}));
   const report = scoreReport(matches, puuid, timelines);
   return report ? <ScoreCard report={report} lang={lang} /> : null;
@@ -246,6 +250,16 @@ export default async function SummonerPage({ searchParams }: Props) {
   );
 }
 
+// 라인 1등 챔피언: 서버 전체 집계(3~4MB)를 읽어야 해서, 정말 필요할 때만 한 번 계산하고 기억해 둬요
+const metaTopMemo = new Map<string, { champion: Champion; winRate: number } | null>();
+function metaTopOf(champions: Champion[], lane: Lane, server: Server, patches: string[]) {
+  const key = `${server}:${lane}:${champions[0]?.name ?? ""}`;
+  if (!metaTopMemo.has(key)) {
+    const top = boards(champions, lane, { server, rank: "all" }, patches).boards.at(-1)?.[0];
+    metaTopMemo.set(key, top ? { champion: top.champion, winRate: top.winRate } : null);
+  }
+  return metaTopMemo.get(key) ?? undefined;
+}
 const fix = (v: number, d = 1) => v.toFixed(d);
 const tiltLevelOf = (score: number) => (score < 15 ? 0 : score < 35 ? 1 : score < 55 ? 2 : score < 75 ? 3 : 4);
 // 지금 큐 판정: 연패 중이거나 멘탈 지수가 높으면 쉬라고 해요
@@ -622,16 +636,14 @@ function Analysis({
   const personal = champs
     .filter((c) => c.games >= 2 && c.winRate >= 55 && (!mainLane || c.lane === mainLane))
     .sort((a, b) => b.winRate - a.winRate || b.games - a.games)[0];
-  const metaTop = mainLane
-    ? boards(champions, mainLane, { server, rank: "all" }, patches).boards.at(-1)?.[0]
-    : undefined;
   let pick: { text: string; champ: Champion | null; name: string; lane: Lane | null } | null = null;
+  let metaTop: ReturnType<typeof metaTopOf>;
   if (f.streak?.win && f.streak.count >= 2 && lastChamp) {
     const lane = games[0].lane ?? lastChamp.lane;
     pick = { text: t.pickKeep(lastChamp.championName, lane ? laneName(lane) : ""), champ: lastChamp.champion, name: lastChamp.championName, lane };
   } else if (personal) {
     pick = { text: t.pickBest(personal.championName, personal.lane ? laneName(personal.lane) : "", fix(personal.winRate, 0)), champ: personal.champion, name: personal.championName, lane: personal.lane };
-  } else if (metaTop && mainLane) {
+  } else if (mainLane && (metaTop = metaTopOf(champions, mainLane, server, patches))) {
     pick = { text: t.pickMeta(metaTop.champion.name, laneName(mainLane), fix(metaTop.winRate, 1)), champ: metaTop.champion, name: metaTop.champion.name, lane: mainLane };
   }
   const rest = champs

@@ -5,6 +5,7 @@ import path from "node:path";
 import { computeDuoPairs, DERIVED, loadRealData, slimPatch } from "../src/lib/real";
 import { computeTopMatchups } from "../src/lib/matchups";
 import { RANKS, SERVERS } from "../src/lib/lanes";
+import { computeSiteAvg } from "../src/lib/summoner";
 
 // 예전 결과가 남아 있으면 원본 대신 그걸 읽게 되니 먼저 지워요
 fs.rmSync(DERIVED, { recursive: true, force: true });
@@ -19,3 +20,5 @@ for (const r of RANKS) write(`duo-${r.id}-${servers.join("-")}`, computeDuoPairs
 // 서버·랭크별로 패치 파일을 미리 합치고, 표본이 적은 기록을 빼서 작게 저장 (위 합계를 다 계산한 다음에 써야 원본을 읽어요)
 for (const s of servers)
   for (const r of RANKS) write(`real-${s}-${r.id}`, [...loadRealData({ server: s, rank: r.id }).values()].map((d) => slimPatch(d)));
+// 전적 검색에서 쓰는 챔피언+라인 평균 승률 (몇 KB)
+for (const s of servers) write(`avg-${s}`, computeSiteAvg(s));

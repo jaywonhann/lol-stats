@@ -1,7 +1,7 @@
 // 소환사 최근 솔로랭크 게임 분석 (규칙 기반, 외부 호출 없음)
 import type { Champion } from "./ddragon";
 import type { Lane } from "./lanes";
-import { loadRealData, MIN_CHAMP_GAMES } from "./real";
+import { derived, loadRealData, MIN_CHAMP_GAMES } from "./real";
 import type { Match, Participant } from "./riot";
 import type { Server } from "./lanes";
 
@@ -96,8 +96,10 @@ const mode = <T>(xs: T[]): T | null => {
 
 const patchNum = (p: string) => p.split(".").map(Number);
 
-// 사이트 실제 집계(가장 최근 패치, 에메랄드+)에서 챔피언+라인 평균 승률
-export function siteAverages(server: Server) {
+// 사이트 실제 집계(가장 최근 패치, 에메랄드+)에서 챔피언+라인 평균 승률만 뽑은 작은 표 (빌드 때 data/derived/avg-{서버}.json으로 미리 만들어요)
+// 예전에는 전적 검색마다 3~4MB짜리 서버 전체 집계를 읽어서, 무료 서버 CPU로 이것만 1초 가까이 걸렸어요.
+export type SiteAvg = { patch: string | null; wr: Record<string, number> };
+export function computeSiteAvg(server: Server): SiteAvg {
   const real = loadRealData({ server, rank: "all" });
   const patch = [...real.keys()].sort((a, b) => {
     const [a1, a2] = patchNum(a);
@@ -105,11 +107,17 @@ export function siteAverages(server: Server) {
     return a1 - b1 || a2 - b2;
   }).at(-1);
   const data = patch ? real.get(patch) : undefined;
+  const wr: Record<string, number> = {};
+  for (const [k, c] of Object.entries(data?.champs ?? {}))
+    if (c.games >= MIN_CHAMP_GAMES) wr[k] = Math.round((c.wins / c.games) * 10000) / 100;
+  return { patch: patch ?? null, wr };
+}
+export function siteAverages(server: Server) {
+  const { patch, wr } = derived(`avg-${server}`, () => computeSiteAvg(server));
   return {
-    patch: patch ?? null,
+    patch,
     winRate(champKey: string, lane: Lane): number | null {
-      const c = data?.champs[`${champKey}:${lane}`];
-      return c && c.games >= MIN_CHAMP_GAMES ? (c.wins / c.games) * 100 : null;
+      return wr[`${champKey}:${lane}`] ?? null;
     },
   };
 }
