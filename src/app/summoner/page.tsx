@@ -757,12 +757,15 @@ function Analysis({
         shareTitle={t.metaTitle(`${account.gameName}#${account.tagLine}`)}
       />
       <div className="grid items-start gap-4 lg:grid-cols-[19rem_minmax(0,1fr)]">
-        <aside className="space-y-4">
-          {positionsPanel}
-          {mostPanel}
-          {matesPanel}
+        {/* 휴대폰에서는 요약·최근 게임을 먼저 보여 주고 포지션·모스트 챔피언은 그 아래로 (화면이 한 줄일 때) */}
+        <aside className="order-2 space-y-4 lg:order-none">
+          <Later fallback={<div className="h-80 animate-pulse rounded-lg bg-panel" />}>
+            {positionsPanel}
+            {mostPanel}
+            {matesPanel}
+          </Later>
         </aside>
-        <div className="min-w-0 space-y-4">
+        <div className="order-1 min-w-0 space-y-4 lg:order-none">
           {summaryBar}
           <SinceLastVisit id={`${server}:${account.puuid}`} now={snap} labels={{ ...t.since, since: t.since.since("{date}") }} locale={nl} />
           <MatchList

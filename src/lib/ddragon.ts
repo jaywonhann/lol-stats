@@ -5,12 +5,28 @@ const DEFAULT_LOCALE = "en_US";
 // 새 패치가 나오면 1시간 안에 자동으로 반영됩니다
 const REVALIDATE = 60 * 60;
 
-async function getJson<T>(path: string): Promise<T> {
+async function fetchJson<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     next: { revalidate: REVALIDATE },
   });
   if (!res.ok) throw new Error(`Data Dragon ${path} 요청 실패: ${res.status}`);
   return res.json() as Promise<T>;
+}
+
+// 전적 페이지가 매번 쓰는 작은 파일들(버전·챔피언 목록·룬·스펠)은 읽은 결과를 10분 동안 메모리에 들고 있어요.
+// 무료 서버는 CPU가 느려서 요청마다 캐시 파일을 다시 읽고 JSON을 푸는 데만 수백 ms가 들었어요.
+// 아이템처럼 큰 파일은 메모리(힙 한도)가 빠듯해서 넣지 않아요.
+const MEMO_MS = 10 * 60_000;
+const MEMO_OK = /^\/api\/versions\.json$|\/(champion|runesReforged|summoner)\.json$/;
+const memo = new Map<string, { at: number; value: Promise<unknown> }>();
+function getJson<T>(path: string): Promise<T> {
+  if (!MEMO_OK.test(path)) return fetchJson<T>(path);
+  const hit = memo.get(path);
+  if (hit && Date.now() - hit.at < MEMO_MS) return hit.value as Promise<T>;
+  const value = fetchJson<T>(path);
+  memo.set(path, { at: Date.now(), value });
+  value.catch(() => memo.delete(path));
+  return value;
 }
 
 export type Champion = {
