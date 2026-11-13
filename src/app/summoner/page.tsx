@@ -27,7 +27,7 @@ import { fetchedAt } from "@/lib/summoner-cache";
 import { LANES, SERVERS, laneLabel, parseServer, serverLabel, type Lane, type Server } from "@/lib/lanes";
 import { getLang, getServer } from "@/lib/server";
 import {
-  lookupSummoner,
+  lookupSplit,
   matchTimelines,
   parseRiotId,
   RiotError,
@@ -131,9 +131,12 @@ export default async function SummonerPage({ searchParams }: Props) {
 
   const riotId = `${parsed.gameName}#${parsed.tagLine}`;
   let result: Lookup | null = null;
+  let full: Promise<Lookup> | null = null;
   let error: LookupError | null = null;
   try {
-    result = await lookupSummoner(server, parsed.gameName, parsed.tagLine);
+    const split = await lookupSplit(server, parsed.gameName, parsed.tagLine);
+    result = split.quick;
+    full = split.full;
     marks.lookup = Date.now();
   } catch (e) {
     error = e instanceof RiotError ? e.kind : "error";
@@ -232,19 +235,39 @@ export default async function SummonerPage({ searchParams }: Props) {
           spellIcons={spellIcons}
         />
       </Suspense>
-      <Analysis
-        result={result}
-        lang={lang}
-        server={server}
-        version={version}
-        champions={champions}
-        patches={patches}
-        tagNote={tagNote}
-        otherServers={otherServers}
-        update={update}
-        spellIcons={spellIcons}
-        runeIcons={runeIcons}
-      />
+      {/* 최근 10판으로 먼저 위쪽을 보여 주고, 20판이 다 오면 전체 분석으로 바뀌어요 */}
+      <Suspense
+        fallback={
+          <Analysis
+            quick
+            result={result}
+            lang={lang}
+            server={server}
+            version={version}
+            champions={champions}
+            patches={patches}
+            tagNote={tagNote}
+            otherServers={otherServers}
+            update={update}
+            spellIcons={spellIcons}
+            runeIcons={runeIcons}
+          />
+        }
+      >
+        <FullAnalysis
+          full={full!}
+          lang={lang}
+          server={server}
+          version={version}
+          champions={champions}
+          patches={patches}
+          tagNote={tagNote}
+          otherServers={otherServers}
+          update={update}
+          spellIcons={spellIcons}
+          runeIcons={runeIcons}
+        />
+      </Suspense>
       <Timing marks={marks} />
     </div>
   );
@@ -266,7 +289,12 @@ const tiltLevelOf = (score: number) => (score < 15 ? 0 : score < 35 ? 1 : score 
 const queueLevelOf = (tl: { lossRun: number; score: number }) =>
   tl.lossRun >= 2 || tl.score >= 55 ? 2 : tl.score >= 35 || tl.lossRun === 1 ? 1 : 0;
 
+async function FullAnalysis({ full, ...rest }: Omit<Parameters<typeof Analysis>[0], "result" | "quick"> & { full: Promise<Lookup> }) {
+  return <Analysis result={await full} {...rest} />;
+}
+
 function Analysis({
+  quick = false,
   result,
   lang,
   server,
@@ -279,6 +307,7 @@ function Analysis({
   spellIcons,
   runeIcons,
 }: {
+  quick?: boolean;
   result: Lookup;
   lang: Lang;
   server: Server;
@@ -417,6 +446,32 @@ function Analysis({
       </a>
     </div>
   );
+  // 최근 10판만 온 첫 화면: 프로필과 최근 6판만 그려요 (나머지는 20판이 다 오면 바뀌어요)
+  if (quick)
+    return (
+      <>
+        {profileHeader(glance)}
+        <div className="grid items-start gap-4 lg:grid-cols-[19rem_minmax(0,1fr)]">
+          <aside className="order-2 lg:order-none">
+            <div className="h-80 animate-pulse rounded-lg bg-panel" />
+          </aside>
+          <div className="order-1 min-w-0 space-y-4 lg:order-none">
+            <MatchList
+              matches={result.matches}
+              puuid={account.puuid}
+              version={version}
+              champions={champions}
+              lang={lang}
+              server={server}
+              spellIcons={spellIcons}
+              runeIcons={runeIcons}
+              to={6}
+              more={<div className="mt-2 h-96 animate-pulse rounded-lg bg-panel-2" />}
+            />
+          </div>
+        </div>
+      </>
+    );
   // 오른쪽 위 요약 막대: 승률 도넛 + KDA + 모스트 3 + 지표 칩 4개
   const avgK = games.reduce((a, x) => a + x.kills, 0) / total;
   const avgD = games.reduce((a, x) => a + x.deaths, 0) / total;

@@ -241,6 +241,64 @@ export async function lookupSummoner(
   };
 }
 
+// 전적 화면용: 최근 10판이 오면 바로 화면을 띄우고(quick), 20판이 다 오면 전체 분석(full)으로 바꿔요.
+// 20판을 한꺼번에 기다리면 Riot 대기가 0.5~1초 더 걸려서 첫 화면이 늦었어요. 요청 수와 동시 개수(10)는 그대로예요.
+export async function lookupSplit(
+  server: Server,
+  gameName: string,
+  tagLine: string,
+  count = 20,
+  first = 10,
+): Promise<{ quick: Lookup; full: Promise<Lookup> }> {
+  const region = REGION[server];
+  const tags = [summonerTag(server, gameName, tagLine)];
+  const account = await get<Account>(
+    region,
+    `/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`,
+    SHORT,
+    tags,
+  );
+  const puuid = encodeURIComponent(account.puuid);
+  const soft = <T>(p: Promise<T>) =>
+    p.catch((e) => {
+      if (e instanceof RiotError && e.kind !== "not-found" && e.kind !== "error") throw e;
+      return null;
+    });
+  const [entries, profile, ids, mastery] = await Promise.all([
+    soft(get<LeagueEntry[]>(server, `/lol/league/v4/entries/by-puuid/${puuid}`, SHORT, tags)),
+    soft(get<SummonerProfile>(server, `/lol/summoner/v4/summoners/by-puuid/${puuid}`, SHORT, tags)),
+    get<string[]>(region, `/lol/match/v5/matches/by-puuid/${puuid}/ids?queue=420&start=0&count=${count}`, SHORT, tags),
+    soft(get<Mastery[]>(server, `/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}/top?count=5`, SHORT, tags)),
+  ]);
+  const list = ids.slice(0, count);
+  // 일꾼 10개가 순서대로 받아요. 판마다 따로 끝나는 걸 알 수 있게 약속(promise)을 하나씩 만들어요.
+  const slots = list.map(() => {
+    let done!: (m: Match | null) => void;
+    const p = new Promise<Match | null>((r) => (done = r));
+    return { p, done };
+  });
+  let next = 0;
+  const worker = async () => {
+    while (next < list.length) {
+      const i = next++;
+      slots[i].done(await get<Match>(region, `/lol/match/v5/matches/${encodeURIComponent(list[i])}`, LONG).catch(() => null));
+    }
+  };
+  for (let k = 0; k < Math.min(10, list.length); k++) void worker();
+  const base = {
+    mastery: mastery ?? [],
+    timelines: {},
+    account,
+    profile,
+    solo: entries?.find((e) => e.queueType === "RANKED_SOLO_5x5") ?? null,
+    matchIds: ids.length,
+  };
+  const keep = (ms: (Match | null)[]) => ms.filter((m): m is Match => m !== null);
+  const head = await Promise.all(slots.slice(0, first).map((s) => s.p));
+  const full = Promise.all(slots.map((s) => s.p)).then((ms) => ({ ...base, matches: keep(ms) }));
+  return { quick: { ...base, matches: keep(head) }, full };
+}
+
 // "Name#TAG" → 이름/태그. 태그가 없으면 서버 기본 태그를 씁니다.
 // 라인전 수치(10분 CS·15분 골드 차이)용 타임라인. 전적 화면이 먼저 뜬 뒤 따로 받아요.
 export async function matchTimelines(server: Server, matchIds: string[]): Promise<Record<string, Timeline>> {
