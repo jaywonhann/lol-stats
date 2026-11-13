@@ -46,6 +46,19 @@ export default function SummonerSearch({
           {lang === "ko" ? "로비 5명 한 번에 보기 (멀티서치) →" : "Whole lobby at once (multi-search) →"}
         </Link>
       </p>
+      {large && (
+        // 처음 온 사람(대부분 스레드에서 휴대폰으로 와요)이 이름을 치지 않아도 결과를 바로 볼 수 있게 예시를 둬요.
+        // 일반 링크로 열어야 서버에 저장된 화면이 바로 나와요.
+        <p className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-muted">{lang === "ko" ? "예시로 보기:" : "Try an example:"}</span>
+          <a href="/summoner?id=Hide%20on%20bush%23KR1&s=kr" className="rounded-full bg-panel-2 px-3 py-1 hover:bg-line">
+            {lang === "ko" ? "페이커 전적" : "Faker's profile"}
+          </a>
+          <a href="/summoner?id=Hide%20on%20bush%23KR1&s=kr#analysis" className="rounded-full bg-panel-2 px-3 py-1 hover:bg-line">
+            {lang === "ko" ? "페이커 멘탈 지수" : "Faker's tilt score"}
+          </a>
+        </p>
+      )}
       {large && <RecentSummoners label={t.recentViewed} />}
     </Form>
   );
