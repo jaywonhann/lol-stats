@@ -95,7 +95,8 @@ function Later({ children, fallback }: { children: ReactNode; fallback: ReactNod
 
 // 종합 점수 카드: 라인전 수치에 타임라인이 필요해서, 화면 나머지가 뜬 뒤 따로 받아 그려요
 async function LaneScore({ server, matches, puuid, lang }: { server: Server; matches: Match[]; puuid: string; lang: Lang }) {
-  const ids = matches.filter((m) => m.info.gameDuration >= 300).slice(0, 10).map((m) => m.metadata.matchId);
+  // 타임라인은 한 판에 1~3MB라 읽는 동안 서버(CPU 0.1개)가 다른 요청을 못 받아요. 최근 4판만 써요.
+  const ids = matches.filter((m) => m.info.gameDuration >= 300).slice(0, 4).map((m) => m.metadata.matchId);
   const timelines = await matchTimelines(server, ids).catch(() => ({}));
   const report = scoreReport(matches, puuid, timelines);
   return report ? <ScoreCard report={report} lang={lang} /> : null;
