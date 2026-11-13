@@ -19,7 +19,10 @@ jobs:
           start=$(date +%s)
           while [ $(( $(date +%s) - start )) -lt $((350 * 60)) ]; do
             code=$(curl -s -o /dev/null -m 90 -w '%{http_code}' https://livelol.onrender.com/robots.txt || true)
-            echo "$(date -u +%H:%M) $code"
+            # 홈의 "예시로 보기" 버튼이 여는 전적 페이지도 같이 열어서, 사람이 눌렀을 때 저장된 결과가 바로 나오게 해요
+            # (전적 캐시는 10분이라 9분마다 열면 계속 따뜻해요. 배포로 캐시가 비워진 뒤에도 다음 핑에서 다시 채워져요)
+            ex=$(curl -s -o /dev/null -m 60 -w '%{http_code} %{time_total}s' "https://livelol.onrender.com/summoner?id=Hide%20on%20bush%23KR1&s=kr" || true)
+            echo "$(date -u +%H:%M) $code example:$ex"
             sleep 540
           done
       - if: always()
