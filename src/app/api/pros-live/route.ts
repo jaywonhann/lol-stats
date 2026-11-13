@@ -9,8 +9,8 @@ type Acc = { server: string; who: string; puuid: string; label: string; kind: st
 type Seen = { at: number; live: null | { champ: number; start: number; queue: number }; riotId?: string };
 
 // 예전엔 30개를 한꺼번에 보내서 대부분 429(요청 한도)를 받았고, 그 1초 동안 전적 검색까지 막혔어요.
-// 이제 10개를 3개씩 나눠 보내요 (Riot 키 한도: 1초에 20번, 2분에 100번).
-const BATCH = 10;
+// 이제 6개를 3개씩 나눠 보내요 (Riot 키 한도: 1초에 20번, 2분에 100번).
+const BATCH = 6;
 const PARALLEL = 3;
 const FRESH_MS = 10 * 60_000;
 const key = () =>
@@ -51,8 +51,8 @@ export async function GET() {
     const list = await loadAccounts();
     if (!list.length) return NextResponse.json({ available: false, reason: "no-accounts" });
 
-    // 45초에 한 번만 새로 확인하고, 가장 오래 확인 안 한 계정부터
-    if (Date.now() - lastBatch > 45_000) {
+    // 90초에 한 번만 새로 확인하고, 가장 오래 확인 안 한 계정부터 (전적 검색이 Riot 한도를 먼저 쓰게)
+    if (Date.now() - lastBatch > 90_000) {
       lastBatch = Date.now();
       lastStatus = {};
       const batch = [...list].sort((a, b) => (seen.get(a.puuid)?.at ?? 0) - (seen.get(b.puuid)?.at ?? 0)).slice(0, BATCH);

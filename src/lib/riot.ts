@@ -42,7 +42,7 @@ const MINUTE = 60;
 const SHORT = 10 * MINUTE;
 const LONG = 30 * 24 * 60 * MINUTE;
 
-async function get<T>(host: Server | Region, path: string, revalidate: number | false = SHORT, tags?: string[]): Promise<T> {
+async function get<T>(host: Server | Region, path: string, revalidate: number | false = SHORT, tags?: string[], retry = 1): Promise<T> {
   const k = key();
   if (!k) throw new RiotError("unavailable");
   let res: Response;
@@ -56,6 +56,15 @@ async function get<T>(host: Server | Region, path: string, revalidate: number | 
     throw new RiotError("error");
   }
   if (res.ok) return (await res.json()) as T;
+  // 같은 키를 쓰는 수집기(GitHub Actions)와 겹치면 잠깐 429가 와요. 예전엔 그 판이 그냥 빠지거나 "요청 한도" 화면이 떴어요.
+  // Riot이 알려 주는 대기 시간이 2초 이하면 한 번만 기다렸다가 다시 받아요.
+  if (res.status === 429 && retry > 0) {
+    const wait = Number(res.headers.get("retry-after") ?? "1");
+    if (Number.isFinite(wait) && wait <= 2) {
+      await new Promise((r) => setTimeout(r, Math.max(300, wait * 1000)));
+      return get<T>(host, path, revalidate, tags, retry - 1);
+    }
+  }
   // 응답 본문은 읽지 않고 상태 코드로만 구분합니다 (키나 원문 오류를 화면에 노출하지 않음)
   if (res.status === 404) throw new RiotError("not-found");
   if (res.status === 429) throw new RiotError("rate-limited");
