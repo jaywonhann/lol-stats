@@ -115,7 +115,8 @@ function fromCache(key, res, req) {
   // 방금 쓴 페이지는 맨 뒤로 (자주 보는 페이지가 먼저 지워지지 않게)
   pageCache.delete(key);
   pageCache.set(key, hit);
-  res.writeHead(hit.status, { ...hit.headers, "x-page-cache": stale ? "stale" : "hit" });
+  // x-mem은 저장할 때 값이 아니라 지금 값으로 (저장된 페이지가 "켜진 지 1분"을 보여 줘서 서버가 다시 켜진 걸로 착각했어요)
+  res.writeHead(hit.status, { ...hit.headers, "x-mem": res.getHeader("x-mem") ?? "", "x-page-cache": stale ? "stale" : "hit" });
   res.end(hit.body);
   return true;
 }
