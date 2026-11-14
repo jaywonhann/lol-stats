@@ -78,12 +78,13 @@ jobs:
           curl -s --max-time 90 -D h.txt -o b.html "$SITE/tier"
           echo "::notice title=tier response::$(head -1 h.txt) $(grep -i '^x-render\|^server\|^rndr' h.txt | tr '\r\n' '  ') title=$(grep -o '<title>[^<]*' b.html | head -1)"
           for p in / /tier /duo /aram "/aram/Jinx?mode=aram" /champions/Jinx "/summoner?id=Hide%20on%20bush%23KR1&s=kr" "/multi?s=kr&q=Hide%20on%20bush%20%23KR1"; do
-            pages="$pages | $p $(curl -s --max-time 90 -o /dev/null -w '%{http_code} [%header{x-mem}]' "$SITE$p")"
+            pages="$pages | $p $(curl -s --max-time 90 -o /dev/null -w '%{http_code} %{time_total}s [%header{x-mem}]' "$SITE$p" || echo "TIMEOUT")"
           done
           echo "::notice title=pages::${pages//%/pct}"
+          case "$pages" in *TIMEOUT*|*" 5"[0-9][0-9]" "*) echo "::warning title=pages::slow or failing page above";; esac
           imgs=""
           for p in /tier/opengraph-image /trends/opengraph-image /duo/opengraph-image /bans/opengraph-image /multi/opengraph-image /champions/Jinx/opengraph-image /champions/Yasuo/counters/opengraph-image "/api/aram-card?id=Jinx&mode=aram" "/api/card?id=Hide%20on%20bush%23KR1&s=kr"; do
-            imgs="$imgs | $p $(curl -s --max-time 90 -o /dev/null -w '%{http_code} %{size_download} [%header{x-mem}]' "$SITE$p")"
+            imgs="$imgs | $p $(curl -s --max-time 90 -o /dev/null -w '%{http_code} %{size_download} [%header{x-mem}]' "$SITE$p" || echo "TIMEOUT")"
           done
           echo "::notice title=share images::${imgs//%/pct}"
           comm=$(curl -s --max-time 90 "$SITE/community" | grep -o 'community is unavailable\|커뮤니티를 지금 쓸 수 없' | head -1)
