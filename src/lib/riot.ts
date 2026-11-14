@@ -308,12 +308,13 @@ export async function lookupSplit(
       if (e instanceof RiotError && e.kind !== "not-found" && e.kind !== "error") throw e;
       return null;
     });
-  const [entries, profile, ids, mastery] = await Promise.all([
-    soft(get<LeagueEntry[]>(server, `/lol/league/v4/entries/by-puuid/${puuid}`, SHORT, tags)),
-    soft(get<SummonerProfile>(server, `/lol/summoner/v4/summoners/by-puuid/${puuid}`, SHORT, tags)),
-    get<string[]>(region, `/lol/match/v5/matches/by-puuid/${puuid}/ids?queue=420&start=0&count=${count}`, SHORT, tags),
-    soft(get<Mastery[]>(server, `/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}/top?count=5`, SHORT, tags)),
-  ]);
+  // 게임 목록이 오면 랭크·프로필·숙련도를 기다리지 않고 바로 게임 상세를 받기 시작해요 (Riot 왕복 한 번만큼 빨라져요).
+  // 나머지는 미리 .catch를 달아 둬서, 먼저 실패해도 처리 안 된 오류로 서버가 멈추지 않게 해요.
+  const quiet = <T>(p: Promise<T>) => (p.catch(() => {}), p);
+  const pEntries = quiet(soft(get<LeagueEntry[]>(server, `/lol/league/v4/entries/by-puuid/${puuid}`, SHORT, tags)));
+  const pProfile = quiet(soft(get<SummonerProfile>(server, `/lol/summoner/v4/summoners/by-puuid/${puuid}`, SHORT, tags)));
+  const pMastery = quiet(soft(get<Mastery[]>(server, `/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}/top?count=5`, SHORT, tags)));
+  const ids = await get<string[]>(region, `/lol/match/v5/matches/by-puuid/${puuid}/ids?queue=420&start=0&count=${count}`, SHORT, tags);
   const list = ids.slice(0, count);
   // 일꾼 10개가 순서대로 받아요. 판마다 따로 끝나는 걸 알 수 있게 약속(promise)을 하나씩 만들어요.
   const slots = list.map(() => {
@@ -329,6 +330,7 @@ export async function lookupSplit(
     }
   };
   for (let k = 0; k < Math.min(10, list.length); k++) void worker();
+  const [entries, profile, mastery] = await Promise.all([pEntries, pProfile, pMastery]);
   const base = {
     mastery: mastery ?? [],
     timelines: {},
