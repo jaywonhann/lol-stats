@@ -78,7 +78,7 @@ jobs:
           curl -s --max-time 90 -D h.txt -o b.html "$SITE/tier"
           echo "::notice title=tier response::$(head -1 h.txt) $(grep -i '^x-render\|^server\|^rndr' h.txt | tr '\r\n' '  ') title=$(grep -o '<title>[^<]*' b.html | head -1)"
           for p in / /tier /duo /aram "/aram/Jinx?mode=aram" /champions/Jinx "/summoner?id=Hide%20on%20bush%23KR1&s=kr" "/multi?s=kr&q=Hide%20on%20bush%20%23KR1"; do
-            pages="$pages | $p $(curl -s --max-time 90 -o /dev/null -w '%{http_code} %{time_total}s [%header{x-mem}]' "$SITE$p" || echo "TIMEOUT")"
+            pages="$pages | $p $(curl -s --max-time 90 -o /dev/null -w '%{http_code} %{time_total}s [%header{x-mem}] wait=%header{x-wait}' "$SITE$p" || echo "TIMEOUT")"
           done
           echo "::notice title=pages::${pages//%/pct}"
           case "$pages" in *TIMEOUT*|*" 5"[0-9][0-9]" "*) echo "::warning title=pages::slow or failing page above";; esac

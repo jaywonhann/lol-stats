@@ -181,6 +181,8 @@ function run(req, res) {
   const key = cacheKey(req);
   if (fromCache(key, res, req)) return void queue.shift()?.();
   if (key) record(key, req, res);
+  // 줄에서 기다린 시간(ms)과 그때 만들던 페이지 수: 느린 페이지가 "만들기"가 느린 건지 "줄 서기"가 긴 건지 page-check에서 구분하려고요
+  if (!res.headersSent) res.setHeader("x-wait", `${Date.now() - (req.arrived ?? Date.now())}ms active=${active}`);
   active++;
   let done = false;
   const finish = () => {
@@ -300,6 +302,7 @@ await app.prepare();
 let lastVisit = 0; // 방문자 페이지 요청이 마지막으로 온 시각 (미리 만들기는 그 뒤 잠깐 쉬어요)
 createServer((req, res) => {
   // 메모리 진단용: 응답마다 지금 메모리(MB)와 켜진 지 몇 분인지 붙여요 (page-check가 기록해요. 서버가 다시 켜지는 원인 찾기)
+  req.arrived = Date.now();
   const m = process.memoryUsage();
   res.setHeader("x-mem", `rss=${Math.round(m.rss / 1e6)} heap=${Math.round(m.heapUsed / 1e6)} ext=${Math.round((m.external + m.arrayBuffers) / 1e6)} cache=${Math.round(cacheBytes / 1e6)} up=${Math.round(process.uptime() / 60)}m`);
   // ?lang=ko|en 주소(검색엔진이 언어별로 따로 담는 주소)는 쿠키보다 먼저 써요: 쿠키의 lang 값을 바꿔 넘깁니다

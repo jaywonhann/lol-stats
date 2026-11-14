@@ -13,6 +13,10 @@ export const REGION: Record<Server, Region> = {
   euw1: "europe",
 };
 
+// Riot 계정(이름#태그 → puuid)은 어느 지역 서버에 물어봐도 같은 답이 와요.
+// 우리 서버가 미국 오리건에 있어서, 한국 계정도 가까운 americas에 물어보면 첫 왕복이 짧아져요 (게임 기록은 여전히 asia에서 받아요).
+const ACCOUNT_HOST: Region = "americas";
+
 // 태그 없이 이름만 입력하면 이 태그로 찾아봅니다
 export const DEFAULT_TAG: Record<Server, string> = {
   kr: "KR1",
@@ -240,7 +244,7 @@ export async function lookupSummoner(
   const region = REGION[server];
   const tags = [summonerTag(server, gameName, tagLine)];
   const account = await get<Account>(
-    region,
+    ACCOUNT_HOST,
     `/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`,
     SHORT,
     tags,
@@ -297,7 +301,7 @@ export async function lookupSplit(
   const region = REGION[server];
   const tags = [summonerTag(server, gameName, tagLine)];
   const account = await get<Account>(
-    region,
+    ACCOUNT_HOST,
     `/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`,
     SHORT,
     tags,
@@ -421,7 +425,7 @@ export async function lookupLite(server: Server, gameName: string, tagLine: stri
   const region = REGION[server];
   const tags = [summonerTag(server, gameName, tagLine)];
   const account = await get<Account>(
-    region,
+    ACCOUNT_HOST,
     `/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`,
     SHORT,
     tags,
