@@ -77,6 +77,7 @@ function merge(list: PatchData[]): PatchData {
 }
 
 const cache = new Map<string, { stamp: string; data: Map<string, PatchData> }>();
+const KEEP = 2;
 
 // 세 서버를 다 열어야 하는 합계(상성·듀오)는 빌드할 때 data/derived/ 에 미리 계산해 둬요 (scripts/precompute.ts).
 // 무료 서버(512MB)에서 요청마다 세 서버 데이터를 한꺼번에 읽으면 메모리가 넘쳐요. 파일이 없으면 그때 계산합니다.
@@ -115,6 +116,10 @@ export function loadRealData(filter: Filter): Map<string, PatchData> {
     return hit.data;
   }
 
+  // 새 파일을 읽기 전에 자리를 먼저 비워요. 2개를 들고 있는 채로 세 번째(서버당 3~4MB, 메모리에선 수십 MB)를 읽으면
+  // 잠깐 3개가 같이 올라가서, 여러 서버 페이지가 한꺼번에 열릴 때 힙 한도(220MB)를 넘겨 서버가 다시 켜졌어요 (2026-11-14)
+  if (hit) cache.delete(key);
+  while (cache.size >= KEEP) cache.delete(cache.keys().next().value!);
   if (useSlim) {
     const out = new Map(readJson<PatchData[]>(slim).map((d) => [d.patch, d] as const));
     remember(key, stamp, out);
@@ -138,7 +143,7 @@ function remember(key: string, stamp: string, data: Map<string, PatchData>) {
   cache.delete(key);
   cache.set(key, { stamp, data });
   // 2026-11-10: 데이터가 커지면서(서버당 3MB+) 3개를 들고 있으면 힙이 한도(200MB) 가까이 차서 서버가 다시 켜졌어요. 2개만 들고 있어요
-  while (cache.size > 2) cache.delete(cache.keys().next().value!);
+  while (cache.size > KEEP) cache.delete(cache.keys().next().value!);
 }
 
 // 표본이 너무 적은(3게임 미만) 룬·아이템·상성 기록은 빼서 데이터를 1/3 크기로 줄여요. 화면에는 원래 안 나오는 것들이에요.
