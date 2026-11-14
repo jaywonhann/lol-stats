@@ -133,10 +133,13 @@ export default async function SummonerPage({ searchParams }: Props) {
   let result: Lookup | null = null;
   let full: Promise<Lookup> | null = null;
   let error: LookupError | null = null;
+  let fullNow: Lookup | null = null;
   try {
     const split = await lookupSplit(server, parsed.gameName, parsed.tagLine);
     result = split.quick;
     full = split.full;
+    // 20판이 이미 와 있으면(캐시에 다 있을 때) 아래에서 10판 화면을 따로 만들지 않고 전체 분석만 그려요
+    full.then((v) => (fullNow = v)).catch(() => {});
     marks.lookup = Date.now();
   } catch (e) {
     error = e instanceof RiotError ? e.kind : "error";
@@ -223,6 +226,7 @@ export default async function SummonerPage({ searchParams }: Props) {
     />
   );
 
+  const shared = { lang, server, version, champions, patches, tagNote, otherServers, update, spellIcons, runeIcons };
   return (
     <div className="space-y-6">
       {header}
@@ -235,39 +239,15 @@ export default async function SummonerPage({ searchParams }: Props) {
           spellIcons={spellIcons}
         />
       </Suspense>
-      {/* 최근 10판으로 먼저 위쪽을 보여 주고, 20판이 다 오면 전체 분석으로 바뀌어요 */}
-      <Suspense
-        fallback={
-          <Analysis
-            quick
-            result={result}
-            lang={lang}
-            server={server}
-            version={version}
-            champions={champions}
-            patches={patches}
-            tagNote={tagNote}
-            otherServers={otherServers}
-            update={update}
-            spellIcons={spellIcons}
-            runeIcons={runeIcons}
-          />
-        }
-      >
-        <FullAnalysis
-          full={full!}
-          lang={lang}
-          server={server}
-          version={version}
-          champions={champions}
-          patches={patches}
-          tagNote={tagNote}
-          otherServers={otherServers}
-          update={update}
-          spellIcons={spellIcons}
-          runeIcons={runeIcons}
-        />
-      </Suspense>
+      {/* 최근 10판으로 먼저 위쪽을 보여 주고, 20판이 다 오면 전체 분석으로 바뀌어요.
+          20판이 이미 와 있으면 10판 화면은 건너뛰어요 (같은 내용을 두 번 그려 페이지가 커지고 CPU를 쓰던 것) */}
+      {fullNow ? (
+        <Analysis result={fullNow} {...shared} />
+      ) : (
+        <Suspense fallback={<Analysis quick result={result} {...shared} />}>
+          <FullAnalysis full={full!} {...shared} />
+        </Suspense>
+      )}
       <Timing marks={marks} />
     </div>
   );
