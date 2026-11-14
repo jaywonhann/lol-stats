@@ -20,7 +20,7 @@ import { growth } from "@/lib/growth";
 import { rateMatch, scoreReport } from "@/lib/score";
 import SummonerSearch from "@/components/SummonerSearch";
 import SyncServer from "@/components/SyncServer";
-import { getChampions, getPatches, getRuneTrees, getSummonerSpells, getVersion, img, type Champion } from "@/lib/ddragon";
+import { getChampions, getPatches, getRuneTrees, getSummonerSpells, getVersion, img, type Champion, type RuneTree, type SummonerSpell } from "@/lib/ddragon";
 import { ddLocale, dict, numLocale, timeAgo, type Lang } from "@/lib/i18n";
 import { boards } from "@/lib/stats";
 import { fetchedAt } from "@/lib/summoner-cache";
@@ -134,6 +134,22 @@ export default async function SummonerPage({ searchParams }: Props) {
   let full: Promise<Lookup> | null = null;
   let error: LookupError | null = null;
   let fullNow: Lookup | null = null;
+  // 게임 데이터(버전·챔피언·패치·주문·룬)는 소환사 조회와 상관없어서 조회를 기다리는 동안 같이 받아 둬요
+  // (예전엔 조회가 끝난 뒤에 받기 시작해서 첫 화면이 그만큼 늦었어요)
+  const pVersion = getVersion().catch(() => null);
+  const pChampions = getChampions(ddLocale(lang))
+    .then((r) => r.champions)
+    .catch(() => [] as Champion[]);
+  const pPatches = getPatches().catch(() => [] as string[]);
+  const pIcons = pVersion.then(
+    (v): Promise<[SummonerSpell[], RuneTree[]]> | [SummonerSpell[], RuneTree[]] =>
+      v
+        ? Promise.all([
+            getSummonerSpells(v, ddLocale(lang)).catch(() => [] as SummonerSpell[]),
+            getRuneTrees(v, ddLocale(lang)).catch(() => [] as RuneTree[]),
+          ])
+        : [[], []],
+  );
   try {
     const split = await lookupSplit(server, parsed.gameName, parsed.tagLine);
     result = split.quick;
@@ -188,21 +204,14 @@ export default async function SummonerPage({ searchParams }: Props) {
     );
   }
 
-  const [version, champions, patches, at] = await Promise.all([
-    getVersion().catch(() => null),
-    getChampions(ddLocale(lang))
-      .then((r) => r.champions)
-      .catch(() => [] as Champion[]),
-    getPatches().catch(() => [] as string[]),
+  const [version, champions, patches, at, [spellList, trees]] = await Promise.all([
+    pVersion,
+    pChampions,
+    pPatches,
     fetchedAt(summonerTag(server, parsed.gameName, parsed.tagLine)),
+    // 게임 목록에 쓰는 소환사 주문·룬 아이콘 (번호 → 이미지 주소)
+    pIcons,
   ]);
-  // 게임 목록에 쓰는 소환사 주문·룬 아이콘 (번호 → 이미지 주소)
-  const [spellList, trees] = version
-    ? await Promise.all([
-        getSummonerSpells(version, ddLocale(lang)).catch(() => []),
-        getRuneTrees(version, ddLocale(lang)).catch(() => []),
-      ])
-    : [[], []];
   marks.data = Date.now();
   const spellIcons: Record<number, string> = {};
   for (const sp of spellList) spellIcons[Number(sp.key)] = img.spell(version!, sp.image.full);

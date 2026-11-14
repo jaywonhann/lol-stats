@@ -173,6 +173,7 @@ function sendFile(req, res) {
 
 let active = 0;
 const queue = [];
+const STUCK_MS = 60_000;
 const light = (url = "") =>
   url.startsWith("/_next/static") || url.startsWith("/emblems/") || /\.(png|jpg|svg|ico|txt|webp|css|js|woff2?)$/.test(url.split("?")[0]);
 
@@ -191,6 +192,19 @@ function run(req, res) {
   };
   res.on("finish", finish);
   res.on("close", finish);
+  // 페이지 하나가 멈추면(2026-11-14: 멀티서치가 90초 넘게 응답 없음) 자리 2개 중 하나를 계속 차지해서
+  // 다른 방문자 페이지까지 줄에서 막혔어요. 60초가 지나도 안 끝나면 그 요청을 끊고 자리를 비워요.
+  const watchdog = setTimeout(() => {
+    if (done) return;
+    console.error(`[watchdog] ${req.url} still rendering after ${STUCK_MS / 1000}s, closing it`);
+    if (!res.headersSent) {
+      res.writeHead(504, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store", "retry-after": "5" });
+      res.end("This page took too long. Please refresh.");
+    } else res.destroy();
+    finish();
+  }, STUCK_MS);
+  watchdog.unref();
+  res.on("close", () => clearTimeout(watchdog));
   Promise.resolve(handle(req, res)).catch((e) => {
     console.error(e);
     if (!res.headersSent) res.statusCode = 500;
