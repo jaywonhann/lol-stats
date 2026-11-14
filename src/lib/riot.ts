@@ -191,6 +191,41 @@ const slimTimeline = (region: Region, matchId: string) =>
     { revalidate: LONG },
   )();
 
+// 경기 원본은 한 판에 100KB 넘게(참가자마다 도전과제 값 100여 개) 와서, 캐시에서 꺼낼 때마다 20판을 다시 읽고 해석하느라
+// 무료 서버(CPU 0.1개)에서 전적 화면이 2초 넘게 멈출 때가 있었어요. 화면에 쓰는 값만 남겨 작게 저장해요 (끝난 게임은 안 바뀌어요).
+const PART_KEYS = [
+  "puuid", "teamId", "teamPosition", "championId", "championName", "win", "kills", "deaths", "assists",
+  "totalMinionsKilled", "neutralMinionsKilled", "goldEarned", "totalDamageDealtToChampions", "visionScore",
+  "gameEndedInEarlySurrender", "riotIdGameName", "riotIdTagline", "item0", "item1", "item2", "item3", "item4",
+  "item5", "item6", "champLevel", "summoner1Id", "summoner2Id", "pentaKills", "quadraKills", "largestKillingSpree",
+  "firstBloodKill",
+] as const satisfies readonly (keyof Participant)[];
+export function slimMatch(m: Match): Match {
+  return {
+    metadata: { matchId: m.metadata.matchId },
+    info: {
+      gameCreation: m.info.gameCreation,
+      gameDuration: m.info.gameDuration,
+      gameEndTimestamp: m.info.gameEndTimestamp,
+      gameVersion: m.info.gameVersion,
+      queueId: m.info.queueId,
+      participants: m.info.participants.map((p) => {
+        const o: Record<string, unknown> = {};
+        for (const k of PART_KEYS) if (p[k] !== undefined) o[k] = p[k];
+        if (p.perks) o.perks = { styles: p.perks.styles.map((st) => ({ style: st.style, selections: st.selections.map((x) => ({ perk: x.perk })) })) };
+        if (p.challenges) o.challenges = { soloKills: p.challenges.soloKills, teamDamagePercentage: p.challenges.teamDamagePercentage };
+        return o as Participant;
+      }),
+    },
+  };
+}
+const getMatch = (region: Region, matchId: string) =>
+  unstable_cache(
+    async (): Promise<Match> => slimMatch(await get<Match>(region, `/lol/match/v5/matches/${encodeURIComponent(matchId)}`, false)),
+    ["match-slim", matchId],
+    { revalidate: LONG },
+  )();
+
 // 업데이트 버튼이 이 태그로 캐시를 비웁니다 (summoner-cache.ts)
 export const summonerTag = (server: Server, gameName: string, tagLine: string) =>
   `sum:${server}:${encodeURIComponent(`${gameName}#${tagLine}`.toLowerCase())}`;
@@ -229,7 +264,7 @@ export async function lookupSummoner(
   // 타임라인 없이 먼저 보여 주고, 라인전 수치는 matchTimelines()로 뒤따라 받아요 (withTimelines=false가 기본).
   const list = ids.slice(0, count);
   const jobs: (() => Promise<Match | Timeline | null>)[] = [
-    ...list.map((id) => () => get<Match>(region, `/lol/match/v5/matches/${encodeURIComponent(id)}`, LONG).catch(() => null)),
+    ...list.map((id) => () => getMatch(region, id).catch(() => null)),
     ...(withTimelines ? list.slice(0, 10) : []).map((id) => () => slimTimeline(region, id).catch(() => null)),
   ];
   const done = await pool(jobs, 10, (job) => job());
@@ -290,7 +325,7 @@ export async function lookupSplit(
   const worker = async () => {
     while (next < list.length) {
       const i = next++;
-      slots[i].done(await get<Match>(region, `/lol/match/v5/matches/${encodeURIComponent(list[i])}`, LONG).catch(() => null));
+      slots[i].done(await getMatch(region, list[i]).catch(() => null));
     }
   };
   for (let k = 0; k < Math.min(10, list.length); k++) void worker();
@@ -398,7 +433,7 @@ export async function lookupLite(server: Server, gameName: string, tagLine: stri
     get<string[]>(region, `/lol/match/v5/matches/by-puuid/${puuid}/ids?queue=420&start=0&count=${count}`, SHORT, tags),
   ]);
   const matches = await pool(ids, 3, (id) =>
-    get<Match>(region, `/lol/match/v5/matches/${encodeURIComponent(id)}`, LONG).catch(() => null),
+    getMatch(region, id).catch(() => null),
   );
   return {
     account,
