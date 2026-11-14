@@ -66,8 +66,10 @@ jobs:
             for p in / /tier "/tier?rank=master" "/tier?rank=diamond" /duo /aram /champions/Jinx "/champions/Ahri?rank=master" /items /matchup /meta /trends /ranking /pros /bans; do
               echo "$s $p"
             done
-          done | xargs -P 6 -L 1 sh -c 'curl -s --max-time 90 -o /dev/null -b "server=$0" -w "%{http_code}\n" "'"$SITE"'$1"' > codes.txt
-          echo "::notice title=burst::$(sort codes.txt | uniq -c | tr '\n' ' ')"
+          done | xargs -P 6 -L 1 sh -c 'curl -s --max-time 90 -o /dev/null -b "server=$0" -w "%{http_code}\n" "'"$SITE"'$1" || true' > codes.txt
+          echo "::notice title=burst::$(sort codes.txt | uniq -c | tr '\n' ' ') [after: $(curl -s -o /dev/null -m 60 -w '%header{x-mem}' "$SITE/robots.txt")]"
+          # 시간 초과(000)나 5xx가 있으면 경고로 남겨요 (예전엔 여기서 점검이 멈춰 뒤 단계가 안 돌았어요)
+          grep -qE '^(000|5)' codes.txt && echo "::warning title=burst::some pages failed under 6 parallel requests" || true
       - name: Fetch pages
         run: |
           SITE=${{ inputs.site || 'https://livelol.onrender.com' }}
