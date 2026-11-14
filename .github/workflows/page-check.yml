@@ -46,6 +46,17 @@ jobs:
             out="$out | cold ${cold#/summoner?id=} $(python3 st.py "$SITE$cold" 2>&1 | tail -1) | again $(python3 st.py "$SITE$cold" 2>&1 | tail -1)"
           fi
           echo "::notice title=summoner timing::${out//%/pct}"
+          # 전적 페이지가 왜 큰지 (HTML 본문 / 화면 전환용 데이터 / 아이콘 / 자주 반복되는 class)
+          python3 - hb.html <<'PY'
+          import re, sys, collections
+          h = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+          rsc = sum(len(m) for m in re.findall(r'<script>self\.__next_f\.push\(.*?</script>', h, re.S))
+          svg = sum(len(m) for m in re.findall(r'<svg.*?</svg>', h, re.S))
+          cls = collections.Counter(re.findall(r'class="([^"]*)"', h))
+          top = sorted(cls.items(), key=lambda kv: -len(kv[0]) * kv[1])[:6]
+          tops = " ; ".join(f"{n}x{len(c)}={n*len(c)//1024}KB [{c[:50]}]" for c, n in top)
+          print(f"::notice title=summoner size::total={len(h)//1024}KB rsc={rsc//1024}KB svg={svg//1024}KB img={h.count('<img')} classAttrs={sum(len(c)*n for c,n in cls.items())//1024}KB top: {tops}")
+          PY
       - name: Burst (several visitors at once, 6 requests in flight)
         # 한꺼번에 40개 넘게 열면 무료 서버(512MB)가 점검 때문에 넘어져서, 동시에 6개까지만 열어요
         run: |
