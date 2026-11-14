@@ -18,7 +18,6 @@ services:
         - .github/**
         - scripts/aram.mjs
         - scripts/browser-check.mjs
-        - scripts/screenshots.mjs
         - scripts/collect.mjs
         - scripts/live-sample.mjs
         - scripts/pro-builds.mjs
