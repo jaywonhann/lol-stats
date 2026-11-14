@@ -22,6 +22,9 @@ const threadsShots = [
   { name: "t4-bans-wasted", path: "/bans", wait: 3000, el: "밴 낭비일 수도 있는 챔피언" },
   { name: "t5-bans-top", path: "/bans", wait: 3000, el: "지금 밴하면 좋은 챔피언 TOP 10" },
   { name: "t6-multi", path: "/multi", wait: 3000 },
+  { name: "t7-yasuo-countered", path: "/champions/Yasuo/counters", wait: 3000, el: "야스오 카운터 (상대하기 어려움)" },
+  { name: "t8-yasuo-beats", path: "/champions/Yasuo/counters", wait: 3000, el: "야스오(으)로 이기기 쉬운 상대" },
+  { name: "t9-counters-hub", path: "/counters", wait: 3000 },
 ];
 const shots = SET === "threads" ? threadsShots : blogShots;
 const phone = SET === "threads";
