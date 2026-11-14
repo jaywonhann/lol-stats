@@ -4,6 +4,10 @@ name: 방문자 신호 점검
 
 on:
   workflow_dispatch:
+    inputs:
+      extra:
+        description: "더 볼 주소 (쉼표로 구분)"
+        default: ""
 
 jobs:
   check:
@@ -19,7 +23,8 @@ jobs:
           cat > hit.mjs <<'JS'
           import { chromium } from "playwright";
           const base = "https://livelol.onrender.com";
-          const pages = ["/", "/tier", "/summoner?id=Hide%20on%20bush%23KR1&s=kr", "/champions/Yasuo/counters"];
+          const extra = (process.env.EXTRA || "").split(",").filter(Boolean);
+          const pages = ["/", "/tier", "/summoner?id=Hide%20on%20bush%23KR1&s=kr", "/champions/Yasuo/counters", ...extra];
           const browser = await chromium.launch();
           let bad = 0;
           for (const p of pages) {
@@ -27,20 +32,25 @@ jobs:
             const page = await ctx.newPage();
             const hits = [], errors = [];
             await page.route("**/__hit*", (r) => { hits.push(r.request().url()); r.fulfill({ status: 204 }); });
+            const res = [];
+            page.on("requestfinished", async (r) => { const tm = r.timing(); res.push([Math.round(tm.responseEnd > 0 ? tm.startTime + tm.responseEnd - t0 : Date.now() - t0), r.resourceType(), r.url().replace(base, "").slice(0, 70)]); });
+            page.on("requestfailed", (r) => res.push([Date.now() - t0, "FAILED", r.url().replace(base, "").slice(0, 70)]));
+            let t0 = Date.now(), dcl = 0;
+            page.on("domcontentloaded", () => (dcl = Date.now() - t0));
             page.on("pageerror", (e) => errors.push(String(e.message).slice(0, 160)));
             page.on("console", (m) => { if (m.type() === "error") errors.push("console: " + m.text().slice(0, 160)); });
-            const t = Date.now();
+            const t = Date.now(); t0 = t;
             try {
               await page.goto(base + p, { waitUntil: "load", timeout: 90000 });
               await page.waitForTimeout(2500);
               await page.mouse.move(100, 200); await page.mouse.wheel(0, 600);
               await page.waitForTimeout(2500);
             } catch (e) { errors.push("goto: " + e.message.slice(0, 120)); }
-            const msg = `${p}: hits=${hits.length} load=${Date.now() - t}ms errors=${errors.length}${errors.length ? " | " + errors.slice(0, 3).join(" | ") : ""}`;
+            const msg = `${p}: hits=${hits.length} load=${Date.now() - t}ms dcl=${dcl}ms slowest=${res.sort((a, b) => b[0] - a[0]).slice(0, 4).map((x) => x.join(" ")).join(" ; ")} errors=${errors.length}${errors.length ? " | " + errors.slice(0, 3).join(" | ") : ""}`;
             if (!hits.length) { bad++; console.log(`::warning::${msg}`); } else console.log(`::notice::${msg}`);
             await ctx.close();
           }
           await browser.close();
           process.exit(bad ? 1 : 0);
           JS
-          node hit.mjs
+          EXTRA="${{ inputs.extra }}" node hit.mjs
