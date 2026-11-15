@@ -90,7 +90,8 @@ function remember(key, pathname, res, chunks) {
 const STALE_MAX = 12 * 60 * 60_000;
 const refreshing = new Set();
 function refresh(key, req) {
-  if (refreshing.has(key)) return;
+  // 한 번에 하나만 새로 만들어요. 이미 하나 만드는 중이면 이번엔 건너뛰고, 다음 방문 때 다시 시도해요
+  if (refreshing.has(key) || refreshing.size >= 1) return;
   refreshing.add(key);
   const headers = { ...req.headers, "x-refresh": "1" };
   delete headers.host;
@@ -172,7 +173,15 @@ function sendFile(req, res) {
 }
 
 let active = 0;
+// 줄은 두 개: 방문자 요청(queue)이 먼저, 뒤에서 오래된 페이지를 새로 만들거나 미리 만드는 요청(bgQueue)은 방문자가 없을 때만.
+// (2026-11-15: 오래된 페이지 25개를 한꺼번에 다시 만들려고 줄을 세워서, 그 뒤에 선 방문자 멀티서치가 90초 넘게 기다렸어요)
 const queue = [];
+const bgQueue = [];
+// 뒤에서 만드는 요청은 한 번에 하나만 (나머지 한 자리는 늘 방문자 몫으로 남겨요)
+let activeBg = 0;
+const nextInLine = () => (queue.shift() ?? (activeBg === 0 ? bgQueue.shift() : undefined))?.();
+const isBackground = (req) =>
+  !!req.headers["x-refresh"] || req.socket.remoteAddress === "127.0.0.1" || req.socket.remoteAddress === "::ffff:127.0.0.1";
 // 지금 만들고 있는 페이지 (경로와 시작 시각만. 소환사 이름 같은 주소 뒤쪽 값은 남기지 않아요) — /__diag에서 봐요
 const rendering = new Map();
 let rid = 0;
@@ -190,11 +199,13 @@ const light = (url = "") =>
 
 function run(req, res) {
   const key = cacheKey(req);
-  if (fromCache(key, res, req)) return void queue.shift()?.();
+  if (fromCache(key, res, req)) return void nextInLine();
   if (key) record(key, req, res);
   // 줄에서 기다린 시간(ms)과 그때 만들던 페이지 수: 느린 페이지가 "만들기"가 느린 건지 "줄 서기"가 긴 건지 page-check에서 구분하려고요
   if (!res.headersSent) res.setHeader("x-wait", `${Date.now() - (req.arrived ?? Date.now())}ms active=${active}`);
   active++;
+  const bgJob = isBackground(req);
+  if (bgJob) activeBg++;
   const myId = ++rid;
   rendering.set(myId, { path: (req.url ?? "/").split("?")[0], rsc: !!req.headers["rsc"], at: Date.now() });
   let done = false;
@@ -203,8 +214,8 @@ function run(req, res) {
     done = true;
     rendering.delete(myId);
     active--;
-    const nextJob = queue.shift();
-    if (nextJob) nextJob();
+    if (bgJob) activeBg--;
+    nextInLine();
   };
   res.on("finish", finish);
   res.on("close", finish);
@@ -311,6 +322,8 @@ function sendStats(req, res) {
       up: Math.round(process.uptime()),
       active,
       queued: queue.length,
+      queuedBg: bgQueue.length,
+      activeBg,
       rendering: [...rendering.values()].map((r) => ({ path: r.path, rsc: r.rsc, sec: Math.round((now - r.at) / 1000) })),
       lagMs: { last: lagLast, max: lagMax },
       mem: { rss: Math.round(m.rss / 1e6), heap: Math.round(m.heapUsed / 1e6), ext: Math.round((m.external + m.arrayBuffers) / 1e6) },
@@ -352,14 +365,15 @@ createServer((req, res) => {
   if (req.socket.remoteAddress !== "127.0.0.1" && req.socket.remoteAddress !== "::ffff:127.0.0.1") lastVisit = Date.now();
   // 저장해 둔 페이지는 줄을 안 서고 바로 보내요
   if (fromCache(cacheKey(req), res, req)) return;
-  if (active < MAX) return run(req, res);
-  if (queue.length >= MAX_QUEUE) {
+  const bg = isBackground(req);
+  if (active < MAX && !(bg && activeBg > 0)) return run(req, res);
+  if ((bg ? bgQueue : queue).length >= MAX_QUEUE) {
     res.statusCode = 503;
     res.setHeader("Retry-After", "5");
     return void res.end("busy, try again in a few seconds");
   }
   // 기다리다 접속을 끊은 요청은 건너뛰어요
-  queue.push(() => (req.destroyed || res.destroyed ? (queue.shift()?.(), undefined) : run(req, res)));
+  (bg ? bgQueue : queue).push(() => (req.destroyed || res.destroyed ? nextInLine() : run(req, res)));
 }).listen(port, "0.0.0.0", () => {
   console.log(`> Ready on port ${port} (pages ${MAX} at a time)`);
   setTimeout(warm, 5_000);
@@ -377,7 +391,7 @@ async function warm(again = false) {
     for (const p of WARM)
       for (const rsc of [false, true]) {
         // 다시 돌 때는 방문자가 없을 때만 (오래된 페이지는 이 요청이 뒤에서 새로 만들게 해요)
-        if (again) while (active > 0 || queue.length > 0 || Date.now() - lastVisit < 8_000) await sleep(1_000);
+        if (again) while (active > 0 || queue.length > 0 || bgQueue.length > 0 || Date.now() - lastVisit < 8_000) await sleep(1_000);
         try {
           await fetch(`http://127.0.0.1:${port}${p}`, {
             headers: { cookie: `lang=${lang}`, "accept-encoding": "gzip", ...(rsc ? { rsc: "1" } : {}) },
@@ -427,7 +441,7 @@ async function idleWarm() {
     for (const [lang, rsc] of [["ko", true], ["ko", false], ["en", true]])
       for (const id of ids) {
         // 방문자가 기다리지 않게: 만들고 있는 페이지가 없고, 마지막 방문 뒤 8초가 지났을 때만
-        while (active > 0 || queue.length > 0 || Date.now() - lastVisit < 8_000) await sleep(1_000);
+        while (active > 0 || queue.length > 0 || bgQueue.length > 0 || Date.now() - lastVisit < 8_000) await sleep(1_000);
         try {
           await fetch(`http://127.0.0.1:${port}/champions/${id}`, {
             headers: { cookie: `lang=${lang}`, "accept-encoding": "gzip", ...(rsc ? { rsc: "1" } : {}) },
