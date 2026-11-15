@@ -1,0 +1,27 @@
+# 멀티서치가 멈출 때 서버 전체가 막히는지(다른 요청도 늦는지) 재는 임시 점검
+name: 멀티서치 멈춤 점검
+on:
+  workflow_dispatch:
+    inputs:
+      q:
+        description: "멀티서치 q 값 (URL 인코딩)"
+        default: "Hide%20on%20bush%20%23KR1"
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          SITE=https://livelol.onrender.com
+          curl -s -o /dev/null -m 60 "$SITE/robots.txt" || true
+          for lang in ko en; do
+            ( curl -s -b "lang=$lang" -o m.html -m 100 -w "multi $lang code=%{http_code} ttfb=%{time_starttransfer} total=%{time_total} wait=%header{x-wait}\n" "$SITE/multi?s=kr&q=${{ inputs.q }}&v=$RANDOM" > m.txt || echo "multi $lang TIMEOUT" > m.txt ) &
+            P=$!
+            probes=""
+            for i in $(seq 1 20); do
+              sleep 4
+              kill -0 $P 2>/dev/null || break
+              probes="$probes $(curl -s -o /dev/null -m 30 -w '%{time_total}' "$SITE/robots.txt?p=$i" || echo X)"
+            done
+            wait $P
+            echo "::notice title=multi $lang::$(cat m.txt) | robots.txt during: $probes | bytes=$(wc -c < m.html)"
+          done
