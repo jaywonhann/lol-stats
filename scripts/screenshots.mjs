@@ -25,6 +25,9 @@ const threadsShots = [
   { name: "t7-yasuo-countered", path: "/champions/Yasuo/counters", wait: 3000, el: "야스오 카운터 (상대하기 어려움)" },
   { name: "t8-yasuo-beats", path: "/champions/Yasuo/counters", wait: 3000, el: "야스오(으)로 이기기 쉬운 상대" },
   { name: "t9-counters-hub", path: "/counters", wait: 3000 },
+  { name: "t10-meta-support-up", path: "/meta?lane=support", wait: 3000, el: "▲ 픽률 상승" },
+  { name: "t11-meta-support-down", path: "/meta?lane=support", wait: 3000, el: "▼ 픽률 하락" },
+  { name: "t12-meta-jungle", path: "/meta?lane=jungle", wait: 3000 },
 ];
 const shots = SET === "threads" ? threadsShots : blogShots;
 const phone = SET === "threads";
