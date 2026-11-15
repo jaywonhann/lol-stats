@@ -17,7 +17,8 @@ import { badges, bestGame, rankVsLobby } from "@/lib/achievements";
 import { Suspense, type ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { growth } from "@/lib/growth";
-import { rateMatch, scoreReport } from "@/lib/score";
+import { blameReport, rateMatch, scoreReport } from "@/lib/score";
+import BlameCard from "@/components/BlameCard";
 import SummonerSearch from "@/components/SummonerSearch";
 import SyncServer from "@/components/SyncServer";
 import { getChampions, getPatches, getRuneTrees, getSummonerSpells, getVersion, img, type Champion, type RuneTree, type SummonerSpell } from "@/lib/ddragon";
@@ -380,6 +381,7 @@ function Analysis({
   const f = form(games);
   const tl = tilt(games);
   const score = scoreReport(result.matches, account.puuid, result.timelines);
+  const blame = blameReport(result.matches, account.puuid);
   const mainLane = roleList[0]?.lane ?? null;
   const laneName = (l: Lane) => laneLabel(l, lang);
   const total = games.length;
@@ -924,6 +926,8 @@ function Analysis({
           </ul>
         </Panel>
       )}
+
+      {blame && <BlameCard report={blame} lang={lang} />}
 
       {score && (
         <Suspense fallback={<div className="h-72 animate-pulse rounded-lg bg-panel" />}>

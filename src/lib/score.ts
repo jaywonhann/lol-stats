@@ -163,3 +163,86 @@ export function scoreReport(
     weakWins: games.filter((g) => g.win && g.inbun < 0.8).length,
   };
 }
+
+// 억까 판독기: 진 판마다 "내 탓인지 팀 탓인지"를 인분 점수로 가릅니다 (자체 계산식).
+// 커뮤니티에서 가장 많이 나오는 말(억까, 정글 차이, 연패 구간)에 실제 전적으로 답하려는 패널이에요.
+export type BlameReport = {
+  games: number;
+  losses: number;
+  unlucky: number; // 팀 내 1~2등, 1.1인분 이상인데 진 판
+  mine: number; // 팀 내 4~5등, 0.85인분 미만으로 진 판
+  even: number;
+  carried: number; // 팀 내 1등으로 이긴 판
+  bussed: number; // 팀 내 4~5등, 0.85인분 미만인데 이긴 판
+  gapLane: { pos: string; count: number } | null; // 진 판에서 가장 크게 밀린 아군 라인 (나 제외)
+  myGap: number; // 진 판 중 내 라인이 팀에서 가장 크게 밀린 판
+  streak: number; // 가장 긴 연패
+  streakChance: number | null; // 승률 50%인 사람이 같은 판수에서 이 연패 이상을 겪을 확률 %
+};
+
+// n판에서 k연패 이상이 한 번이라도 나올 확률 (승률 50% 가정)
+function runChance(n: number, k: number) {
+  if (k <= 0) return 1;
+  if (k > n) return 0;
+  // none[i][j]: i판까지 k연패 없이, 현재 j연패 중일 확률
+  let cur = new Array<number>(k).fill(0);
+  cur[0] = 1;
+  for (let i = 0; i < n; i++) {
+    const next = new Array<number>(k).fill(0);
+    for (let j = 0; j < k; j++) {
+      if (!cur[j]) continue;
+      next[0] += cur[j] * 0.5;
+      if (j + 1 < k) next[j + 1] += cur[j] * 0.5;
+    }
+    cur = next;
+  }
+  return 1 - cur.reduce((a, b) => a + b, 0);
+}
+
+export function blameReport(matches: Match[], puuid: string): BlameReport | null {
+  const out: BlameReport = { games: 0, losses: 0, unlucky: 0, mine: 0, even: 0, carried: 0, bussed: 0, gapLane: null, myGap: 0, streak: 0, streakChance: null };
+  const gaps: Record<string, number> = {};
+  let run = 0;
+  for (const m of matches) {
+    if (m.info.gameDuration < 300) continue;
+    const rated = rateMatch(m);
+    const me = rated.find((r) => r.puuid === puuid);
+    const mp = m.info.participants.find((p) => p.puuid === puuid);
+    if (!me || !mp) continue;
+    out.games++;
+    const team = rated.filter((r) => r.teamId === me.teamId);
+    const rank = team.filter((r) => r.inbun > me.inbun).length + 1;
+    if (mp.win) {
+      run = 0;
+      if (rank === 1) out.carried++;
+      else if (rank >= 4 && me.inbun < 0.85) out.bussed++;
+      continue;
+    }
+    run++;
+    out.streak = Math.max(out.streak, run);
+    out.losses++;
+    if (rank <= 2 && me.inbun >= 1.1) out.unlucky++;
+    else if (rank >= 4 && me.inbun < 0.85) out.mine++;
+    else out.even++;
+    // 라인별 차이: 같은 포지션 상대와의 인분 차이가 가장 큰 아군 라인
+    const pos = new Map(m.info.participants.map((p) => [p.puuid, p.teamPosition]));
+    let worst: { pos: string; diff: number; me: boolean } | null = null;
+    for (const r of team) {
+      const p = pos.get(r.puuid);
+      if (!p) continue;
+      const foe = rated.find((x) => x.teamId !== r.teamId && pos.get(x.puuid) === p);
+      if (!foe) continue;
+      const diff = r.inbun - foe.inbun;
+      if (!worst || diff < worst.diff) worst = { pos: p, diff, me: r.puuid === puuid };
+    }
+    if (worst && worst.diff <= -0.3) {
+      if (worst.me) out.myGap++;
+      else gaps[worst.pos] = (gaps[worst.pos] ?? 0) + 1;
+    }
+  }
+  if (out.games < 5) return null;
+  const top = Object.entries(gaps).sort((a, b) => b[1] - a[1])[0];
+  if (top) out.gapLane = { pos: top[0], count: top[1] };
+  if (out.streak >= 3) out.streakChance = runChance(out.games, out.streak) * 100;
+  return out;
+}
