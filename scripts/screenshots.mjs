@@ -28,6 +28,7 @@ const threadsShots = [
   { name: "t10-meta-support-up", path: "/meta?lane=support", wait: 3000, el: "▲ 픽률 상승" },
   { name: "t11-meta-support-down", path: "/meta?lane=support", wait: 3000, el: "▼ 픽률 하락" },
   { name: "t12-meta-jungle", path: "/meta?lane=jungle", wait: 3000 },
+  { name: "t13-blame-faker", path: "/summoner?id=Hide%20on%20bush%23KR1", wait: 6000, el: "억까 판독기: 내 탓일까 팀 탓일까" },
 ];
 const shots = SET === "threads" ? threadsShots : blogShots;
 const phone = SET === "threads";
