@@ -173,6 +173,17 @@ function sendFile(req, res) {
 
 let active = 0;
 const queue = [];
+// 지금 만들고 있는 페이지 (경로와 시작 시각만. 소환사 이름 같은 주소 뒤쪽 값은 남기지 않아요) — /__diag에서 봐요
+const rendering = new Map();
+let rid = 0;
+// 이벤트 루프 지연: 1초마다 타이머가 얼마나 늦게 울리는지 (CPU를 오래 붙잡는 코드가 있으면 커져요)
+let lagMax = 0, lagLast = 0, lagAt = Date.now();
+setInterval(() => {
+  const now = Date.now();
+  lagLast = Math.max(0, now - lagAt - 1000);
+  lagMax = Math.max(lagMax, lagLast);
+  lagAt = now;
+}, 1000).unref();
 const STUCK_MS = 60_000;
 const light = (url = "") =>
   url.startsWith("/_next/static") || url.startsWith("/emblems/") || /\.(png|jpg|svg|ico|txt|webp|css|js|woff2?)$/.test(url.split("?")[0]);
@@ -184,10 +195,13 @@ function run(req, res) {
   // 줄에서 기다린 시간(ms)과 그때 만들던 페이지 수: 느린 페이지가 "만들기"가 느린 건지 "줄 서기"가 긴 건지 page-check에서 구분하려고요
   if (!res.headersSent) res.setHeader("x-wait", `${Date.now() - (req.arrived ?? Date.now())}ms active=${active}`);
   active++;
+  const myId = ++rid;
+  rendering.set(myId, { path: (req.url ?? "/").split("?")[0], rsc: !!req.headers["rsc"], at: Date.now() });
   let done = false;
   const finish = () => {
     if (done) return;
     done = true;
+    rendering.delete(myId);
     active--;
     const nextJob = queue.shift();
     if (nextJob) nextJob();
@@ -288,6 +302,22 @@ function sendStats(req, res) {
     countVisit(req);
     res.writeHead(204, { "cache-control": "no-store", "x-robots-tag": "noindex" });
     res.end();
+    return true;
+  }
+  if (path === "/__diag") {
+    const now = Date.now();
+    const m = process.memoryUsage();
+    const body = {
+      up: Math.round(process.uptime()),
+      active,
+      queued: queue.length,
+      rendering: [...rendering.values()].map((r) => ({ path: r.path, rsc: r.rsc, sec: Math.round((now - r.at) / 1000) })),
+      lagMs: { last: lagLast, max: lagMax },
+      mem: { rss: Math.round(m.rss / 1e6), heap: Math.round(m.heapUsed / 1e6), ext: Math.round((m.external + m.arrayBuffers) / 1e6) },
+    };
+    lagMax = 0;
+    res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store", "x-robots-tag": "noindex" });
+    res.end(JSON.stringify(body));
     return true;
   }
   if (path !== "/__stats") return false;
