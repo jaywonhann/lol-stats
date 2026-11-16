@@ -100,7 +100,7 @@ jobs:
             pros="$pros | $c panel=$hit cache=$(grep -i '^x-page-cache' ph.txt | tr -d '\r' | cut -d' ' -f2)"
           done
           echo "::notice title=champion pro builds::$pros"
-          case "$pros" in *"panel=0"*) echo "::warning title=champion pro builds::panel missing on some champion pages";; esac
+          case "$pros" in *"panel=1"*|*"panel=2"*) ;; *) echo "::warning title=champion pro builds::panel missing on every checked champion page";; esac
           # 지금 게임 중인 프로 한 명을 찾아 소환사 페이지의 인게임 칸을 확인해요
           who=""; srv=""
           for i in 1 2 3 4 5 6; do
