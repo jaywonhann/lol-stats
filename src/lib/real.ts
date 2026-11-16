@@ -77,7 +77,8 @@ function merge(list: PatchData[]): PatchData {
 }
 
 const cache = new Map<string, { stamp: string; data: Map<string, PatchData> }>();
-const KEEP = 2;
+// 2026-11-16: 압축 형태(packPatch)로 한 조합이 4MB 안팎이라 4개까지 들고 있어요 (예전엔 29MB씩이라 2개)
+const KEEP = 4;
 
 // 세 서버를 다 열어야 하는 합계(상성·듀오)는 빌드할 때 data/derived/ 에 미리 계산해 둬요 (scripts/precompute.ts).
 // 무료 서버(512MB)에서 요청마다 세 서버 데이터를 한꺼번에 읽으면 메모리가 넘쳐요. 파일이 없으면 그때 계산합니다.
@@ -121,7 +122,7 @@ export function loadRealData(filter: Filter): Map<string, PatchData> {
   if (hit) cache.delete(key);
   while (cache.size >= KEEP) cache.delete(cache.keys().next().value!);
   if (useSlim) {
-    const out = new Map(readJson<PatchData[]>(slim).map((d) => [d.patch, d] as const));
+    const out = new Map(readJson<(PatchData | PackedPatch)[]>(slim).map((d) => [d.patch, unpackPatch(d)] as const));
     remember(key, stamp, out);
     return out;
   }
@@ -159,6 +160,59 @@ export function slimPatch(d: PatchData, min = 3): PatchData {
     champs[k] = t as unknown as PatchData["champs"][string];
   }
   return { ...d, champs };
+}
+
+// 메모리 절약용 압축 형태 (2026-11-16): 챔피언별 룬·아이템·상성 기록을 JSON 문자열 그대로 들고 있다가, 읽을 때만 풀어요.
+// 3.5MB 파일 하나를 통째로 풀면 힙을 29MB쯤 쓰는데(작은 배열 수십만 개), 문자열로 두면 4MB 안팎이에요.
+const HEAVY = ["runes", "spells", "starters", "core", "boots", "skills", "vs", "core4", "slots", "shards", "duo"] as const;
+const HEAVY_REQUIRED = new Set<string>(["runes", "spells", "starters", "core", "boots", "skills", "vs"]);
+type Heavy = Partial<Record<(typeof HEAVY)[number], Counts>>;
+export type PackedPatch = Omit<PatchData, "champs"> & { packed: 1; champs: Record<string, [number, number, string]> };
+
+export function packPatch(d: PatchData): PackedPatch {
+  const champs: PackedPatch["champs"] = {};
+  for (const [k, c] of Object.entries(d.champs)) {
+    const h: Heavy = {};
+    for (const key of HEAVY) if (c[key]) h[key] = c[key];
+    champs[k] = [c.games, c.wins, JSON.stringify(h)];
+  }
+  return { patch: d.patch, updatedAt: d.updatedAt, matches: d.matches, bans: d.bans, packed: 1, champs };
+}
+
+// 방금 푼 챔피언 몇 개만 기억해요 (한 페이지가 같은 챔피언의 룬·아이템·상성을 연달아 읽으니까)
+const opened = new Map<LazyChamp, Heavy>();
+const OPENED_MAX = 24;
+class LazyChamp {
+  games: number;
+  wins: number;
+  #h: string;
+  constructor(games: number, wins: number, h: string) {
+    this.games = games;
+    this.wins = wins;
+    this.#h = h;
+  }
+  heavy(): Heavy {
+    let v = opened.get(this);
+    if (v) return v;
+    v = JSON.parse(this.#h) as Heavy;
+    opened.set(this, v);
+    if (opened.size > OPENED_MAX) opened.delete(opened.keys().next().value!);
+    return v;
+  }
+}
+for (const key of HEAVY)
+  Object.defineProperty(LazyChamp.prototype, key, {
+    get(this: LazyChamp) {
+      return this.heavy()[key] ?? (HEAVY_REQUIRED.has(key) ? {} : undefined);
+    },
+    enumerable: true,
+  });
+
+export function unpackPatch(d: PatchData | PackedPatch): PatchData {
+  if (!("packed" in d)) return d;
+  const champs: PatchData["champs"] = {};
+  for (const [k, [g, w, h]] of Object.entries(d.champs)) champs[k] = new LazyChamp(g, w, h) as unknown as ChampAgg;
+  return { patch: d.patch, updatedAt: d.updatedAt, matches: d.matches, bans: d.bans, champs };
 }
 
 // 서버에 실제 수집 데이터가 하나라도 있는지만 가볍게 확인합니다 (JSON을 읽지 않아서 모든 페이지에서 써도 빨라요)
