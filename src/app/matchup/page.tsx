@@ -17,21 +17,37 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const lang = await getLang();
   const ko = lang === "ko";
   if (sp.a && sp.b) {
-    const { champions } = await getChampions(ddLocale(lang)).catch(() => ({ champions: [] as { id: string; name: string }[] }));
+    const { champions } = await getChampions(ddLocale(lang)).catch(() => ({ champions: [] as { id: string; key: string; name: string }[] }));
     const A = champions.find((c) => c.id === sp.a);
     const B = champions.find((c) => c.id === sp.b);
     if (A && B) {
       const ln = laneLabel(parseLane(sp.lane), lang);
+      // 검색 결과 제목에 실제 숫자를 넣어요 (표본 20게임 이상일 때만)
+      let num = "";
+      let numDesc = "";
+      try {
+        const [patches, server] = await Promise.all([getPatches(), getServer()]);
+        const real = loadRealData({ server, rank: "all" });
+        const patch = [...patches].reverse().find((p) => real.has(p));
+        const [g, w] = (patch && real.get(patch)!.champs[`${A.key}:${parseLane(sp.lane)}`]?.vs[B.key]) || [0, 0];
+        if (g >= 20) {
+          const r = ((w / g) * 100).toFixed(1);
+          num = ` ${r}%`;
+          numDesc = ko
+            ? `${A.name} 승률 ${r}% (${g.toLocaleString("en-US")}게임). `
+            : `${A.name} wins ${r}% of ${g.toLocaleString("en-US")} games. `;
+        }
+      } catch {}
       const card = `/api/matchup-card?a=${A.id}&b=${B.id}&lane=${parseLane(sp.lane)}`;
       return {
         // 상성 주소마다 따로 검색에 잡히게 (전엔 전부 /matchup 하나로 묶였어요)
         alternates: await langAlternates(`/matchup?a=${A.id}&b=${B.id}&lane=${parseLane(sp.lane)}`),
         openGraph: { images: card },
         twitter: { card: "summary_large_image", images: card },
-        title: ko ? `${A.name} vs ${B.name} 상성 승률 (${ln})` : `${A.name} vs ${B.name} matchup win rate (${ln})`,
+        title: ko ? `${A.name} vs ${B.name} 상성 승률${num} (${ln})` : `${A.name} vs ${B.name} matchup win rate${num} (${ln})`,
         description: ko
-          ? `${ln}에서 ${A.name}와 ${B.name}가 붙은 실제 랭크 게임 승률과, ${B.name} 상대로 잘 이기는 챔피언을 보여줘요.`
-          : `Real ranked win rate when ${A.name} faced ${B.name} in ${ln}, plus the champions that beat ${B.name} most often.`,
+          ? `${numDesc}${ln}에서 ${A.name}와 ${B.name}가 붙은 실제 랭크 게임 승률과, ${B.name} 상대로 잘 이기는 챔피언을 보여줘요.`
+          : `${numDesc}Real ranked win rate when ${A.name} faced ${B.name} in ${ln}, plus the champions that beat ${B.name} most often.`,
       };
     }
   }
