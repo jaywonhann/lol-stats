@@ -96,7 +96,7 @@ jobs:
           pros=""
           for c in Riven Jinx Ahri LeeSin; do
             curl -s --max-time 90 -D ph.txt -b lang=en "$SITE/champions/$c" -o pc.html
-            hit=$(grep -c 'builds from pros and challengers' pc.html)
+            hit=$(grep -c 'builds from pros and challengers' pc.html || true)
             pros="$pros | $c panel=$hit cache=$(grep -i '^x-page-cache' ph.txt | tr -d '\r' | cut -d' ' -f2)"
           done
           echo "::notice title=champion pro builds::$pros"
