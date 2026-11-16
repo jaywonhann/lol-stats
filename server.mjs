@@ -193,6 +193,44 @@ setInterval(() => {
   lagMax = Math.max(lagMax, lagLast);
   lagAt = now;
 }, 1000).unref();
+// 꺼지기 직전 상태 기록: 5초마다 메모리와 그리던 페이지를 임시 파일에 적어 두고, 다시 켜질 때 읽어 /__diag 의 prev 로 보여줘요.
+// (서버가 왜 꺼졌는지 로그를 볼 수 없어서, 메모리 부족인지 배포인지 가리려는 용도)
+const LAST_FILE = "/tmp/livelol-last.json";
+let prevRun = null;
+try {
+  prevRun = JSON.parse(fs.readFileSync(LAST_FILE, "utf8"));
+} catch {
+  // 처음 켜졌거나 임시 폴더가 비워진 경우
+}
+let lastSignal = "";
+const writeLast = () => {
+  const m = process.memoryUsage();
+  const now = Date.now();
+  try {
+    fs.writeFileSync(
+      LAST_FILE,
+      JSON.stringify({
+        at: new Date(now).toISOString(),
+        up: Math.round(process.uptime()),
+        signal: lastSignal,
+        rss: Math.round(m.rss / 1e6),
+        heap: Math.round(m.heapUsed / 1e6),
+        ext: Math.round((m.external + m.arrayBuffers) / 1e6),
+        lag: lagLast,
+        rendering: [...rendering.values()].map((r) => `${r.path} ${Math.round((now - r.at) / 1000)}s`),
+      }),
+    );
+  } catch {
+    // 기록 실패는 무시
+  }
+};
+setInterval(writeLast, 5000).unref();
+for (const sig of ["SIGTERM", "SIGINT"])
+  process.once(sig, () => {
+    lastSignal = sig;
+    writeLast();
+    process.exit(0);
+  });
 const STUCK_MS = 60_000;
 const light = (url = "") =>
   url.startsWith("/_next/static") || url.startsWith("/emblems/") || /\.(png|jpg|svg|ico|txt|webp|css|js|woff2?)$/.test(url.split("?")[0]);
@@ -327,6 +365,7 @@ function sendStats(req, res) {
       rendering: [...rendering.values()].map((r) => ({ path: r.path, rsc: r.rsc, sec: Math.round((now - r.at) / 1000) })),
       lagMs: { last: lagLast, max: lagMax },
       mem: { rss: Math.round(m.rss / 1e6), heap: Math.round(m.heapUsed / 1e6), ext: Math.round((m.external + m.arrayBuffers) / 1e6) },
+      prev: prevRun,
     };
     lagMax = 0;
     res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store", "x-robots-tag": "noindex" });
