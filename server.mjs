@@ -3,6 +3,8 @@
 // 그래서 페이지는 한 번에 MAX_CONCURRENT개씩만 만들고, 나머지는 줄 세워 차례로 처리합니다.
 // 정적 파일(/_next/static, 이미지 등)은 가벼워서 줄을 서지 않아요.
 import zlib from "node:zlib";
+import v8 from "node:v8";
+import vm from "node:vm";
 import { createServer } from "node:http";
 import fs from "node:fs";
 import path from "node:path";
@@ -355,6 +357,18 @@ function sendStats(req, res) {
   }
   if (path === "/__diag") {
     const now = Date.now();
+    // ?gc=1: 쓰레기를 먼저 치우고 재요 (실제로 붙잡고 있는 힙이 얼마인지 보려고. 0.1 CPU에서 잠깐 멈추니 점검할 때만)
+    let gcMs = null;
+    if ((req.url ?? "").includes("gc=1")) {
+      try {
+        v8.setFlagsFromString("--expose-gc");
+        const t = Date.now();
+        vm.runInNewContext("gc")();
+        gcMs = Date.now() - t;
+      } catch {
+        gcMs = -1;
+      }
+    }
     const m = process.memoryUsage();
     const body = {
       up: Math.round(process.uptime()),
@@ -366,6 +380,9 @@ function sendStats(req, res) {
       lagMs: { last: lagLast, max: lagMax },
       mem: { rss: Math.round(m.rss / 1e6), heap: Math.round(m.heapUsed / 1e6), ext: Math.round((m.external + m.arrayBuffers) / 1e6) },
       prev: prevRun,
+      gcMs,
+      heapTotal: Math.round(m.heapTotal / 1e6),
+      spaces: Object.fromEntries(v8.getHeapSpaceStatistics().map((x) => [x.space_name.replace("_space", ""), Math.round(x.space_used_size / 1e6)])),
     };
     lagMax = 0;
     res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store", "x-robots-tag": "noindex" });
