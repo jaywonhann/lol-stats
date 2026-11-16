@@ -15,7 +15,8 @@ const ALL_PAGES = ["", "/tier", "/trends", "/meta", "/champions", "/counters", "
 const PAGES = ALL_PAGES.filter((p) => p !== "/community" || communityOn());
 
 // 실제 데이터에서 표본이 많은 상성 조합 상위 N개 ("야스오 vs 요네" 같은 검색 유입용)
-function matchupUrls(byKey: Map<string, string>, limit = 400): string[] {
+// 구글 유입이 대부분 상성 페이지라 400 → 1500으로 늘렸어요 (1500번째도 세 서버 합쳐 160게임 이상)
+function matchupUrls(byKey: Map<string, string>, limit = 1500): string[] {
   return topMatchups()
     .filter((m) => byKey.has(m.a) && byKey.has(m.b))
     .slice(0, limit)
