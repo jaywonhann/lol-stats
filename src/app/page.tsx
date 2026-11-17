@@ -164,15 +164,17 @@ export default async function Home() {
           title={lang === "ko" ? "게임 전에 쓰는 도구" : "Before your game"}
           note={lang === "ko" ? "챔피언 선택부터 게임 중까지 바로 쓸 수 있어요." : "From champ select to mid-game."}
         />
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           {(lang === "ko"
             ? [
+                ["/daily", "오늘의 승률 맞히기", "매일 5문제. 누가 더 많이 이길지 맞혀 보고 결과를 공유해요"],
                 ["/multi", "멀티서치", "로비 채팅을 붙여 넣으면 우리 팀 5명 전적과 팀 맞춤 밴 추천"],
                 ["/bans", "밴 추천", "이번 패치에 밴할 가치가 있는 챔피언과 밴 낭비 챔피언"],
                 ["/predict", "승률 예측", "양 팀 챔피언으로 보는 예상 승률"],
                 ["/tools", "게임 타이머", "상대 스펠 쿨타임과 오브젝트 재생성 시간"],
               ]
             : [
+                ["/daily", "Daily matchup quiz", "Five questions a day. Guess who wins the lane and share your score"],
                 ["/multi", "Multi-search", "Paste the lobby chat to see all five teammates and bans for your team"],
                 ["/bans", "Who to ban", "Champions worth banning this patch, and bans you might be wasting"],
                 ["/predict", "Win predictor", "Expected win rate from both teams' champions"],
