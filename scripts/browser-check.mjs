@@ -5,7 +5,7 @@ const pages = (process.env.PAGES ?? "/,/tier,/champions/Jinx").split(",");
 const b = await chromium.launch();
 for (const p of pages) {
   for (const round of ["cold", "warm"]) {
-    const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, locale: "ko-KR" });
+    const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, locale: "ko-KR", userAgent: "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130 Mobile Safari/537.36 livelol-check-monitor" });
     const page = await ctx.newPage();
     const res = [];
     page.on("requestfinished", async (r) => {
@@ -37,7 +37,7 @@ await b.close();
 // skel = 누른 뒤 "불러오는 중" 뼈대가 뜬 시간, url = 주소가 바뀐(새 화면이 그려진) 시간. 결과는 한 줄로 모아 찍어요 (알림은 10개까지만 보여서).
 if (process.env.NAV) {
   const b2 = await chromium.launch();
-  const ctx = await b2.newContext({ viewport: { width: 390, height: 844 }, locale: "ko-KR" });
+  const ctx = await b2.newContext({ viewport: { width: 390, height: 844 }, locale: "ko-KR", userAgent: "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130 Mobile Safari/537.36 livelol-check-monitor" });
   const page = await ctx.newPage();
   const rsc = [];
   page.on("response", async (r) => {
