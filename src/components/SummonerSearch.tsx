@@ -12,11 +12,13 @@ export default function SummonerSearch({
   server,
   defaultValue = "",
   large = false,
+  autoFocus = false,
 }: {
   lang: Lang;
   server: Server;
   defaultValue?: string;
   large?: boolean;
+  autoFocus?: boolean;
 }) {
   const t = dict(lang).summoner;
   return (
@@ -30,6 +32,7 @@ export default function SummonerSearch({
           defaultValue={defaultValue}
           placeholder={t.placeholder}
           server={server}
+          autoFocus={autoFocus}
           recentLabel={lang === "ko" ? "최근 검색" : "Recent"}
           className={`w-full rounded-md border border-line bg-panel-2 px-3 text-text placeholder:text-muted focus:border-accent focus:outline-none ${large ? "h-12 text-base" : "h-10 text-sm"}`}
         />

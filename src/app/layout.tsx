@@ -48,6 +48,8 @@ export default async function RootLayout({
             <link rel="alternate" hrefLang="x-default" href={home.en} />
           </>
         )}
+        {/* 브라우저 주소창에서 바로 전적 검색 (크롬: 주소창에 사이트 이름을 치고 Tab) */}
+        <link rel="search" type="application/opensearchdescription+xml" title="livelol" href="/opensearch.xml" />
         {/* 한글·영문 모두 같은 인상으로 보이도록 Pretendard 를 실제로 불러와요 (필요한 글자만 나눠 받음) */}
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="" />
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />

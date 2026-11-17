@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "@/components/Link";
 import ShareButton from "@/components/ShareButton";
+import InstallButton from "@/components/InstallButton";
 import SinceLast from "@/components/SinceLast";
 import SinceLastVisit from "@/components/SinceLastVisit";
 import { Icon, Panel } from "@/components/ui";
@@ -124,7 +125,7 @@ export default async function SummonerPage({ searchParams }: Props) {
         <h1 className="text-2xl font-bold">{t.title}</h1>
         <p className="mt-1 text-sm text-muted">{t.intro}</p>
       </div>
-      <SummonerSearch lang={lang} server={server} defaultValue={raw} />
+      <SummonerSearch lang={lang} server={server} defaultValue={raw} autoFocus={!raw} />
       {server !== cookieServer && <SyncServer server={server} />}
     </section>
   );
@@ -342,6 +343,7 @@ function Analysis({
           <div className="mt-2.5 flex flex-wrap items-start gap-2">
             <ShareButton url={`/summoner?id=${encodeURIComponent(`${account.gameName}#${account.tagLine}`)}&s=${server}`} title={t.metaTitle(`${account.gameName}#${account.tagLine}`)} label={t.shareLabel} copied={t.shareCopied} kind="summoner" />
             {update}
+            <InstallButton label={lang === "ko" ? "홈 화면에 추가" : "Add to home screen"} />
           </div>
         </div>
         <div className="hidden self-stretch border-l border-line md:block" aria-hidden />

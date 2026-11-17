@@ -144,7 +144,7 @@ function record(key, req, res) {
 
 // 사이트 파일(/_next/static, public)은 서버가 켜질 때 메모리에 올려 두고 Next를 거치지 않고 바로 보내요.
 // JS·CSS는 빌드 때 미리 압축한 것(.br/.gz, scripts/precompress.mjs)을 보내서 요청마다 압축하지 않아요.
-const TYPES = { js: "application/javascript; charset=utf-8", css: "text/css; charset=utf-8", png: "image/png", jpg: "image/jpeg", webp: "image/webp", svg: "image/svg+xml", ico: "image/x-icon", woff2: "font/woff2", woff: "font/woff", json: "application/json", txt: "text/plain; charset=utf-8", webmanifest: "application/manifest+json" };
+const TYPES = { js: "application/javascript; charset=utf-8", css: "text/css; charset=utf-8", png: "image/png", jpg: "image/jpeg", webp: "image/webp", svg: "image/svg+xml", ico: "image/x-icon", woff2: "font/woff2", woff: "font/woff", json: "application/json", txt: "text/plain; charset=utf-8", webmanifest: "application/manifest+json", xml: "application/xml; charset=utf-8" };
 const files = new Map(); // url -> { type, raw, br, gz, immutable }
 function load(dir, prefix, immutable) {
   if (!fs.existsSync(dir)) return;
@@ -413,6 +413,37 @@ function sendStats(req, res) {
   return true;
 }
 
+// 한 번에 들어오는 주소: 짧은 주소(/s/이름-태그)와, 다른 전적 사이트 주소에서 도메인만 바꾼 주소를 전적 결과로 바로 보내요.
+//   /s/Hide on bush-KR1                      (짧은 주소)
+//   /summoners/kr/Hide on bush-KR1           (op.gg 식, 앞에 /lol 이 붙어도 됨)
+//   /lol/profile/kr/hide on bush-kr1/overview (u.gg 식)
+//   /summoner/kr/Hide on bush-KR1            (그 밖의 사이트 식)
+const REGION = { kr: "kr", na: "na1", na1: "na1", euw: "euw1", euw1: "euw1" };
+function shortcut(req, res) {
+  if (req.method !== "GET" && req.method !== "HEAD") return false;
+  const [pathname, query = ""] = (req.url ?? "").split("?");
+  const m =
+    /^\/s\/()([^/]+)\/?$/.exec(pathname) ??
+    /^(?:\/lol)?\/summoners?\/([a-z0-9]+)\/([^/]+)\/?$/i.exec(pathname) ??
+    /^\/lol\/profile\/([a-z0-9]+)\/([^/]+)(?:\/[a-z-]*)?\/?$/i.exec(pathname);
+  if (!m) return false;
+  let who;
+  try {
+    who = decodeURIComponent(m[2]).replace(/\+/g, " ").trim().slice(0, 60);
+  } catch {
+    return false;
+  }
+  if (!who) return false;
+  // 마지막 "-" 뒤가 태그예요 (이름에 "-"가 들어갈 수 있어서 마지막 것만)
+  const i = who.lastIndexOf("-");
+  const id = who.includes("#") || i <= 0 || i === who.length - 1 ? who : `${who.slice(0, i)}#${who.slice(i + 1)}`;
+  const server = REGION[m[1].toLowerCase()] ?? new URLSearchParams(query).get("s");
+  const to = `/summoner?id=${encodeURIComponent(id)}${server && REGION[server] ? `&s=${REGION[server]}` : ""}`;
+  res.writeHead(302, { location: to, "cache-control": "no-store", "x-robots-tag": "noindex" });
+  res.end();
+  return true;
+}
+
 await app.prepare();
 let lastVisit = 0; // 방문자 페이지 요청이 마지막으로 온 시각 (미리 만들기는 그 뒤 잠깐 쉬어요)
 createServer((req, res) => {
@@ -428,6 +459,7 @@ createServer((req, res) => {
     req.headers["x-lang-url"] = lp;
   }
   req.headers["x-pathname"] = (req.url ?? "/").split("?")[0];
+  if (shortcut(req, res)) return;
   if (sendStats(req, res)) return;
   countVisit(req);
   if (sendFile(req, res)) return;

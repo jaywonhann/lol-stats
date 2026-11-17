@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
+  <ShortName>livelol</ShortName>
+  <Description>livelol.stats 전적 검색 (Riot ID)</Description>
+  <InputEncoding>UTF-8</InputEncoding>
+  <Image width="192" height="192" type="image/png">https://livelol.onrender.com/icon-192.png</Image>
+  <Url type="text/html" method="get" template="https://livelol.onrender.com/summoner?id={searchTerms}"/>
+</OpenSearchDescription>

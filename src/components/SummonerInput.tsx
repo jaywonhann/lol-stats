@@ -30,12 +30,14 @@ export default function SummonerInput({
   server,
   className,
   recentLabel,
+  autoFocus = false,
 }: {
   defaultValue: string;
   placeholder: string;
   server: string;
   className: string;
   recentLabel: string;
+  autoFocus?: boolean;
 }) {
   const [value, setValue] = useState(defaultValue);
   // 검색할 서버: 보통은 지금 고른 서버, 최근 검색을 고르면 그 소환사의 서버
@@ -45,6 +47,10 @@ export default function SummonerInput({
   const [active, setActive] = useState(-1);
   const box = useRef<HTMLDivElement>(null);
   const seq = useRef(0);
+  // 전적 검색 첫 화면에서는 PC라면 누르지 않고 바로 칠 수 있게 (휴대폰은 자판이 화면을 가려서 안 해요)
+  useEffect(() => {
+    if (autoFocus && matchMedia("(pointer: fine)").matches) (document.getElementById("summoner-id") as HTMLInputElement | null)?.focus({ preventScroll: true });
+  }, [autoFocus]);
 
   // 현재 보고 있는 검색어를 최근 검색에 저장
   useEffect(() => {
