@@ -4,7 +4,7 @@ import { Icon, Panel } from "@/components/ui";
 import SummonerSearch from "@/components/SummonerSearch";
 import ShareButton from "@/components/ShareButton";
 import { getChampions, getPatches, img } from "@/lib/ddragon";
-import { LANES, laneLabel, parseLane, type Lane } from "@/lib/lanes";
+import { LANES, laneLabel, parseLane, patchName, type Lane } from "@/lib/lanes";
 import { redirect } from "next/navigation";
 import BreadcrumbLd from "@/components/BreadcrumbLd";
 import { loadRealData } from "@/lib/real";
@@ -205,6 +205,14 @@ export default async function MatchupPage({ searchParams }: Props) {
                   : `${A.name} win rate against ${B.name} in ${laneLabel(lane, lang)} (${g} games)`}
               </p>
               {g < 10 && <p className="mt-2 text-xs text-muted">{ko ? "표본이 적어서 참고용이에요." : "Small sample, treat as a rough guide."}</p>}
+              {g >= 30 && (
+                // 검색엔진과 AI 답변이 그대로 인용하기 쉬운 한 문장 (숫자·표본·패치·서버 포함)
+                <p className="mx-auto mt-3 max-w-xl text-sm text-muted">
+                  {ko
+                    ? `${laneLabel(lane, lang)} ${A.name} 대 ${B.name} 상성은 ${rate >= 51 ? `${A.name}가 유리해요` : rate <= 49 ? `${B.name}가 유리해요` : "거의 반반이에요"}. ${patchName(patch!)} 패치 ${server.toUpperCase()} 에메랄드 이상 솔로랭크 ${g}게임에서 ${A.name}가 ${rate.toFixed(1)}%, ${B.name}가 ${(100 - rate).toFixed(1)}% 이겼어요.`
+                    : `In ${laneLabel(lane, lang)}, ${rate >= 51 ? `${A.name} beats ${B.name}` : rate <= 49 ? `${B.name} beats ${A.name}` : `${A.name} vs ${B.name} is close to even`}: ${A.name} won ${rate.toFixed(1)}% and ${B.name} ${(100 - rate).toFixed(1)}% of ${g} Emerald+ ranked solo games on ${server.toUpperCase()}, patch ${patchName(patch!)}.`}
+                </p>
+              )}
               <div className="mt-3">
                 <ShareButton
                   url={`/${A.id}-vs-${B.id}/${lane}`}
@@ -291,6 +299,16 @@ export default async function MatchupPage({ searchParams }: Props) {
             </Panel>
           )}
         </div>
+      )}
+      {A && B && (
+        // 검색으로 들어온 사람이 매일 다시 올 이유: 오늘의 상성 퀴즈 (Wordle/Loldle식 하루 한 번)
+        <Link href="/daily" className="flex items-center justify-between gap-3 rounded-lg bg-panel p-4 text-sm">
+          <span>
+            <span className="block font-semibold">{ko ? "오늘의 상성 퀴즈 5문제" : "Today's 5-question matchup quiz"}</span>
+            <span className="block text-muted">{ko ? "누가 이길지 맞혀 보세요. 매일 새 문제가 나와요." : "Guess who wins the lane. New questions every day."}</span>
+          </span>
+          <span className="shrink-0 rounded-lg bg-accent px-3 py-1.5 font-semibold text-black">{ko ? "풀어보기" : "Play"}</span>
+        </Link>
       )}
       {A && B && (
         // 검색으로 상성만 보고 나가는 사람이 자기 전적도 넣어 보게 (2026-11-17 유입 분석)
