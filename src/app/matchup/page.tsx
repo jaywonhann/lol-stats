@@ -82,12 +82,11 @@ export default async function MatchupPage({ searchParams }: Props) {
   const champsAgg = patch ? real.get(patch)!.champs : {};
   const beatsB: Ranked[] = [];
   if (B) {
-    for (const [k, v] of Object.entries(champsAgg)) {
-      const [ck, cl] = k.split(":");
-      if (cl !== lane || ck === B.key) continue;
-      const [vg, vw] = v.vs[B.key] ?? [0, 0];
+    // B의 상대 기록을 뒤집어서 구해요 (X가 B를 이긴 판 = B가 X에게 진 판).
+    // 전에는 그 라인의 모든 챔피언 기록을 하나씩 풀어 읽어서, 처음 여는 상성 페이지가 무료 서버에서 6초 넘게 걸렸어요 (2026-11-17).
+    for (const [ck, [vg, bw]] of Object.entries(champsAgg[`${B.key}:${lane}`]?.vs ?? {})) {
       const c = byKey.get(ck);
-      if (c && vg >= 5) beatsB.push({ c, games: vg, rate: (vw / vg) * 100 });
+      if (c && vg >= 5) beatsB.push({ c, games: vg, rate: ((vg - bw) / vg) * 100 });
     }
     beatsB.sort((x, y) => y.rate - x.rate || y.games - x.games);
   }
