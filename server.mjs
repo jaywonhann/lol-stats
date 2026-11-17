@@ -292,8 +292,9 @@ const BOOT = randomBytes(6).toString("hex");
 const SALT = randomBytes(16).toString("hex");
 const visitDays = new Map(); // "2026-11-10" -> { seen:Set, uv, land, nav, ref:{}, top:{}, bots:{}, shares:{} }
 const BOT_UA = /bot|crawl|spider|slurp|yeti|preview|scrap|facebookexternalhit|curl|wget|python|headless|lighthouse|monitor|uptime|axios|node-fetch|go-http|okhttp|java\/|^$/i;
-const SHARE_UA = [["kakao", /kakaotalk/i], ["facebook", /facebookexternalhit|meta-externalagent/i], ["twitter", /twitterbot/i], ["discord", /discordbot/i], ["slack", /slackbot/i], ["telegram", /telegrambot/i], ["whatsapp", /whatsapp/i], ["line", /line-poker|linebot/i]];
-const CRAWL_UA = [["google", /googlebot|google-inspectiontool|googleother/i], ["naver", /yeti|naverbot/i], ["bing", /bingbot|bingpreview/i], ["daum", /daum/i], ["yandex", /yandex/i], ["ai", /gptbot|chatgpt|claudebot|perplexity|bytespider|ccbot|amazonbot/i]];
+const TRAIN_UA = /meta-externalagent|gptbot|ccbot|bytespider|claudebot|anthropic-ai|amazonbot|diffbot|omgili|imagesiftbot|petalbot|semrushbot|ahrefsbot|mj12bot|dotbot|dataforseo|barkrowler|blexbot/i;
+const SHARE_UA = [["kakao", /kakaotalk/i], ["facebook", /facebookexternalhit/i], ["twitter", /twitterbot/i], ["discord", /discordbot/i], ["slack", /slackbot/i], ["telegram", /telegrambot/i], ["whatsapp", /whatsapp/i], ["line", /line-poker|linebot/i]];
+const CRAWL_UA = [["google", /googlebot|google-inspectiontool|googleother/i], ["naver", /yeti|naverbot/i], ["bing", /bingbot|bingpreview/i], ["daum", /daum/i], ["yandex", /yandex/i], ["ai", /gptbot|chatgpt|claudebot|perplexity|bytespider|ccbot|amazonbot|meta-externalagent/i]];
 const REF_NAMES = [["google", /(^|\.)google\./], ["naver", /(^|\.)naver\.com$/], ["bing", /(^|\.)bing\.com$/], ["daum", /(^|\.)daum\.net$/], ["duckduckgo", /duckduckgo/], ["threads", /threads\.(net|com)$/], ["instagram", /instagram\.com$/], ["facebook", /facebook\.com$/], ["x", /^(t\.co|x\.com|twitter\.com)$/], ["reddit", /reddit\.com$/], ["youtube", /youtube\.com$|youtu\.be$/], ["discord", /discord/], ["kakao", /kakao/], ["tistory", /tistory\.com$/], ["inven", /inven\.co\.kr$/], ["dcinside", /dcinside\.com$/], ["fmkorea", /fmkorea\.com$/], ["tiktok", /tiktok\.com$/]];
 const bump = (o, k, cap = 200) => {
   if (k in o) o[k]++;
@@ -465,6 +466,14 @@ createServer((req, res) => {
   if (sendFile(req, res)) return;
 
   if (light(req.url)) return void handle(req, res);
+  // AI 학습용·SEO 수집 로봇은 방문자를 데려오지 않는데 하루 수천 페이지를 긁어서(2026-11-17: Meta 4,900번, AI 로봇 3,000번대)
+  // 작은 무료 서버에서 사람이 기다리게 만들어요. 저장해 둔 페이지만 주고, 새로 만들어야 하는 페이지는 만들지 않아요.
+  // (구글·네이버·빙 검색 로봇과 링크 미리보기 로봇은 그대로 둬요)
+  if (TRAIN_UA.test(String(req.headers["user-agent"] ?? ""))) {
+    if (fromCache(cacheKey(req), res, null)) return;
+    res.writeHead(429, { "retry-after": "86400", "cache-control": "no-store", "content-type": "text/plain; charset=utf-8" });
+    return void res.end("crawl limit, see robots.txt");
+  }
   // 그림·파일·robots.txt(서버 깨우기)는 빼고 페이지 요청만 방문으로 쳐요
   if (req.socket.remoteAddress !== "127.0.0.1" && req.socket.remoteAddress !== "::ffff:127.0.0.1") lastVisit = Date.now();
   // 저장해 둔 페이지는 줄을 안 서고 바로 보내요
