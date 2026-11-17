@@ -340,7 +340,7 @@ function Analysis({
             {profile && ` · ${t.level(profile.summonerLevel.toLocaleString(nl))}`}
           </p>
           <div className="mt-2.5 flex flex-wrap items-start gap-2">
-            <ShareButton url={`/summoner?id=${encodeURIComponent(`${account.gameName}#${account.tagLine}`)}&s=${server}`} title={t.metaTitle(`${account.gameName}#${account.tagLine}`)} label={t.shareLabel} copied={t.shareCopied} />
+            <ShareButton url={`/summoner?id=${encodeURIComponent(`${account.gameName}#${account.tagLine}`)}&s=${server}`} title={t.metaTitle(`${account.gameName}#${account.tagLine}`)} label={t.shareLabel} copied={t.shareCopied} kind="summoner" />
             {update}
           </div>
         </div>
@@ -927,7 +927,7 @@ function Analysis({
         </Panel>
       )}
 
-      {blame && <BlameCard report={blame} lang={lang} />}
+      {blame && <BlameCard report={blame} lang={lang} shareUrl={`/summoner?id=${encodeURIComponent(`${account.gameName}#${account.tagLine}`)}&s=${server}`} />}
 
       {score && (
         <Suspense fallback={<div className="h-72 animate-pulse rounded-lg bg-panel" />}>

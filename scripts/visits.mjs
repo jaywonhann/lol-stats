@@ -28,7 +28,7 @@ const top = (o, n) => Object.fromEntries(Object.entries(o).sort((a, b) => b[1] -
 const today = new Date().toISOString().slice(0, 10);
 for (const [day, rec] of Object.entries(data.days)) {
   if (!rec.boots) continue;
-  const t = { uv: 0, land: 0, nav: 0, ref: {}, top: {}, bots: {}, shares: {}, entry: {}, flow: {} };
+  const t = { uv: 0, land: 0, nav: 0, ref: {}, top: {}, bots: {}, shares: {}, entry: {}, flow: {}, ev: {} };
   for (const b of Object.values(rec.boots)) {
     // 예전 방식(v 3 미만)은 브라우저인 척하는 로봇까지 사람으로 셌어요. 그 기록은 로봇 쪽으로 옮겨요.
     if ((b.v ?? 1) < 3) {
@@ -39,9 +39,9 @@ for (const [day, rec] of Object.entries(data.days)) {
     t.uv += b.uv ?? 0;
     t.land += b.land ?? 0;
     t.nav += b.nav ?? 0;
-    for (const k of ["ref", "top", "bots", "shares", "entry", "flow"]) addMap(t[k], b[k]);
+    for (const k of ["ref", "top", "bots", "shares", "entry", "flow", "ev"]) addMap(t[k], b[k]);
   }
-  Object.assign(rec, { uv: t.uv, land: t.land, nav: t.nav, ref: top(t.ref, 30), top: top(t.top, 30), bots: t.bots, shares: t.shares, entry: top(t.entry, 60), flow: top(t.flow, 60) });
+  Object.assign(rec, { uv: t.uv, land: t.land, nav: t.nav, ref: top(t.ref, 30), top: top(t.top, 30), bots: t.bots, shares: t.shares, entry: top(t.entry, 60), flow: top(t.flow, 60), ev: t.ev });
   // 사흘 지난 날은 서버가 더 보내지 않으니 합계만 남겨요
   if ((new Date(today) - new Date(day)) / 86_400_000 > 3) delete rec.boots;
 }

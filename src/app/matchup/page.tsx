@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "@/components/Link";
 import { Icon, Panel } from "@/components/ui";
 import SummonerSearch from "@/components/SummonerSearch";
+import ShareButton from "@/components/ShareButton";
 import { getChampions, getPatches, img } from "@/lib/ddragon";
 import { LANES, laneLabel, parseLane } from "@/lib/lanes";
 import { loadRealData } from "@/lib/real";
@@ -184,6 +185,16 @@ export default async function MatchupPage({ searchParams }: Props) {
                   : `${A.name} win rate against ${B.name} in ${laneLabel(lane, lang)} (${g} games)`}
               </p>
               {g < 10 && <p className="mt-2 text-xs text-muted">{ko ? "표본이 적어서 참고용이에요." : "Small sample, treat as a rough guide."}</p>}
+              <div className="mt-3">
+                <ShareButton
+                  url={`/matchup?a=${A.id}&b=${B.id}&lane=${lane}`}
+                  title={`${A.name} vs ${B.name}`}
+                  label={ko ? "이 상성 친구한테 보내기" : "Send this matchup to a friend"}
+                  copied={ko ? "승률과 링크를 복사했어요!" : "Win rate and link copied!"}
+                  text={ko ? `${laneLabel(lane, lang)} ${A.name} vs ${B.name}: ${A.name} 승률 ${rate.toFixed(1)}% (${g}게임)` : `${A.name} vs ${B.name} (${laneLabel(lane, lang)}): ${A.name} wins ${rate.toFixed(1)}% of ${g} games`}
+                  kind="matchup"
+                />
+              </div>
               <div className="mt-4 flex flex-wrap justify-center gap-4 text-sm">
                 <Link href={`/champions/${A.id}?lane=${lane}`} className="text-accent hover:underline">
                   {ko ? `${A.name} 빌드 보기` : `${A.name} builds`}

@@ -1,5 +1,6 @@
 // 억까 판독기: 진 판이 내 탓인지 팀 탓인지 (서버 렌더, 자체 계산식)
 import { Panel } from "@/components/ui";
+import ShareButton from "@/components/ShareButton";
 import type { BlameReport } from "@/lib/score";
 import type { Lang } from "@/lib/i18n";
 
@@ -24,6 +25,9 @@ const T = {
     wins: (c: number, b: number) => `이긴 판은 팀 내 1등 캐리 ${c}판, 버스 탄 판 ${b}판.`,
     streak: (s: number, n: number, p: string) =>
       `연패 구간 진짜일까? 가장 긴 연패는 ${s}연패예요. 승률 50%인 사람도 ${n}판 하면 ${s}연패 이상을 겪을 확률이 ${p}%라서, ${Number(p) >= 20 ? "흔한 일이에요. 매칭 탓보다는 운이에요." : "꽤 드문 일이에요. 진짜 고생했어요."}`,
+    share: "친구한테 결과 보내기",
+    copied: "결과와 링크를 복사했어요!",
+    shareText: (v: string, l: number, u: number, m: number) => `억까 판독 결과: ${v}. 진 ${l}판 중 억까 ${u}판, 내 탓 ${m}판. 너도 넣어 봐`,
     note: "딜량·킬관여·생존·시야·성장을 그 판 10명과 비교한 인분 점수로 판별한 자체 지표예요 (공식 지표 아님, 재미로 보세요).",
   },
   en: {
@@ -41,11 +45,14 @@ const T = {
     wins: (c: number, b: number) => `In wins: ${c} games as the team's top performer, ${b} games carried by others.`,
     streak: (s: number, n: number, p: string) =>
       `Is losers queue real? Your longest loss streak was ${s}. A 50% win rate player has a ${p}% chance of a streak that long in ${n} games, so ${Number(p) >= 20 ? "it's common. More luck than matchmaking." : "that is fairly rare. Rough stretch."}`,
+    share: "Send result to a friend",
+    copied: "Result and link copied!",
+    shareText: (v: string, l: number, u: number, m: number) => `Was it me or my team? ${v}. Of ${l} losses, ${u} were the team's fault and ${m} were on me. Try yours`,
     note: "Our own metric based on contribution scores (damage, kill participation, survival, vision, growth vs the other 9 players). Not an official stat, just for fun.",
   },
 };
 
-export default function BlameCard({ report, lang }: { report: BlameReport; lang: Lang }) {
+export default function BlameCard({ report, lang, shareUrl }: { report: BlameReport; lang: Lang; shareUrl?: string }) {
   const t = lang === "ko" ? T.ko : T.en;
   const pos = lang === "ko" ? POS.ko : POS.en;
   if (report.losses < 3)
@@ -90,6 +97,9 @@ export default function BlameCard({ report, lang }: { report: BlameReport; lang:
           <li>{t.wins(report.carried, report.bussed)}</li>
           {report.streakChance !== null && <li>{t.streak(report.streak, report.games, report.streakChance.toFixed(0))}</li>}
         </ul>
+        {shareUrl && (
+          <ShareButton url={shareUrl} title={t.title} label={t.share} copied={t.copied} text={t.shareText(verdict.text, report.losses, report.unlucky, report.mine)} kind="blame" />
+        )}
         <p className="text-xs text-muted">{t.note}</p>
       </div>
     </Panel>

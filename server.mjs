@@ -306,7 +306,7 @@ function countVisit(req) {
     const day = new Date().toISOString().slice(0, 10);
     let d = visitDays.get(day);
     if (!d) {
-      d = { seen: new Set(), uv: 0, land: 0, nav: 0, ref: {}, top: {}, bots: {}, shares: {}, entry: {}, flow: {} };
+      d = { seen: new Set(), uv: 0, land: 0, nav: 0, ref: {}, top: {}, bots: {}, shares: {}, entry: {}, flow: {}, ev: {} };
       visitDays.set(day, d);
       while (visitDays.size > 3) visitDays.delete(visitDays.keys().next().value);
     }
@@ -323,6 +323,12 @@ function countVisit(req) {
     // 페이지만 받아 가는 로봇, 스크립트까지 돌리는 로봇 모두 손을 대지는 않아서 사람만 세져요.
     if (BOT_UA.test(ua)) return;
     const q = new URLSearchParams(query);
+    // 공유 버튼처럼 "무엇을 눌렀나"만 세는 신호 (방문자 수에는 넣지 않아요)
+    const e = q.get("e");
+    if (e) {
+      if (/^[a-z0-9-]{1,30}$/.test(e)) bump((d.ev ??= {}), e, 40);
+      return;
+    }
     const page = (q.get("p") ?? "/").split("?")[0].slice(0, 80);
     if (!page.startsWith("/")) return;
     const id = createHash("sha1").update(`${SALT}|${day}|${ip}|${ua}`).digest("base64").slice(0, 12);
@@ -397,7 +403,7 @@ function sendStats(req, res) {
   }
   if (path !== "/__stats") return false;
   const days = {};
-  for (const [day, d] of visitDays) days[day] = { uv: d.uv, land: d.land, nav: d.nav, ref: d.ref, top: d.top, bots: d.bots, shares: d.shares, entry: d.entry ?? {}, flow: d.flow ?? {} };
+  for (const [day, d] of visitDays) days[day] = { uv: d.uv, land: d.land, nav: d.nav, ref: d.ref, top: d.top, bots: d.bots, shares: d.shares, entry: d.entry ?? {}, flow: d.flow ?? {}, ev: d.ev ?? {} };
   res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store", "x-robots-tag": "noindex" });
   res.end(JSON.stringify({ v: 3, boot: BOOT, up: Math.round(process.uptime()), now: new Date().toISOString(), days }));
   return true;
