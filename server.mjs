@@ -537,6 +537,8 @@ createServer((req, res) => {
   // 메모리 진단용: 응답마다 지금 메모리(MB)와 켜진 지 몇 분인지 붙여요 (page-check가 기록해요. 서버가 다시 켜지는 원인 찾기)
   req.arrived = Date.now();
   countBytes(req, res);
+  // 방송 채팅 명령어가 불린 횟수 (새 유입 경로가 실제로 쓰이는지 보려고)
+  if (req.url?.startsWith("/api/chat")) bump((dayRec().ev ??= {}), "chat", 40);
   const m = process.memoryUsage();
   res.setHeader("x-mem", `rss=${Math.round(m.rss / 1e6)} heap=${Math.round(m.heapUsed / 1e6)} ext=${Math.round((m.external + m.arrayBuffers) / 1e6)} cache=${Math.round(cacheBytes / 1e6)} up=${Math.round(process.uptime() / 60)}m`);
   // ?lang=ko|en 주소(검색엔진이 언어별로 따로 담는 주소)는 쿠키보다 먼저 써요: 쿠키의 lang 값을 바꿔 넘깁니다

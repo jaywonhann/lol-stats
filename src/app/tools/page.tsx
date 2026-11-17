@@ -3,13 +3,14 @@ import GameTimers from "@/components/GameTimers";
 import { getSummonerSpells, getVersion, img } from "@/lib/ddragon";
 import { ddLocale } from "@/lib/i18n";
 import { getLang } from "@/lib/server";
+import { SITE } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   const ko = (await getLang()) === "ko";
   return {
-    title: ko ? "게임 도구" : "Game tools",
+    title: ko ? "게임 도구와 방송 채팅 명령어" : "Game tools and stream chat commands",
     description: ko ? "상대 스펠 쿨타임과 오브젝트 리스폰 타이머를 한 화면에서 확인해요." : "Enemy summoner spell cooldowns and objective respawn timers in one place.",
   };
 }
@@ -70,6 +71,37 @@ export default async function ToolsPage() {
           : "Timers to keep on a second screen or your phone. No install, no login, and nothing leaves this browser."}
       </p>
       <GameTimers spells={spells} labels={labels} />
+      {/* 방송 채팅 명령어: 스트리머가 한 줄 붙여 넣으면 시청자가 채팅에서 상성·카운터를 물어볼 수 있어요 */}
+      <section id="stream" className="rounded-lg border border-line bg-panel p-4">
+        <h2 className="text-lg font-bold">{ko ? "방송 채팅 명령어 (스트리머용)" : "Stream chat commands (for streamers)"}</h2>
+        <p className="mt-1 text-sm text-muted">
+          {ko
+            ? "Nightbot을 쓰는 방송이면 아래 줄을 채팅에 한 번 붙여 넣으세요. 가입도 키도 필요 없어요. 그다음부터 시청자가 \"!상성 야스오 요네\"라고 치면 이번 패치 실제 승률이 채팅에 나와요."
+            : "If your channel uses Nightbot, paste a line below into chat once. No signup, no key. After that, viewers can type \"!matchup yasuo yone\" and get the real win rate for this patch in chat."}
+        </p>
+        <div className="mt-3 space-y-3 text-sm">
+          {(ko
+            ? [
+                ["상성 (!상성 야스오 요네)", `!addcom !상성 $(urlfetch ${SITE}/api/chat?lang=ko&q=$(querystring))`],
+                ["카운터 (!카운터 아리)", `!addcom !카운터 $(urlfetch ${SITE}/api/chat?lang=ko&q=counter%20$(querystring))`],
+              ]
+            : [
+                ["Matchup (!matchup yasuo yone)", `!addcom !matchup $(urlfetch ${SITE}/api/chat?q=$(querystring))`],
+                ["Counters (!counter ahri)", `!addcom !counter $(urlfetch ${SITE}/api/chat?q=counter%20$(querystring))`],
+              ]
+          ).map(([label, cmd]) => (
+            <div key={label}>
+              <div className="font-semibold">{label}</div>
+              <code className="mt-1 block select-all overflow-x-auto whitespace-nowrap rounded bg-black/30 px-3 py-2 text-xs">{cmd}</code>
+            </div>
+          ))}
+          <p className="text-xs text-muted">
+            {ko
+              ? "한국 서버 에메랄드 이상 랭크 게임 기준이에요. 북미는 주소 끝에 &s=na, 유럽은 &s=euw를 붙이세요. StreamElements는 $(urlfetch ...) 대신 $(customapi ...)를 쓰면 돼요."
+              : "Based on Emerald+ ranked games on the KR server. Add &s=na or &s=euw to the address for other servers. On StreamElements use $(customapi ...) instead of $(urlfetch ...)."}
+          </p>
+        </div>
+      </section>
     </div>
   );
 }
