@@ -10,6 +10,8 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    # 점검 결과는 주석(annotation)으로 읽어요. 실패로 끝내면 Jaywon에게 "Run failed" 메일이 매번 가서 성공으로 끝내요.
+    continue-on-error: true
     steps:
       - name: Summoner timing (먼저 재요. 다른 점검이 서버 CPU를 쓰기 전에)
         run: |

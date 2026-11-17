@@ -300,6 +300,30 @@ const bump = (o, k, cap = 200) => {
   if (k in o) o[k]++;
   else if (Object.keys(o).length < cap) o[k] = 1;
 };
+function dayRec(day = new Date().toISOString().slice(0, 10)) {
+  let d = visitDays.get(day);
+  if (!d) {
+    d = { seen: new Set(), uv: 0, land: 0, nav: 0, ref: {}, top: {}, bots: {}, shares: {}, entry: {}, flow: {}, ev: {}, out: {} };
+    visitDays.set(day, d);
+    while (visitDays.size > 3) visitDays.delete(visitDays.keys().next().value);
+  }
+  return d;
+}
+// 누가 전송량을 얼마나 쓰는지 (KB). Render 무료는 한 달 5GB라서, 넘기 전에 어디서 새는지 보려고 세요.
+//   people: 브라우저, search: 검색 로봇, train: AI·SEO 수집 로봇, share: 링크 미리보기, check: 우리 점검·그 밖의 로봇
+function countBytes(req, res) {
+  const sock = req.socket;
+  const before = sock.bytesWritten;
+  res.once("finish", () => {
+    try {
+      const ua = String(req.headers["user-agent"] ?? "");
+      const who = TRAIN_UA.test(ua) ? "train" : SHARE_UA.some(([, re]) => re.test(ua)) ? "share" : CRAWL_UA.some(([, re]) => re.test(ua)) ? "search" : BOT_UA.test(ua) ? "check" : "people";
+      const d = dayRec();
+      d.out ??= {};
+      d.out[who] = (d.out[who] ?? 0) + Math.max(0, sock.bytesWritten - before) / 1024;
+    } catch {}
+  });
+}
 function countVisit(req) {
   try {
     if (req.method !== "GET" || req.headers["x-refresh"]) return;
@@ -309,12 +333,7 @@ function countVisit(req) {
     const isHit = pathname === "/__hit";
     if (!isHit && (req.headers["rsc"] || pathname.startsWith("/api/") || pathname.startsWith("/_next") || pathname.startsWith("/__") || /\.[a-z0-9]{2,5}$/i.test(pathname) || pathname.endsWith("opengraph-image"))) return;
     const day = new Date().toISOString().slice(0, 10);
-    let d = visitDays.get(day);
-    if (!d) {
-      d = { seen: new Set(), uv: 0, land: 0, nav: 0, ref: {}, top: {}, bots: {}, shares: {}, entry: {}, flow: {}, ev: {} };
-      visitDays.set(day, d);
-      while (visitDays.size > 3) visitDays.delete(visitDays.keys().next().value);
-    }
+    const d = dayRec(day);
     const ua = String(req.headers["user-agent"] ?? "");
     if (!isHit) {
       // 링크를 붙였을 때 메신저·SNS가 미리보기를 가져가는 요청: "누가 링크를 공유했다"는 신호라 따로 세요
@@ -408,7 +427,7 @@ function sendStats(req, res) {
   }
   if (path !== "/__stats") return false;
   const days = {};
-  for (const [day, d] of visitDays) days[day] = { uv: d.uv, land: d.land, nav: d.nav, ref: d.ref, top: d.top, bots: d.bots, shares: d.shares, entry: d.entry ?? {}, flow: d.flow ?? {}, ev: d.ev ?? {} };
+  for (const [day, d] of visitDays) days[day] = { uv: d.uv, land: d.land, nav: d.nav, ref: d.ref, top: d.top, bots: d.bots, shares: d.shares, entry: d.entry ?? {}, flow: d.flow ?? {}, ev: d.ev ?? {}, out: Object.fromEntries(Object.entries(d.out ?? {}).map(([k, v]) => [k, Math.round(v)])) };
   res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store", "x-robots-tag": "noindex" });
   res.end(JSON.stringify({ v: 3, boot: BOOT, up: Math.round(process.uptime()), now: new Date().toISOString(), days }));
   return true;
@@ -478,8 +497,8 @@ function champShortcut(req, res, pathname) {
     kind = "short-champ";
   } else return false;
   // 얼마나 쓰이는지 세요 (로봇 제외, 방문자 수에는 안 넣어요)
-  const d = visitDays.get(new Date().toISOString().slice(0, 10));
-  if (d && !BOT_UA.test(String(req.headers["user-agent"] ?? ""))) bump((d.ev ??= {}), kind, 40);
+  const d = dayRec();
+  if (!BOT_UA.test(String(req.headers["user-agent"] ?? ""))) bump((d.ev ??= {}), kind, 40);
   res.writeHead(302, { location: to, "cache-control": "public, max-age=3600", "x-robots-tag": "noindex" });
   res.end();
   return true;
@@ -515,6 +534,7 @@ let lastVisit = 0; // 방문자 페이지 요청이 마지막으로 온 시각 (
 createServer((req, res) => {
   // 메모리 진단용: 응답마다 지금 메모리(MB)와 켜진 지 몇 분인지 붙여요 (page-check가 기록해요. 서버가 다시 켜지는 원인 찾기)
   req.arrived = Date.now();
+  countBytes(req, res);
   const m = process.memoryUsage();
   res.setHeader("x-mem", `rss=${Math.round(m.rss / 1e6)} heap=${Math.round(m.heapUsed / 1e6)} ext=${Math.round((m.external + m.arrayBuffers) / 1e6)} cache=${Math.round(cacheBytes / 1e6)} up=${Math.round(process.uptime() / 60)}m`);
   // ?lang=ko|en 주소(검색엔진이 언어별로 따로 담는 주소)는 쿠키보다 먼저 써요: 쿠키의 lang 값을 바꿔 넘깁니다
@@ -535,7 +555,7 @@ createServer((req, res) => {
   // 작은 무료 서버에서 사람이 기다리게 만들어요. 저장해 둔 페이지만 주고, 새로 만들어야 하는 페이지는 만들지 않아요.
   // (구글·네이버·빙 검색 로봇과 링크 미리보기 로봇은 그대로 둬요)
   if (TRAIN_UA.test(String(req.headers["user-agent"] ?? ""))) {
-    if (fromCache(cacheKey(req), res, null)) return;
+    // 2026-11-17: 저장된 페이지도 안 줘요. Render 무료 전송량(월 5GB)의 70%를 보름 만에 썼고, 대부분 이런 로봇이 가져간 양이라서요.
     res.writeHead(429, { "retry-after": "86400", "cache-control": "no-store", "content-type": "text/plain; charset=utf-8" });
     return void res.end("crawl limit, see robots.txt");
   }
