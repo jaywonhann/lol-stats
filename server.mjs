@@ -39,8 +39,11 @@ const cookieOf = (req, name) => (req.headers.cookie ?? "").match(new RegExp(`(?:
 function cacheKey(req) {
   if (req.method !== "GET") return null;
   const pathname = (req.url ?? "/").split("?")[0];
-  const summoner = pathname === "/summoner" && /[?&]id=./.test(req.url ?? "") && !req.headers["rsc"];
-  if (!summoner && !CACHEABLE.test(pathname)) return null;
+  const hasId = /[?&]id=./.test(req.url ?? "");
+  const summoner = pathname === "/summoner" && hasId && !req.headers["rsc"];
+  // 전적 검색 첫 화면(이름 없이 /summoner)은 누구에게나 같아서 메뉴 페이지처럼 저장해요 (2026-11-17: 누를 때마다 3.7초 걸렸어요)
+  const landing = pathname === "/summoner" && !hasId;
+  if (!summoner && !landing && !CACHEABLE.test(pathname)) return null;
   // 멀티서치 검색 결과(소환사 이름이 들어간 주소)는 저장하지 않아요
   if (pathname === "/multi" && /[?&]q=./.test(req.url ?? "")) return null;
   const h = req.headers;
@@ -64,7 +67,8 @@ function remember(key, pathname, res, chunks) {
   const body = Buffer.concat(chunks);
   if (body.length > 3_000_000) return;
   // 전적 페이지가 오류(요청 한도·못 찾음)를 보여 준 거면 저장하지 않아요.
-  if (pathname === "/summoner") {
+  const landing = pathname === "/summoner" && !/[?&]id=./.test(key.split("\u0001")[0]);
+  if (pathname === "/summoner" && !landing) {
     const enc = headers["content-encoding"];
     let html = null;
     try {
@@ -78,7 +82,7 @@ function remember(key, pathname, res, chunks) {
   const old = pageCache.get(key);
   if (old) cacheBytes -= old.body.length;
   pageCache.delete(key);
-  pageCache.set(key, { at: Date.now(), ttl: ttl(pathname), status: res.statusCode, headers, body });
+  pageCache.set(key, { at: Date.now(), ttl: landing ? 30 * 60_000 : ttl(pathname), status: res.statusCode, headers, body });
   cacheBytes += body.length;
   // 가장 오래 안 쓴 것부터 지우되, 메뉴 페이지는 건너뛰어요
   for (const [k, v] of pageCache) {
@@ -451,7 +455,7 @@ createServer((req, res) => {
 // 위쪽·아래쪽 메뉴에 있는 페이지는 전부 (누르면 바로 뜨게)
 // (랭킹·프로·트렌드·아이템처럼 Riot 호출이나 여러 패치 데이터를 읽는 페이지는 배포 직후 한꺼번에 만들면
 //  메모리가 넘쳐 서버가 다시 켜졌어요. 그런 페이지는 첫 방문 때 만들어서 저장해 두고 지우지만 않아요)
-const WARM = ["/", "/tier", "/champions", "/counters", "/bans", "/meta", "/aram", "/duo", "/multi", ...["top", "jungle", "mid", "bottom", "support"].map((l) => `/tier?lane=${l}&rank=all`)];
+const WARM = ["/", "/tier", "/summoner", "/champions", "/counters", "/bans", "/meta", "/aram", "/duo", "/multi", ...["top", "jungle", "mid", "bottom", "support"].map((l) => `/tier?lane=${l}&rank=all`)];
 const WARM_SET = new Set([...WARM, "/ranking", "/items", "/trends", "/pros", "/tools", "/predict", "/matchup"]);
 async function warm(again = false) {
   if (process.env.PAGE_CACHE_MB === "0") return;

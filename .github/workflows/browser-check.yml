@@ -9,6 +9,9 @@ on:
       nav:
         description: 홈에서 차례로 눌러 볼 경로 (비우면 건너뜀)
         default: ''
+      search:
+        description: 검색창에 쳐 볼 소환사 이름 (쉼표로 구분, nav가 있을 때만)
+        default: ''
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -22,3 +25,4 @@ jobs:
         env:
           PAGES: ${{ inputs.pages || '/,/tier,/champions/Jinx' }}
           NAV: ${{ inputs.nav }}
+          SEARCH: ${{ inputs.search }}

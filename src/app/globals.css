@@ -204,3 +204,6 @@ textarea:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .nav-progress { animation: none; width: 70%; }
 }
+
+/* 페이지를 옮기는 동안: 이전 화면 내용을 숨기고 다음 화면 뼈대만 보여요 (NavProgress) */
+#main.nav-pending > :not(.nav-skeleton) { display: none; }
