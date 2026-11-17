@@ -313,6 +313,8 @@ function dayRec(day = new Date().toISOString().slice(0, 10)) {
 //   people: 브라우저, search: 검색 로봇, train: AI·SEO 수집 로봇, share: 링크 미리보기, check: 우리 점검·그 밖의 로봇
 function countBytes(req, res) {
   const sock = req.socket;
+  // 서버가 자기 자신에게 보내는 요청(페이지 미리 만들기)은 Render 전송량이 아니라서 빼요
+  if (sock.remoteAddress === "127.0.0.1" || sock.remoteAddress === "::1" || sock.remoteAddress === "::ffff:127.0.0.1") return;
   const before = sock.bytesWritten;
   res.once("finish", () => {
     try {
