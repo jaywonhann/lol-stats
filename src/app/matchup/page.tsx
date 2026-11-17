@@ -111,6 +111,9 @@ export default async function MatchupPage({ searchParams }: Props) {
     }
     aBeats.sort((x, y) => y.rate - x.rate || y.games - x.games);
   }
+  // A가 가장 자주 만나는 상대, A가 가장 힘들어하는 상대 (검색으로 들어온 사람이 다음에 볼 상성)
+  const common = [...aBeats].filter((r) => r.c.id !== B?.id).sort((x, y) => y.games - x.games).slice(0, 6);
+  const hardForA = [...aBeats].filter((r) => r.c.id !== B?.id && r.games >= 10).sort((x, y) => x.rate - y.rate || y.games - x.games).slice(0, 6);
 
   const select = "w-full rounded-lg bg-panel-2 px-3 py-3 text-base";
   const opts = champions.map((c) => (
@@ -187,6 +190,12 @@ export default async function MatchupPage({ searchParams }: Props) {
                 <Link href={`/champions/${B.id}?lane=${lane}`} className="text-accent hover:underline">
                   {ko ? `${B.name} 빌드 보기` : `${B.name} builds`}
                 </Link>
+                <Link href={`/champions/${A.id}/counters?lane=${lane}`} className="text-accent hover:underline">
+                  {ko ? `${A.name} 카운터 전체` : `All ${A.name} counters`}
+                </Link>
+                <Link href={`/champions/${B.id}/counters?lane=${lane}`} className="text-accent hover:underline">
+                  {ko ? `${B.name} 카운터 전체` : `All ${B.name} counters`}
+                </Link>
               </div>
             </div>
           ) : (
@@ -233,6 +242,20 @@ export default async function MatchupPage({ searchParams }: Props) {
           {aBeats.length > 0 && (
             <Panel title={ko ? `${A.name}가 잘 이기는 상대` : `${A.name} wins most against`}>
               <RankList rows={aBeats.slice(0, 6)} version={version} href={(c) => `/matchup?a=${A.id}&b=${c.id}&lane=${lane}`} ko={ko} />
+            </Panel>
+          )}
+        </div>
+      )}
+      {A && B && (common.length > 0 || hardForA.length > 0) && (
+        <div className="grid gap-4 md:grid-cols-2">
+          {common.length > 0 && (
+            <Panel title={ko ? `${A.name}가 가장 자주 만나는 상대` : `${A.name}'s most common opponents`}>
+              <RankList rows={common} version={version} href={(c) => `/matchup?a=${A.id}&b=${c.id}&lane=${lane}`} ko={ko} />
+            </Panel>
+          )}
+          {hardForA.length > 0 && (
+            <Panel title={ko ? `${A.name}가 가장 힘들어하는 상대` : `${A.name} struggles most against`}>
+              <RankList rows={hardForA} version={version} href={(c) => `/matchup?a=${A.id}&b=${c.id}&lane=${lane}`} ko={ko} />
             </Panel>
           )}
         </div>
