@@ -306,7 +306,7 @@ function countVisit(req) {
     const day = new Date().toISOString().slice(0, 10);
     let d = visitDays.get(day);
     if (!d) {
-      d = { seen: new Set(), uv: 0, land: 0, nav: 0, ref: {}, top: {}, bots: {}, shares: {} };
+      d = { seen: new Set(), uv: 0, land: 0, nav: 0, ref: {}, top: {}, bots: {}, shares: {}, entry: {}, flow: {} };
       visitDays.set(day, d);
       while (visitDays.size > 3) visitDays.delete(visitDays.keys().next().value);
     }
@@ -330,8 +330,12 @@ function countVisit(req) {
       d.seen.add(id);
       d.uv++;
     }
-    if (q.get("n") === "1") d.nav++;
-    else {
+    if (q.get("n") === "1") {
+      d.nav++;
+      // 경로별 효과 보기: 사이트 안에서 어느 페이지에서 어느 페이지로 옮겼는지 (예: "/matchup > /summoner")
+      const f = (q.get("f") ?? "").split("?")[0].slice(0, 80);
+      if (f.startsWith("/")) bump(d.flow, `${f} > ${page}`, 200);
+    } else {
       d.land++;
       let from = "direct";
       const r = q.get("r");
@@ -340,6 +344,8 @@ function countVisit(req) {
         from = h === String(req.headers.host ?? "").split(":")[0] ? "" : (REF_NAMES.find(([, re]) => re.test(h))?.[0] ?? h);
       }
       if (from) bump(d.ref, from, 60);
+      // 경로별 효과 보기: 어디서 와서 어느 페이지로 들어왔는지 (예: "google /matchup")
+      if (from) bump(d.entry, `${from} ${page}`, 200);
     }
     bump(d.top, page);
   } catch {
@@ -391,7 +397,7 @@ function sendStats(req, res) {
   }
   if (path !== "/__stats") return false;
   const days = {};
-  for (const [day, d] of visitDays) days[day] = { uv: d.uv, land: d.land, nav: d.nav, ref: d.ref, top: d.top, bots: d.bots, shares: d.shares };
+  for (const [day, d] of visitDays) days[day] = { uv: d.uv, land: d.land, nav: d.nav, ref: d.ref, top: d.top, bots: d.bots, shares: d.shares, entry: d.entry ?? {}, flow: d.flow ?? {} };
   res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store", "x-robots-tag": "noindex" });
   res.end(JSON.stringify({ v: 3, boot: BOOT, up: Math.round(process.uptime()), now: new Date().toISOString(), days }));
   return true;

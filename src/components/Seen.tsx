@@ -7,6 +7,7 @@ import { useEffect, useRef } from "react";
 // 로봇은 페이지를 받아 가도 손을 대지는 않아서, 이렇게 해야 사람 수만 세져요.
 // 보내는 건 지금 페이지 경로와 어느 사이트에서 왔는지(주소의 사이트 이름만)뿐이고, 쿠키나 개인 정보는 안 써요.
 let first = true;
+let prev = ""; // 바로 앞에 본 페이지 (사이트 안 이동 경로를 세려고)
 
 export default function Seen() {
   const pathname = usePathname();
@@ -36,7 +37,9 @@ export default function Seen() {
       const q = new URLSearchParams({ p: pathname });
       if (ref) q.set("r", ref);
       if (!first) q.set("n", "1");
+      if (!first && prev) q.set("f", prev);
       first = false;
+      prev = pathname;
       fetch(`/__hit?${q}`, { keepalive: true, cache: "no-store" }).catch(() => {});
     }
     events.forEach((e) => window.addEventListener(e, hit, { passive: true, once: true }));
