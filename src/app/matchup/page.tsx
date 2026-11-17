@@ -4,7 +4,9 @@ import { Icon, Panel } from "@/components/ui";
 import SummonerSearch from "@/components/SummonerSearch";
 import ShareButton from "@/components/ShareButton";
 import { getChampions, getPatches, img } from "@/lib/ddragon";
-import { LANES, laneLabel, parseLane } from "@/lib/lanes";
+import { LANES, laneLabel, parseLane, type Lane } from "@/lib/lanes";
+import { redirect } from "next/navigation";
+import BreadcrumbLd from "@/components/BreadcrumbLd";
 import { loadRealData } from "@/lib/real";
 import { topMatchups } from "@/lib/matchups";
 import { ddLocale } from "@/lib/i18n";
@@ -73,6 +75,17 @@ export default async function MatchupPage({ searchParams }: Props) {
   // 가장 최근에 실제 데이터가 있는 패치 (에메랄드+ 전체)
   const real = loadRealData({ server, rank: "all" });
   const patch = [...patches].reverse().find((p) => real.has(p));
+  // 라인 없이 들어오면(/yasuo-vs-yone 같은 짧은 주소) 두 챔피언이 가장 많이 만난 라인으로 보내요
+  if (A && B && !sp.lane && patch) {
+    const champs = real.get(patch)!.champs;
+    let best: Lane = lane;
+    let most = -1;
+    for (const l of LANES) {
+      const n = champs[`${A.key}:${l.id}`]?.vs[B.key]?.[0] ?? 0;
+      if (n > most) [most, best] = [n, l.id];
+    }
+    redirect(`/matchup?a=${A.id}&b=${B.id}&lane=${best}`);
+  }
   const agg = A && B && patch ? real.get(patch)!.champs[`${A.key}:${lane}`] : undefined;
   const [g, w] = agg?.vs[B!.key] ?? [0, 0];
   const rate = g ? (w / g) * 100 : null;
@@ -125,6 +138,14 @@ export default async function MatchupPage({ searchParams }: Props) {
 
   return (
     <div className="space-y-4">
+      {A && B && (
+        <BreadcrumbLd
+          items={[
+            { name: ko ? "상성" : "Matchups", path: "/matchup" },
+            { name: `${A.name} vs ${B.name}`, path: `/matchup?a=${A.id}&b=${B.id}&lane=${lane}` },
+          ]}
+        />
+      )}
       <div>
         <h1 className="text-2xl font-bold">{ko ? "챔피언 상성 비교" : "Champion matchup lookup"}</h1>
         <p className="mt-1 text-sm text-muted">
@@ -186,7 +207,7 @@ export default async function MatchupPage({ searchParams }: Props) {
               {g < 10 && <p className="mt-2 text-xs text-muted">{ko ? "표본이 적어서 참고용이에요." : "Small sample, treat as a rough guide."}</p>}
               <div className="mt-3">
                 <ShareButton
-                  url={`/matchup?a=${A.id}&b=${B.id}&lane=${lane}`}
+                  url={`/${A.id}-vs-${B.id}/${lane}`}
                   title={`${A.name} vs ${B.name}`}
                   label={ko ? "이 상성 친구한테 보내기" : "Send this matchup to a friend"}
                   copied={ko ? "승률과 링크를 복사했어요!" : "Win rate and link copied!"}

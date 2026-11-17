@@ -420,9 +420,74 @@ function sendStats(req, res) {
 //   /lol/profile/kr/hide on bush-kr1/overview (u.gg 식)
 //   /summoner/kr/Hide on bush-KR1            (그 밖의 사이트 식)
 const REGION = { kr: "kr", na: "na1", na1: "na1", euw: "euw1", euw1: "euw1" };
+// 챔피언 이름만으로 들어오는 짧은 주소 (2026-11-17 Jaywon: 찾는 통로를 더 단순하게)
+//   /yasuo, /야스오            → 챔피언 페이지
+//   /yasuo-vs-yone, /야스오-vs-요네 (뒤에 /mid 가능) → 상성 페이지
+//   /counter/yasuo, /카운터/야스오 → 카운터 페이지
+// 이름은 띄어쓰기·기호를 빼고 비교해요 (leesin, kaisa, 리신). 목록을 못 받으면 짧은 주소만 안 될 뿐 나머지는 그대로예요.
+const champSlug = new Map();
+const slugOf = (v) => v.toLowerCase().replace(/[\s'.&_-]/g, "");
+async function loadChampSlugs() {
+  try {
+    const base = process.env.DDRAGON_BASE ?? "https://ddragon.leagueoflegends.com";
+    const get = async (u) => (await fetch(base + u, { signal: AbortSignal.timeout(15000) })).json();
+    const [ver] = await get("/api/versions.json");
+    for (const loc of ["ko_KR", "en_US"]) {
+      const { data } = await get(`/cdn/${ver}/data/${loc}/champion.json`);
+      for (const c of Object.values(data)) {
+        champSlug.set(slugOf(c.name), c.id);
+        champSlug.set(slugOf(c.id), c.id);
+      }
+    }
+  } catch {
+    setTimeout(loadChampSlugs, 60_000).unref();
+  }
+}
+loadChampSlugs();
+const LANE_WORD = { top: "top", jungle: "jungle", jg: "jungle", mid: "mid", middle: "mid", bottom: "bottom", bot: "bottom", adc: "bottom", support: "support", sup: "support", 탑: "top", 정글: "jungle", 미드: "mid", 원딜: "bottom", 바텀: "bottom", 서폿: "support", 서포터: "support" };
+function champShortcut(req, res, pathname) {
+  if (!champSlug.size || pathname.length > 120 || pathname.includes(".")) return false;
+  let parts;
+  try {
+    parts = decodeURIComponent(pathname).split("/").filter(Boolean);
+  } catch {
+    return false;
+  }
+  if (parts.length < 1 || parts.length > 2) return false;
+  const find = (v) => champSlug.get(slugOf(v));
+  let to;
+  let kind;
+  const vs = /^(.+?)[-_ ](?:vs|대)[-_ ](.+)$/i.exec(parts[0]);
+  if (vs) {
+    const a = find(vs[1]);
+    const b = find(vs[2]);
+    if (!a || !b || a === b) return false;
+    const lane = parts[1] ? LANE_WORD[parts[1].toLowerCase()] : undefined;
+    if (parts[1] && !lane) return false;
+    to = `/matchup?a=${a}&b=${b}${lane ? `&lane=${lane}` : ""}`;
+    kind = "short-vs";
+  } else if (parts.length === 2 && /^(counters?|카운터)$/i.test(parts[0])) {
+    const c = find(parts[1]);
+    if (!c) return false;
+    to = `/champions/${c}/counters`;
+    kind = "short-counter";
+  } else if (parts.length === 1) {
+    const c = find(parts[0]);
+    if (!c) return false;
+    to = `/champions/${c}`;
+    kind = "short-champ";
+  } else return false;
+  // 얼마나 쓰이는지 세요 (로봇 제외, 방문자 수에는 안 넣어요)
+  const d = visitDays.get(new Date().toISOString().slice(0, 10));
+  if (d && !BOT_UA.test(String(req.headers["user-agent"] ?? ""))) bump((d.ev ??= {}), kind, 40);
+  res.writeHead(302, { location: to, "cache-control": "public, max-age=3600", "x-robots-tag": "noindex" });
+  res.end();
+  return true;
+}
 function shortcut(req, res) {
   if (req.method !== "GET" && req.method !== "HEAD") return false;
   const [pathname, query = ""] = (req.url ?? "").split("?");
+  if (champShortcut(req, res, pathname)) return true;
   const m =
     /^\/s\/()([^/]+)\/?$/.exec(pathname) ??
     /^(?:\/lol)?\/summoners?\/([a-z0-9]+)\/([^/]+)\/?$/i.exec(pathname) ??

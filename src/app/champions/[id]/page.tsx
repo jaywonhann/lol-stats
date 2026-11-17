@@ -1,3 +1,4 @@
+import BreadcrumbLd from "@/components/BreadcrumbLd";
 import { patchName } from "@/lib/lanes";
 import type { Metadata } from "next";
 import Link from "@/components/Link";
@@ -163,6 +164,7 @@ export default async function ChampionPage({ params, searchParams }: Props) {
 
   return (
     <div className="space-y-4">
+      <BreadcrumbLd items={[{ name: lang === "ko" ? "챔피언" : "Champions", path: "/champions" }, { name: champion.name, path: `/champions/${champion.id}` }]} />
       {/* 요약 헤더 */}
       <Panel>
         <div className="flex flex-wrap items-center gap-4">
