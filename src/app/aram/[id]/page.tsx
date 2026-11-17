@@ -25,13 +25,18 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const { champ } = await findChamp(id, lang);
   if (!champ) return {};
   const name = modeName(mode, ko);
+  // 검색 결과에 실제 숫자가 보이게 (표본 30판 이상일 때만)
+  const a = loadAram().champs[`${mode}:${champ.key}`];
+  const wr = a && a.games >= 30 ? ((a.wins / a.games) * 100).toFixed(1) : null;
+  const num = wr ? (ko ? ` (승률 ${wr}%)` : ` (${wr}% win rate)`) : "";
+  const numDesc = wr ? (ko ? `${champ.name} ${name} 승률 ${wr}% (${a.games.toLocaleString("en-US")}판). ` : `${champ.name} wins ${wr}% of ${a.games.toLocaleString("en-US")} ${name} games. `) : "";
   return {
     title: ko
-      ? `${champ.name} ${mode === "mayhem" ? "증바람 템트리 · 증강 추천" : "칼바람 템트리 · 룬"}`
-      : `${champ.name} ${name} build${mode === "mayhem" ? " and augments" : ""}`,
+      ? `${champ.name} ${mode === "mayhem" ? "증바람 템트리 · 증강 추천" : "칼바람 템트리 · 룬"}${num}`
+      : `${champ.name} ${name} build${mode === "mayhem" ? " and augments" : ""}${num}`,
     description: ko
-      ? `실제 ${name} 게임으로 집계한 ${champ.name} 승률 높은 템트리${mode === "mayhem" ? ", 증강" : ""}, 신발, 룬, 스펠.`
-      : `${champ.name} best items${mode === "mayhem" ? ", augments" : ""}, boots, runes and spells from real ${name} games.`,
+      ? `${numDesc}실제 ${name} 게임으로 집계한 ${champ.name} 승률 높은 템트리${mode === "mayhem" ? ", 증강" : ""}, 신발, 룬, 스펠.`
+      : `${numDesc}${champ.name} best items${mode === "mayhem" ? ", augments" : ""}, boots, runes and spells from real ${name} games.`,
     alternates: await langAlternates(`/aram/${champ.id}?mode=${mode}`),
     openGraph: { images: [{ url: `/api/aram-card?id=${champ.id}&mode=${mode}`, width: 1200, height: 630 }] },
     twitter: { card: "summary_large_image", images: [`/api/aram-card?id=${champ.id}&mode=${mode}`] },
