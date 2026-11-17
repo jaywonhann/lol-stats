@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "@/components/Link";
 import { Icon, Panel } from "@/components/ui";
+import SummonerSearch from "@/components/SummonerSearch";
 import { getChampions, getPatches, img } from "@/lib/ddragon";
 import { LANES, laneLabel, parseLane } from "@/lib/lanes";
 import { loadRealData } from "@/lib/real";
@@ -259,6 +260,17 @@ export default async function MatchupPage({ searchParams }: Props) {
             </Panel>
           )}
         </div>
+      )}
+      {A && B && (
+        // 검색으로 상성만 보고 나가는 사람이 자기 전적도 넣어 보게 (2026-11-17 유입 분석)
+        <Panel title={ko ? "내 전적으로 확인해 보기" : "Check it against your own games"}>
+          <p className="mb-3 text-sm text-muted">
+            {ko
+              ? "라이엇 ID를 넣으면 최근 20판에서 내가 어떤 상대에게 약했는지, 진 판이 억까였는지 내 탓이었는지 바로 보여줘요."
+              : "Enter your Riot ID to see which opponents beat you in your last 20 games, and whether your losses were on you or your team."}
+          </p>
+          <SummonerSearch lang={lang} server={server} />
+        </Panel>
       )}
     </div>
   );
