@@ -1,0 +1,16 @@
+{
+  // Cloudflare 사본 설정. cf-mirror.yml이 KV 번호(VISITS_KV_ID)를 채워서 배포해요.
+  "name": "livelol",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "assets": {
+    "directory": "../mirror-out",
+    "binding": "ASSETS",
+    "html_handling": "none",
+    "not_found_handling": "none",
+    // _next 정적 파일은 Worker를 거치지 않아요 (무료·무제한). 나머지는 Worker가 주소를 보고 사본에서 찾아 줘요.
+    "run_worker_first": ["/*", "!/_next/*"]
+  },
+  "kv_namespaces": [{ "binding": "VISITS", "id": "VISITS_KV_ID" }]
+}

@@ -1,0 +1,67 @@
+# 사이트를 정적 사본으로 만들어 Cloudflare(Workers 정적 파일, 무료)에 올려요.
+# 2026-11-18 Render 무료 전송량(월 5GB)이 다 차서 사이트가 멈춘 뒤 만든 길이에요.
+# 필요한 시크릿: CLOUDFLARE_API_TOKEN ("Edit Cloudflare Workers" 템플릿). 없으면 사본만 만들어 보고 올리지는 않아요.
+name: Cloudflare 사본 올리기
+
+on:
+  schedule:
+    - cron: "50 3,15 * * *"
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "시험용: 앞에서부터 이 수만큼만 받기 (0 = 전부)"
+        default: "0"
+
+concurrency:
+  group: cf-mirror
+  cancel-in-progress: true
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.18.1"
+          cache: npm
+      - name: 새 주소 알아내기
+        run: |
+          SITE=https://livelol.onrender.com
+          if [ -n "$CLOUDFLARE_API_TOKEN" ]; then
+            ACC=$(curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" https://api.cloudflare.com/client/v4/accounts | jq -r '.result[0].id')
+            SUB=$(curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$ACC/workers/subdomain" | jq -r '.result.subdomain // empty')
+            echo "CLOUDFLARE_ACCOUNT_ID=$ACC" >> $GITHUB_ENV
+            if [ -n "$SUB" ]; then SITE="https://livelol.$SUB.workers.dev"; else echo "::warning::workers.dev 이름이 아직 없어요. Cloudflare 대시보드 → Workers & Pages 를 한 번 열면 정해져요."; fi
+          else
+            echo "::warning::CLOUDFLARE_API_TOKEN 시크릿이 없어서 사본만 만들어 봐요."
+          fi
+          echo "NEXT_PUBLIC_SITE=$SITE" >> $GITHUB_ENV
+          echo "::notice title=site::$SITE"
+      - run: npm ci && npm run build
+      - name: 사이트 켜고 사본 받기
+        env:
+          LIMIT: ${{ inputs.limit || '0' }}
+        run: |
+          PAGE_CACHE_MB=0 PORT=3999 node server.mjs > server.log 2>&1 &
+          for i in $(seq 1 60); do curl -s -o /dev/null http://localhost:3999/robots.txt && break; sleep 1; done
+          OUT=$PWD/mirror-out BASE=http://localhost:3999 node scripts/mirror.mjs | tee mirror.log
+          mkdir -p mirror-out/_next
+          cp -r .next/static mirror-out/_next/static
+          find mirror-out/_next -name '*.br' -delete -o -name '*.gz' -delete
+          cp -r public/. mirror-out/
+          echo "::notice title=mirror::$(tail -40 mirror.log | grep -E '^pages=' ) files=$(find mirror-out -type f | wc -l) size=$(du -sh mirror-out | cut -f1)"
+          echo "::notice title=bad::$(grep -vE '^[0-9]+/|^pages=' mirror.log | head -12 | tr '\n' ' ' | cut -c1-900)"
+          echo "::notice title=log::$(grep -iE 'error|⨯|heap' server.log | sort | uniq -c | sort -rn | head -5 | tr '\n' ' ' | cut -c1-600)"
+      - name: Cloudflare에 올리기
+        if: env.CLOUDFLARE_API_TOKEN != '' && (inputs.limit || '0') == '0'
+        working-directory: cf
+        run: |
+          KV=$(npx -y wrangler@4 kv namespace list | jq -r '.[] | select(.title=="livelol-visits") | .id')
+          [ -n "$KV" ] || { npx -y wrangler@4 kv namespace create livelol-visits > /dev/null; KV=$(npx -y wrangler@4 kv namespace list | jq -r '.[] | select(.title=="livelol-visits") | .id'); }
+          sed -i "s/VISITS_KV_ID/$KV/" wrangler.jsonc
+          npx -y wrangler@4 deploy 2>&1 | tail -15 | tee deploy.log
+          echo "::notice title=deploy::$(grep -oE 'https://[a-z0-9.-]+workers\.dev' deploy.log | head -1) $(grep -ciE 'error' deploy.log) errors"
