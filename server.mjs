@@ -328,7 +328,9 @@ function countBytes(req, res) {
 }
 function countVisit(req) {
   try {
-    if (req.method !== "GET" || req.headers["x-refresh"]) return;
+    // sendBeacon은 POST로 와요. /__hit만 POST도 받아요 (2026-11-18까지 버튼 누름·퀴즈 신호가 여기서 버려졌어요)
+    const beacon = req.method === "POST" && (req.url ?? "").startsWith("/__hit");
+    if ((req.method !== "GET" && !beacon) || req.headers["x-refresh"]) return;
     const ip = String(req.headers["x-forwarded-for"] ?? req.socket.remoteAddress ?? "").split(",")[0].trim();
     if (!ip || ip === "127.0.0.1" || ip === "::1" || ip === "::ffff:127.0.0.1") return;
     const [pathname, query = ""] = (req.url ?? "/").split("?");
