@@ -235,6 +235,14 @@ export default async function ChampionPage({ params, searchParams }: Props) {
           {` · ${t.serverName(serverLabel(server, lang))} · ${rankLabel(rank, lang)}`}
           {source === "real" ? t.sourceReal : t.sourceMock}
         </p>
+        {stat && source === "real" && stat.games >= 100 && (
+          // 검색엔진과 AI 답변이 그대로 인용하기 쉬운 한 문장 (숫자·표본·패치·서버 포함)
+          <p className="mt-2 text-sm text-muted">
+            {lang === "ko"
+              ? `${patchName(patch)} 패치 ${serverLabel(server, lang)} ${rankLabel(rank, lang)} 솔로랭크 ${stat.games.toLocaleString(nl)}게임 기준, ${laneLabel(lane, lang)} ${champion.name}의 승률은 ${pct(stat.winRate)}, 픽률은 ${pct(stat.pickRate)}, 밴률은 ${pct(stat.banRate)}예요.${mu?.hard[0] ? ` 가장 힘든 상대는 ${mu.hard[0].champion.name}(${champion.name} 승률 ${pct(mu.hard[0].winRate)})예요.` : ""}`
+              : `${champion.name} ${laneLabel(lane, lang)} has a ${pct(stat.winRate)} win rate, ${pct(stat.pickRate)} pick rate and ${pct(stat.banRate)} ban rate across ${stat.games.toLocaleString(nl)} ${rankLabel(rank, lang)} ranked solo games on ${serverLabel(server, lang)}, patch ${patchName(patch)}.${mu?.hard[0] ? ` The hardest matchup is ${mu.hard[0].champion.name} (${champion.name} wins ${pct(mu.hard[0].winRate)}).` : ""}`}
+          </p>
+        )}
       </Panel>
 
       {/* 처음 화면에 바로 보이게 룬·아이템·스펠·스킬 빌드를 맨 위에 둬요 */}
