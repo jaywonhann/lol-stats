@@ -149,6 +149,8 @@ export default async function ChampionPage({ params, searchParams }: Props) {
     ? (realChamp(loadRealData({ server, rank: "all" }).get(patch) ?? real.get(patch)!, champion, lane) ?? agg)
     : null;
   const mu = allAgg ? realMatchups(allAgg, champion, champions) : null;
+  // 한 문장 요약에는 표본이 충분한 상대만 써요 (5판짜리 20% 같은 숫자가 인용되지 않게)
+  const hardest = mu?.hard.find((m) => m.games >= 30);
   const duos = allAgg && (lane === "bottom" || lane === "support") ? realDuos(allAgg, champions) : [];
   const cp = agg ? realCorePath(agg, items) : null;
   // 휴대폰에서 첫 화면에 한 줄로 보이는 대표 빌드 (룬·스펠·코어템·스킬 순서)
@@ -239,8 +241,8 @@ export default async function ChampionPage({ params, searchParams }: Props) {
           // 검색엔진과 AI 답변이 그대로 인용하기 쉬운 한 문장 (숫자·표본·패치·서버 포함)
           <p className="mt-2 text-sm text-muted">
             {lang === "ko"
-              ? `${patchName(patch)} 패치 ${serverLabel(server, lang)} ${rankLabel(rank, lang)} 솔로랭크 ${stat.games.toLocaleString(nl)}게임 기준, ${laneLabel(lane, lang)} ${champion.name}의 승률은 ${pct(stat.winRate)}, 픽률은 ${pct(stat.pickRate)}, 밴률은 ${pct(stat.banRate)}예요.${mu?.hard[0] ? ` 가장 힘든 상대는 ${mu.hard[0].champion.name}(${champion.name} 승률 ${pct(mu.hard[0].winRate)})예요.` : ""}`
-              : `${champion.name} ${laneLabel(lane, lang)} has a ${pct(stat.winRate)} win rate, ${pct(stat.pickRate)} pick rate and ${pct(stat.banRate)} ban rate across ${stat.games.toLocaleString(nl)} ${rankLabel(rank, lang)} ranked solo games on ${serverLabel(server, lang)}, patch ${patchName(patch)}.${mu?.hard[0] ? ` The hardest matchup is ${mu.hard[0].champion.name} (${champion.name} wins ${pct(mu.hard[0].winRate)}).` : ""}`}
+              ? `${patchName(patch)} 패치 ${serverLabel(server, lang)} ${rankLabel(rank, lang)} 솔로랭크 ${stat.games.toLocaleString(nl)}게임 기준, ${laneLabel(lane, lang)} ${champion.name}의 승률은 ${pct(stat.winRate)}, 픽률은 ${pct(stat.pickRate)}, 밴률은 ${pct(stat.banRate)}예요.${hardest ? ` 가장 힘든 상대는 ${hardest.champion.name}(${champion.name} 승률 ${pct(hardest.winRate)})예요.` : ""}`
+              : `${champion.name} ${laneLabel(lane, lang)} has a ${pct(stat.winRate)} win rate, ${pct(stat.pickRate)} pick rate and ${pct(stat.banRate)} ban rate across ${stat.games.toLocaleString(nl)} ${rankLabel(rank, lang)} ranked solo games on ${serverLabel(server, lang)}, patch ${patchName(patch)}.${hardest ? ` The hardest matchup is ${hardest.champion.name} (${champion.name} wins ${pct(hardest.winRate)}).` : ""}`}
           </p>
         )}
       </Panel>
