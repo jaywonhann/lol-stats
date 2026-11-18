@@ -45,6 +45,8 @@ async function page(u) {
   const r = await get(u);
   if (r.status !== 200) return bad.push(`${u} ${r.status}`);
   const html = await r.text();
+  // 서버 쪽에서 화면을 만들다 오류가 나도 200으로 와요 (오류 번호 digest가 들어 있음). 그런 페이지는 올리지 않아요.
+  if (/digest\\?":\\?"\d+/.test(html)) return bad.push(`${u} render-error`);
   save(pageKey(pathname, searchParams), html);
   ok++;
   // 공유 미리보기 그림 주소 (상성 페이지는 수가 많아서 빼요)
